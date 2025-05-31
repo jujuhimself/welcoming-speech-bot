@@ -8,11 +8,20 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Link, useNavigate } from "react-router-dom";
 import { Package } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth, User } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 
+interface FormData {
+  name: string;
+  email: string;
+  password: string;
+  role: 'admin' | 'pharmacy' | '';
+  pharmacyName: string;
+  address: string;
+}
+
 const Register = () => {
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
     password: "",
@@ -27,9 +36,19 @@ const Register = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.role || (formData.role !== 'admin' && formData.role !== 'pharmacy')) {
+      toast({
+        title: "Invalid role",
+        description: "Please select a valid account type.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
 
-    const success = await register(formData);
+    const success = await register(formData as Partial<User> & { password: string });
     
     if (success) {
       toast({
@@ -50,8 +69,12 @@ const Register = () => {
     setIsLoading(false);
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: keyof FormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleRoleChange = (value: 'admin' | 'pharmacy') => {
+    setFormData(prev => ({ ...prev, role: value }));
   };
 
   return (
@@ -111,7 +134,7 @@ const Register = () => {
               
               <div className="space-y-2">
                 <Label htmlFor="role">Account Type</Label>
-                <Select onValueChange={(value) => handleInputChange('role', value)} required>
+                <Select onValueChange={handleRoleChange} required>
                   <SelectTrigger>
                     <SelectValue placeholder="Select account type" />
                   </SelectTrigger>
