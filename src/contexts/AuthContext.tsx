@@ -29,11 +29,42 @@ export const useAuth = () => {
   return context;
 };
 
+// Initialize demo users
+const initializeDemoUsers = () => {
+  const existingUsers = localStorage.getItem('bepawa_users');
+  if (!existingUsers) {
+    const demoUsers = [
+      {
+        id: '1',
+        email: 'admin@test.com',
+        password: 'password123',
+        name: 'Admin User',
+        role: 'admin',
+        isApproved: true
+      },
+      {
+        id: '2',
+        email: 'pharmacy@test.com',
+        password: 'password123',
+        name: 'Pharmacy Demo',
+        role: 'pharmacy',
+        pharmacyName: 'Demo Pharmacy',
+        address: 'Dar es Salaam, Tanzania',
+        isApproved: true
+      }
+    ];
+    localStorage.setItem('bepawa_users', JSON.stringify(demoUsers));
+  }
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Initialize demo users on first load
+    initializeDemoUsers();
+    
     // Check for stored user on app load
     const storedUser = localStorage.getItem('bepawa_user');
     if (storedUser) {
@@ -45,7 +76,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     
-    // Simulated login logic - replace with actual API call
+    // Get users from localStorage
     const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
     const foundUser = users.find((u: User & { password: string }) => 
       u.email === email && u.password === password
