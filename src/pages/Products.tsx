@@ -36,61 +36,79 @@ const Products = () => {
       setProducts(parsedProducts);
       setFilteredProducts(parsedProducts);
     } else {
-      // Initialize with sample products
+      // Initialize with realistic medical products
       const sampleProducts: Product[] = [
         {
           id: "1",
           name: "Paracetamol 500mg",
           category: "painkillers",
-          price: 150,
+          price: 1500,
           stock: 500,
-          description: "Effective pain relief and fever reducer",
+          description: "Effective pain relief and fever reducer - Pack of 20 tablets",
           image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400"
         },
         {
           id: "2",
           name: "Amoxicillin 250mg",
           category: "antibiotics",
-          price: 300,
+          price: 5000,
           stock: 200,
-          description: "Broad-spectrum antibiotic capsules",
+          description: "Broad-spectrum antibiotic capsules - Pack of 21 capsules",
           image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400"
         },
         {
           id: "3",
-          name: "Vitamin C Tablets",
-          category: "vitamins",
-          price: 500,
-          stock: 150,
-          description: "Immune system support supplement",
-          image: "https://images.unsplash.com/photo-1550572017-edd951b55104?w=400"
+          name: "Latex Gloves (Box of 100)",
+          category: "supplies",
+          price: 15000,
+          stock: 8,
+          description: "Disposable latex examination gloves - Powder-free",
+          image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400"
         },
         {
           id: "4",
-          name: "Blood Pressure Monitor",
-          category: "equipment",
-          price: 3500,
-          stock: 25,
-          description: "Digital blood pressure monitoring device",
-          image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400"
+          name: "Hand Sanitizer 500ml",
+          category: "hygiene",
+          price: 4500,
+          stock: 150,
+          description: "70% alcohol-based hand sanitizer with moisturizer",
+          image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400"
         },
         {
           id: "5",
-          name: "Disposable Syringes (10ml)",
+          name: "Surgical Face Masks (Box of 50)",
           category: "supplies",
-          price: 50,
-          stock: 1000,
-          description: "Sterile disposable syringes pack of 10",
-          image: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=400"
+          price: 10000,
+          stock: 5,
+          description: "3-layer disposable surgical face masks",
+          image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400"
         },
         {
           id: "6",
-          name: "Hand Sanitizer 500ml",
-          category: "hygiene",
-          price: 200,
-          stock: 300,
-          description: "70% alcohol hand sanitizer",
-          image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400"
+          name: "Digital Thermometer",
+          category: "equipment",
+          price: 12000,
+          stock: 25,
+          description: "Fast and accurate digital thermometer with LCD display",
+          image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400"
+        },
+        {
+          id: "7",
+          name: "Multivitamin Tablets",
+          category: "vitamins",
+          price: 8000,
+          stock: 100,
+          description: "Complete multivitamin supplement - 30 tablets",
+          image: "https://images.unsplash.com/photo-1550572017-edd951b55104?w=400"
+        },
+        {
+          id: "8",
+          name: "Blood Pressure Monitor",
+          category: "equipment",
+          price: 85000,
+          stock: 3,
+          description: "Automatic digital blood pressure monitor with large display",
+          image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400"
         }
       ];
       
@@ -157,24 +175,26 @@ const Products = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Medical Products Catalog</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Medical Products Catalog</h1>
+          <p className="text-gray-600 text-lg">Browse our comprehensive selection of pharmaceutical products</p>
           
           {/* Search and Filter */}
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
+          <div className="flex flex-col md:flex-row gap-4 mt-6">
             <div className="flex-1">
               <Input
                 placeholder="Search products..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
+                className="h-12 text-lg"
               />
             </div>
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-[200px]">
+              <SelectTrigger className="w-full md:w-[250px] h-12">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent className="bg-white border shadow-lg">
@@ -190,37 +210,51 @@ const Products = () => {
 
         {/* Products Grid */}
         {filteredProducts.length === 0 ? (
-          <div className="text-center py-12">
-            <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-2">No products found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria</p>
+          <div className="text-center py-16">
+            <Package className="h-20 w-20 text-gray-400 mx-auto mb-6" />
+            <h3 className="text-2xl font-semibold text-gray-600 mb-3">No products found</h3>
+            <p className="text-gray-500 text-lg">Try adjusting your search or filter criteria</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredProducts.map((product) => (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow">
+              <Card key={product.id} className="group hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1">
                 <CardHeader className="p-0">
-                  <img
-                    src={product.image}
-                    alt={product.name}
-                    className="w-full h-48 object-cover rounded-t-lg"
-                  />
-                </CardHeader>
-                <CardContent className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <CardTitle className="text-lg font-semibold">{product.name}</CardTitle>
-                    <Badge variant={product.stock > 0 ? "default" : "destructive"}>
-                      {product.stock > 0 ? "In Stock" : "Out of Stock"}
-                    </Badge>
+                  <div className="relative">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="w-full h-48 object-cover rounded-t-lg"
+                    />
+                    {product.stock < 10 && (
+                      <Badge variant="destructive" className="absolute top-3 right-3">
+                        Low Stock
+                      </Badge>
+                    )}
+                    {product.stock > 0 && product.stock >= 10 && (
+                      <Badge className="absolute top-3 right-3 bg-green-500">
+                        In Stock
+                      </Badge>
+                    )}
+                    {product.stock === 0 && (
+                      <Badge variant="destructive" className="absolute top-3 right-3">
+                        Out of Stock
+                      </Badge>
+                    )}
                   </div>
+                </CardHeader>
+                <CardContent className="p-6">
+                  <CardTitle className="text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors">
+                    {product.name}
+                  </CardTitle>
                   
-                  <p className="text-gray-600 text-sm mb-3">{product.description}</p>
+                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
                   
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-2xl font-bold text-blue-600">
-                      KSh {product.price.toLocaleString()}
+                  <div className="flex justify-between items-center mb-4">
+                    <span className="text-3xl font-bold text-blue-600">
+                      TZS {product.price.toLocaleString()}
                     </span>
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
                       Stock: {product.stock}
                     </span>
                   </div>
@@ -228,9 +262,9 @@ const Products = () => {
                   <Button
                     onClick={() => addToCart(product)}
                     disabled={product.stock === 0 || user?.role !== 'pharmacy'}
-                    className="w-full"
+                    className="w-full h-12 text-lg font-semibold"
                   >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
+                    <ShoppingCart className="h-5 w-5 mr-2" />
                     Add to Cart
                   </Button>
                 </CardContent>

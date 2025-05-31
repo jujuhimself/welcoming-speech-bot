@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Package, ShoppingCart, Clock, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import QuickReorder from "@/components/QuickReorder";
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
@@ -78,79 +79,82 @@ const PharmacyDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Welcome back, {user.pharmacyName}
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.pharmacyName}
           </h1>
-          <p className="text-gray-600">Manage your orders and browse our medical product catalog</p>
+          <p className="text-gray-600 text-lg">Manage your orders and browse our medical product catalog</p>
         </div>
 
         {/* Stats Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
-          <Card>
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-blue-100">Total Orders</CardTitle>
+              <Package className="h-4 w-4 text-blue-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <div className="text-3xl font-bold">{stats.totalOrders}</div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-yellow-100">Pending Orders</CardTitle>
+              <Clock className="h-4 w-4 text-yellow-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+              <div className="text-3xl font-bold">{stats.pendingOrders}</div>
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Cart Items</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+              <CardTitle className="text-sm font-medium text-green-100">Cart Items</CardTitle>
+              <ShoppingCart className="h-4 w-4 text-green-200" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.cartItems}</div>
+              <div className="text-3xl font-bold">{stats.cartItems}</div>
             </CardContent>
           </Card>
         </div>
 
+        {/* Quick Reorder */}
+        <QuickReorder />
+
         {/* Quick Actions */}
-        <Card className="mb-8">
+        <Card className="mb-8 shadow-lg border-0">
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="text-2xl">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid md:grid-cols-4 gap-4">
-              <Button asChild className="h-20 flex-col">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <Button asChild className="h-24 flex-col bg-blue-600 hover:bg-blue-700 text-white">
                 <Link to="/products">
-                  <Package className="h-6 w-6 mb-2" />
+                  <Package className="h-8 w-8 mb-2" />
                   Browse Products
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col">
+              <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
                 <Link to="/cart">
-                  <ShoppingCart className="h-6 w-6 mb-2" />
+                  <ShoppingCart className="h-8 w-8 mb-2" />
                   View Cart ({stats.cartItems})
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col">
+              <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
                 <Link to="/orders">
-                  <Clock className="h-6 w-6 mb-2" />
+                  <Clock className="h-8 w-8 mb-2" />
                   Order History
                 </Link>
               </Button>
-              <Button asChild variant="outline" className="h-20 flex-col">
-                <Link to="/profile">
-                  <User className="h-6 w-6 mb-2" />
-                  Profile
+              <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
+                <Link to="/credit-request">
+                  <User className="h-8 w-8 mb-2" />
+                  Request Credit
                 </Link>
               </Button>
             </div>
@@ -158,36 +162,36 @@ const PharmacyDashboard = () => {
         </Card>
 
         {/* Recent Orders */}
-        <Card>
+        <Card className="shadow-lg border-0">
           <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
+            <CardTitle className="text-2xl">Recent Orders</CardTitle>
           </CardHeader>
           <CardContent>
             {recentOrders.length === 0 ? (
-              <div className="text-center py-8">
-                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-600">No orders yet</p>
-                <Button asChild className="mt-4">
+              <div className="text-center py-12">
+                <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 text-lg mb-4">No orders yet</p>
+                <Button asChild size="lg">
                   <Link to="/products">Start Shopping</Link>
                 </Button>
               </div>
             ) : (
               <div className="space-y-4">
                 {recentOrders.map((order: any) => (
-                  <div key={order.id} className="flex justify-between items-center p-4 border rounded-lg">
+                  <div key={order.id} className="flex justify-between items-center p-6 border rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div>
-                      <p className="font-medium">Order #{order.id}</p>
-                      <p className="text-sm text-gray-600">
+                      <p className="font-semibold text-lg">Order #{order.id}</p>
+                      <p className="text-gray-600">
                         {new Date(order.createdAt).toLocaleDateString()}
                       </p>
-                      <p className="text-sm font-medium">KSh {order.total.toLocaleString()}</p>
+                      <p className="font-bold text-blue-600">TZS {order.total.toLocaleString()}</p>
                     </div>
-                    <Badge className={getStatusColor(order.status)}>
+                    <Badge className={`${getStatusColor(order.status)} text-white px-3 py-1`}>
                       {order.status.replace('-', ' ').toUpperCase()}
                     </Badge>
                   </div>
                 ))}
-                <Button asChild variant="outline" className="w-full">
+                <Button asChild variant="outline" className="w-full mt-4" size="lg">
                   <Link to="/orders">View All Orders</Link>
                 </Button>
               </div>

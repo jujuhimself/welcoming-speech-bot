@@ -12,6 +12,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Products from "./pages/Products";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
+import CreditRequest from "./pages/CreditRequest";
 import NotFound from "./pages/NotFound";
 import { AuthProvider } from "./contexts/AuthContext";
 
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/products" element={<Products />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/credit-request" element={<CreditRequest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
