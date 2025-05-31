@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,12 +38,12 @@ const ProductFilters = ({ onFiltersChange, categories, totalProducts }: ProductF
   const activeFilters = [
     searchTerm && { type: 'search', label: `Search: "${searchTerm}"` },
     selectedCategory && { type: 'category', label: `Category: ${selectedCategory}` },
-    priceRange[0] > 0 || priceRange[1] < 100000 && { 
+    (priceRange[0] > 0 || priceRange[1] < 100000) && { 
       type: 'price', 
       label: `Price: TZS ${priceRange[0].toLocaleString()} - ${priceRange[1].toLocaleString()}` 
     },
     stockFilter && { type: 'stock', label: `Stock: ${stockFilter}` },
-  ].filter(Boolean);
+  ].filter(Boolean) as { type: string; label: string }[];
 
   const handleFiltersChange = () => {
     onFiltersChange({
