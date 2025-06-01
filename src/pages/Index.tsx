@@ -257,7 +257,15 @@ const Index = () => {
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
-            <Button size="lg" variant="outline" className="border-2 border-white/30 text-white hover:bg-white/10 px-8 py-4 text-lg">
+            <Button 
+              size="lg" 
+              variant="outline" 
+              className="border-2 border-white text-white hover:bg-white hover:text-primary-700 px-8 py-4 text-lg font-semibold transition-all duration-300"
+              onClick={() => {
+                // Simple demo scheduling functionality
+                alert("Demo scheduled! Our team will contact you within 24 hours.");
+              }}
+            >
               Schedule a Demo
             </Button>
           </div>
