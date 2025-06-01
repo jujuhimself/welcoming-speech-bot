@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -150,29 +149,53 @@ const Products = () => {
     }
   }, [user]);
 
-  useEffect(() => {
+  const handleFiltersChange = (filters: any) => {
     let filtered = products;
 
-    if (searchTerm) {
+    if (filters.searchTerm) {
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
+        product.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        product.description.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
+        product.manufacturer?.toLowerCase().includes(filters.searchTerm.toLowerCase())
       );
     }
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => product.category === selectedCategory);
+    if (filters.selectedCategory) {
+      filtered = filtered.filter(product => product.category === filters.selectedCategory);
+    }
+
+    if (filters.priceRange) {
+      filtered = filtered.filter(product => 
+        product.price >= filters.priceRange[0] && product.price <= filters.priceRange[1]
+      );
+    }
+
+    if (filters.stockFilter) {
+      switch (filters.stockFilter) {
+        case 'in-stock':
+          filtered = filtered.filter(product => product.stock > 10);
+          break;
+        case 'low-stock':
+          filtered = filtered.filter(product => product.stock > 0 && product.stock <= 10);
+          break;
+        case 'out-of-stock':
+          filtered = filtered.filter(product => product.stock === 0);
+          break;
+      }
     }
 
     // Sort products
     filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "price-low":
+      switch (filters.sortBy) {
+        case "name-desc":
+          return b.name.localeCompare(a.name);
+        case "price":
           return a.price - b.price;
-        case "price-high":
+        case "price-desc":
           return b.price - a.price;
         case "stock":
+          return a.stock - b.stock;
+        case "stock-desc":
           return b.stock - a.stock;
         default:
           return a.name.localeCompare(b.name);
@@ -180,7 +203,7 @@ const Products = () => {
     });
 
     setFilteredProducts(filtered);
-  }, [searchTerm, selectedCategory, products, sortBy]);
+  };
 
   const addToCart = (product: Product) => {
     if (!user) {
@@ -234,22 +257,7 @@ const Products = () => {
     });
   };
 
-  const categories = [
-    { value: "all", label: "All Categories" },
-    { value: "painkillers", label: "Pain Killers" },
-    { value: "antibiotics", label: "Antibiotics" },
-    { value: "vitamins", label: "Vitamins" },
-    { value: "equipment", label: "Medical Equipment" },
-    { value: "supplies", label: "Medical Supplies" },
-    { value: "hygiene", label: "Hygiene Products" },
-  ];
-
-  const sortOptions = [
-    { value: "name", label: "Name A-Z" },
-    { value: "price-low", label: "Price: Low to High" },
-    { value: "price-high", label: "Price: High to Low" },
-    { value: "stock", label: "Stock Level" },
-  ];
+  const categories = [...new Set(products.map(product => product.category))];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -262,84 +270,36 @@ const Products = () => {
           <p className="text-gray-600 text-sm md:text-lg">Browse our comprehensive selection of pharmaceutical products</p>
         </div>
 
-        {/* Search and Controls */}
-        <div className="mb-6">
-          <div className="flex flex-col md:flex-row gap-4 mb-4">
-            <div className="flex-1">
-              <Input
-                placeholder="Search products, manufacturers..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="h-10 md:h-12 text-base"
-              />
-            </div>
-            <div className="flex gap-2">
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full md:w-[200px] h-10 md:h-12">
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border shadow-lg">
-                  {categories.map((category) => (
-                    <SelectItem key={category.value} value={category.value}>
-                      {category.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-full md:w-[180px] h-10 md:h-12">
-                  <SelectValue placeholder="Sort by" />
-                </SelectTrigger>
-                <SelectContent className="bg-white border shadow-lg">
-                  {sortOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* View Controls */}
-          <div className="flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={() => setShowFilters(!showFilters)}
-              className="md:hidden"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              Filters
-            </Button>
-            <div className="flex gap-2 ml-auto">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
         {/* Filters */}
-        <div className={`mb-6 ${showFilters ? 'block' : 'hidden'} md:block`}>
-          <ProductFilters />
+        <div className="mb-6">
+          <ProductFilters 
+            onFiltersChange={handleFiltersChange}
+            categories={categories}
+            totalProducts={filteredProducts.length}
+          />
         </div>
 
-        {/* Results Count */}
-        <div className="mb-4">
+        {/* View Controls */}
+        <div className="flex justify-between items-center mb-6">
           <p className="text-sm text-gray-600">
             Showing {filteredProducts.length} of {products.length} products
           </p>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "grid" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("grid")}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+            >
+              <List className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Products Grid/List */}
