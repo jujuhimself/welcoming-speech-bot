@@ -23,6 +23,14 @@ interface Product {
   prescription?: boolean;
 }
 
+import ProductDetails from "@/components/ProductDetails";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+
 const Products = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -34,6 +42,8 @@ const Products = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("name");
   const [wishlist, setWishlist] = useState<string[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showProductDetails, setShowProductDetails] = useState(false);
 
   useEffect(() => {
     // Load products from localStorage or initialize with sample data
@@ -257,6 +267,11 @@ const Products = () => {
     });
   };
 
+  const openProductDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setShowProductDetails(true);
+  };
+
   const categories = [...new Set(products.map(product => product.category))];
 
   return (
@@ -316,11 +331,11 @@ const Products = () => {
               : "space-y-4"
           }>
             {filteredProducts.map((product) => (
-              <Card key={product.id} className={`group hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1 ${
+              <Card key={product.id} className={`group hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1 cursor-pointer ${
                 viewMode === "list" ? "flex flex-row" : ""
               }`}>
                 <CardHeader className={`p-0 ${viewMode === "list" ? "w-48 flex-shrink-0" : ""}`}>
-                  <div className="relative">
+                  <div className="relative" onClick={() => openProductDetails(product)}>
                     <img
                       src={product.image}
                       alt={product.name}
@@ -352,14 +367,20 @@ const Products = () => {
                       variant="ghost"
                       size="sm"
                       className="absolute bottom-3 right-3 bg-white/80 hover:bg-white"
-                      onClick={() => toggleWishlist(product.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleWishlist(product.id);
+                      }}
                     >
                       <Heart className={`h-4 w-4 ${wishlist.includes(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`} />
                     </Button>
                   </div>
                 </CardHeader>
                 <CardContent className={`p-4 md:p-6 ${viewMode === "list" ? "flex-1" : ""}`}>
-                  <CardTitle className="text-lg md:text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors">
+                  <CardTitle 
+                    className="text-lg md:text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors cursor-pointer"
+                    onClick={() => openProductDetails(product)}
+                  >
                     {product.name}
                   </CardTitle>
                   
@@ -382,19 +403,48 @@ const Products = () => {
                     </span>
                   </div>
                   
-                  <Button
-                    onClick={() => addToCart(product)}
-                    disabled={product.stock === 0 || user?.role !== 'pharmacy'}
-                    className="w-full h-10 md:h-12 text-sm md:text-lg font-semibold"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        addToCart(product);
+                      }}
+                      disabled={product.stock === 0 || user?.role !== 'pharmacy'}
+                      className="flex-1 h-10 md:h-12 text-sm md:text-lg font-semibold"
+                    >
+                      <ShoppingCart className="h-4 w-4 mr-2" />
+                      Add to Cart
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => openProductDetails(product)}
+                      className="px-3"
+                    >
+                      View Details
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
           </div>
         )}
+
+        {/* Product Details Modal */}
+        <Dialog open={showProductDetails} onOpenChange={setShowProductDetails}>
+          <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Product Details</DialogTitle>
+            </DialogHeader>
+            {selectedProduct && (
+              <ProductDetails
+                product={selectedProduct}
+                onAddToCart={addToCart}
+                onToggleWishlist={toggleWishlist}
+                isInWishlist={wishlist.includes(selectedProduct.id)}
+              />
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
