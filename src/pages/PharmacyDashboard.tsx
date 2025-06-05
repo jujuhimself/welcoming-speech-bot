@@ -20,7 +20,7 @@ const PharmacyDashboard = () => {
   });
 
   useEffect(() => {
-    if (!user || user.role !== 'pharmacy') {
+    if (!user || user.role !== 'retail') {
       navigate('/login');
       return;
     }
@@ -43,7 +43,7 @@ const PharmacyDashboard = () => {
     });
   }, [user, navigate]);
 
-  if (!user || user.role !== 'pharmacy') {
+  if (!user || user.role !== 'retail') {
     return <div>Loading...</div>;
   }
 

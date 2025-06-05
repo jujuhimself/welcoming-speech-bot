@@ -21,7 +21,7 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    if (user && user.role === 'pharmacy') {
+    if (user && user.role === 'retail') {
       const cart = JSON.parse(localStorage.getItem(`bepawa_cart_${user.id}`) || '[]');
       setCartCount(cart.length);
     }
@@ -33,12 +33,29 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   };
 
+  const getDashboardLink = () => {
+    switch (user?.role) {
+      case 'admin':
+        return '/admin';
+      case 'individual':
+        return '/individual';
+      case 'retail':
+        return '/pharmacy';
+      case 'wholesale':
+        return '/wholesale';
+      case 'lab':
+        return '/lab';
+      default:
+        return '/';
+    }
+  };
+
   return (
     <nav className="border-b bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         {/* Logo */}
         <Link 
-          to={user?.role === 'admin' ? '/admin' : '/pharmacy'} 
+          to={getDashboardLink()} 
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
         >
           <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-2 rounded-xl shadow-lg">
@@ -54,7 +71,7 @@ const Navbar = () => {
 
         {/* Desktop Navigation */}
         <div className="hidden md:flex items-center space-x-2">
-          {user?.role === 'pharmacy' && (
+          {user?.role === 'retail' && (
             <>
               <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
                 <Link to="/products" className="flex items-center">
@@ -115,7 +132,7 @@ const Navbar = () => {
                 <p className="font-medium text-gray-900">{user?.name}</p>
                 <p className="text-sm text-gray-500">{user?.email}</p>
                 <Badge variant="secondary" className="mt-1 text-xs">
-                  {user?.role === 'admin' ? 'Administrator' : 'Pharmacy'}
+                  {user?.role === 'admin' ? 'Administrator' : user?.role === 'retail' ? 'Pharmacy' : user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
                 </Badge>
               </div>
               <DropdownMenuItem asChild className="cursor-pointer">
@@ -151,7 +168,7 @@ const Navbar = () => {
       {/* Mobile Navigation */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t bg-white/95 backdrop-blur-md px-4 py-4 space-y-3">
-          {user?.role === 'pharmacy' && (
+          {user?.role === 'retail' && (
             <>
               <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
                 <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">

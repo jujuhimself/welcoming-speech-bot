@@ -29,7 +29,7 @@ const Orders = () => {
   const [orders, setOrders] = useState<Order[]>([]);
 
   useEffect(() => {
-    if (!user || user.role !== 'pharmacy') {
+    if (!user || user.role !== 'retail') {
       navigate('/login');
       return;
     }

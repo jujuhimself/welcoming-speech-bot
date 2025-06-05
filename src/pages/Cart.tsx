@@ -26,7 +26,7 @@ const Cart = () => {
   const [paymentMethod, setPaymentMethod] = useState("cod");
 
   useEffect(() => {
-    if (!user || user.role !== 'pharmacy') {
+    if (!user || user.role !== 'retail') {
       navigate('/login');
       return;
     }

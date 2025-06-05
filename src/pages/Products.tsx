@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -409,7 +410,7 @@ const Products = () => {
                         e.stopPropagation();
                         addToCart(product);
                       }}
-                      disabled={product.stock === 0 || user?.role !== 'pharmacy'}
+                      disabled={product.stock === 0 || user?.role !== 'retail'}
                       className="flex-1 h-10 md:h-12 text-sm md:text-lg font-semibold"
                     >
                       <ShoppingCart className="h-4 w-4 mr-2" />
