@@ -16,53 +16,92 @@ import {
   Play,
   Award,
   Globe,
-  Zap
+  Zap,
+  Building2,
+  User,
+  Store,
+  Microscope,
+  Stethoscope,
+  Pill,
+  FileText,
+  MapPin
 } from "lucide-react";
 
 const Index = () => {
   const stats = [
-    { number: "2,500+", label: "Active Pharmacies", icon: Users },
-    { number: "50,000+", label: "Products Delivered", icon: Package },
+    { number: "2,500+", label: "Healthcare Partners", icon: Users },
+    { number: "50,000+", label: "Medical Products", icon: Package },
     { number: "99.8%", label: "On-Time Delivery", icon: Clock },
-    { number: "24/7", label: "Customer Support", icon: Shield },
+    { number: "24/7", label: "Medical Support", icon: Shield },
   ];
 
   const features = [
     {
-      icon: Package,
-      title: "Quality Assurance",
-      description: "Verified pharmaceutical products from licensed suppliers with proper certification and batch tracking.",
+      icon: Pill,
+      title: "Complete Medical Catalog",
+      description: "Access to verified pharmaceutical products, medical devices, and healthcare supplies from licensed suppliers.",
       color: "text-primary-600"
     },
     {
-      icon: Zap,
-      title: "Instant Ordering",
-      description: "Quick and efficient ordering system with real-time inventory updates and smart reorder suggestions.",
+      icon: Stethoscope,
+      title: "Professional Healthcare Network",
+      description: "Connect patients, pharmacies, wholesalers, and labs in one integrated healthcare ecosystem.",
       color: "text-secondary-600"
     },
     {
       icon: Truck,
-      title: "Fast Delivery",
-      description: "Same-day and next-day delivery options with real-time GPS tracking and proof of delivery.",
+      title: "Advanced Logistics",
+      description: "Temperature-controlled delivery, real-time tracking, and specialized medical transport services.",
       color: "text-success-600"
     },
     {
       icon: BarChart3,
-      title: "Business Intelligence",
-      description: "Advanced analytics and reporting to help you make data-driven decisions for your pharmacy.",
+      title: "Healthcare Analytics",
+      description: "Comprehensive insights for inventory optimization, demand forecasting, and business intelligence.",
       color: "text-purple-600"
     },
     {
       icon: Shield,
-      title: "Secure Platform",
-      description: "End-to-end encryption, secure payments, and compliance with healthcare data regulations.",
+      title: "Medical Compliance",
+      description: "Full regulatory compliance, batch tracking, expiry management, and healthcare data security.",
       color: "text-blue-600"
     },
     {
       icon: Globe,
       title: "Nationwide Coverage",
-      description: "Comprehensive delivery network covering all major cities and remote areas across Tanzania.",
+      description: "Comprehensive healthcare network covering urban centers and remote areas across Tanzania.",
       color: "text-green-600"
+    }
+  ];
+
+  const userTypes = [
+    {
+      title: "Individual Patients",
+      description: "Order medicines, upload prescriptions, find nearby pharmacies",
+      icon: User,
+      color: "bg-blue-500",
+      features: ["Prescription management", "Pharmacy finder", "Health consultations", "Order tracking"]
+    },
+    {
+      title: "Retail Pharmacies",
+      description: "Serve customers and manage inventory from wholesale suppliers",
+      icon: Store,
+      color: "bg-green-500",
+      features: ["Customer sales", "Wholesale ordering", "Inventory management", "Business analytics"]
+    },
+    {
+      title: "Wholesale Distributors",
+      description: "Supply to retail pharmacies with bulk pricing and logistics",
+      icon: Building2,
+      color: "bg-purple-500",
+      features: ["B2B distribution", "Bulk pricing & MOQ", "Fleet management", "Partner network"]
+    },
+    {
+      title: "Labs & Health Centers",
+      description: "Diagnostic services, appointments, and result management",
+      icon: Microscope,
+      color: "bg-orange-500",
+      features: ["Lab tests", "Appointment booking", "Result sharing", "Health records"]
     }
   ];
 
@@ -70,20 +109,23 @@ const Index = () => {
     {
       name: "Dr. Amina Hassan",
       role: "Pharmacy Owner, Dar es Salaam",
-      content: "BEPAWA transformed our supply chain. We've reduced stockouts by 90% and our ordering time by 75%.",
-      rating: 5
+      content: "BEPAWA transformed our operations. We've reduced stockouts by 90% and improved patient satisfaction significantly.",
+      rating: 5,
+      type: "Retail Pharmacy"
     },
     {
       name: "John Mwangi",
-      role: "Operations Manager, Kilimanjaro Pharmacy",
-      content: "The real-time tracking and inventory management features have been game-changers for our business.",
-      rating: 5
+      role: "Supply Chain Manager, MediCorp",
+      content: "The wholesale platform streamlined our distribution to 200+ pharmacies. Outstanding logistics and tracking.",
+      rating: 5,
+      type: "Wholesale"
     },
     {
       name: "Sarah Kimani",
-      role: "Pharmacy Director, Arusha Medical Center",
-      content: "Excellent service quality and the credit facility has helped us maintain steady cash flow.",
-      rating: 5
+      role: "Lab Director, Arusha Diagnostics",
+      content: "Patient appointment scheduling and result sharing has never been easier. Excellent integration capabilities.",
+      rating: 5,
+      type: "Laboratory"
     }
   ];
 
@@ -100,7 +142,7 @@ const Index = () => {
               <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent">
                 BEPAWA
               </h1>
-              <p className="text-xs text-gray-500 hidden sm:block">Medical Supply Excellence</p>
+              <p className="text-xs text-gray-500 hidden sm:block">Integrated Healthcare Platform</p>
             </div>
           </div>
           <div className="space-x-3">
@@ -108,7 +150,7 @@ const Index = () => {
               <Link to="/login">Sign In</Link>
             </Button>
             <Button asChild className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800">
-              <Link to="/register">Get Started</Link>
+              <Link to="/register">Join Platform</Link>
             </Button>
           </div>
         </div>
@@ -119,31 +161,31 @@ const Index = () => {
         <div className="absolute inset-0 bg-medical-pattern opacity-30"></div>
         <div className="container mx-auto px-4 py-20 text-center relative z-10">
           <Badge variant="secondary" className="mb-6 bg-primary-100 text-primary-800 border-primary-200">
-            🚀 Trusted by 2,500+ Pharmacies Nationwide
+            🏥 Complete Healthcare Ecosystem - Patients to Suppliers
           </Badge>
           
           <h2 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 animate-fade-in">
-            Revolutionize Your
+            Tanzania's Premier
             <span className="bg-gradient-to-r from-primary-600 to-secondary-600 bg-clip-text text-transparent block mt-2">
-              Medical Supply Chain
+              Healthcare Platform
             </span>
           </h2>
           
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto leading-relaxed animate-slide-up">
-            The most advanced B2B platform for pharmaceutical distribution in Tanzania. 
-            Connect with trusted suppliers, manage inventory intelligently, and deliver excellence to your patients.
+            Connecting patients, pharmacies, wholesalers, and laboratories in one integrated platform. 
+            From prescription management to medical supply chain - we power Tanzania's healthcare future.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12 animate-slide-up">
             <Button size="lg" asChild className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800 px-8 py-4 text-lg">
               <Link to="/register">
-                Start Free Trial
+                Join Healthcare Network
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
             <Button size="lg" variant="outline" className="border-2 border-primary-200 text-primary-700 hover:bg-primary-50 px-8 py-4 text-lg">
               <Play className="mr-2 h-5 w-5" />
-              Watch Demo
+              Platform Demo
             </Button>
           </div>
 
@@ -162,24 +204,67 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* User Types Section */}
       <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4 border-primary-200 text-primary-700">
-              Platform Features
+              Healthcare Ecosystem
             </Badge>
             <h3 className="text-4xl font-bold text-gray-900 mb-6">
-              Everything You Need for Modern Pharmacy Operations
+              Built for Every Healthcare Professional
             </h3>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              From inventory management to delivery tracking, we provide comprehensive tools to streamline your business operations.
+              Our platform serves patients, pharmacies, wholesalers, and laboratories with specialized tools for each role.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {userTypes.map((type, index) => (
+              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50 hover:-translate-y-2">
+                <CardHeader className="pb-4">
+                  <div className={`inline-flex p-3 rounded-xl ${type.color} w-fit mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                    <type.icon className="h-8 w-8 text-white" />
+                  </div>
+                  <CardTitle className="text-xl font-semibold text-gray-900">{type.title}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-gray-600 leading-relaxed mb-4">
+                    {type.description}
+                  </CardDescription>
+                  <div className="space-y-2">
+                    {type.features.map((feature, idx) => (
+                      <div key={idx} className="flex items-center text-sm text-gray-600">
+                        <div className="w-1.5 h-1.5 bg-primary-500 rounded-full mr-2"></div>
+                        {feature}
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-20 bg-gradient-to-br from-gray-50 to-primary-50/30">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-16">
+            <Badge variant="outline" className="mb-4 border-primary-200 text-primary-700">
+              Platform Capabilities
+            </Badge>
+            <h3 className="text-4xl font-bold text-gray-900 mb-6">
+              Advanced Healthcare Technology Solutions
+            </h3>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              From AI-powered consultations to supply chain optimization - technology that transforms healthcare delivery.
             </p>
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             {features.map((feature, index) => (
-              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-gradient-to-br from-white to-gray-50/50 hover:-translate-y-2">
+              <Card key={index} className="group hover:shadow-xl transition-all duration-300 border-0 bg-white hover:-translate-y-2">
                 <CardHeader className="pb-4">
                   <div className={`inline-flex p-3 rounded-xl bg-gradient-to-br from-gray-50 to-gray-100 w-fit mb-4 group-hover:scale-110 transition-transform duration-300`}>
                     <feature.icon className={`h-8 w-8 ${feature.color}`} />
@@ -198,23 +283,23 @@ const Index = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section className="py-20 bg-gradient-to-br from-primary-50 to-secondary-50">
+      <section className="py-20 bg-white">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
             <Badge variant="outline" className="mb-4 border-primary-200 text-primary-700">
-              Customer Success
+              Success Stories
             </Badge>
             <h3 className="text-4xl font-bold text-gray-900 mb-6">
-              Trusted by Healthcare Professionals
+              Trusted Across Tanzania's Healthcare Network
             </h3>
             <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              See how BEPAWA is transforming pharmacy operations across Tanzania.
+              See how BEPAWA is transforming healthcare operations from Dar es Salaam to rural communities.
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {testimonials.map((testimonial, index) => (
-              <Card key={index} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Card key={index} className="bg-white border shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex mb-4">
                     {[...Array(testimonial.rating)].map((_, i) => (
@@ -224,14 +309,19 @@ const Index = () => {
                   <p className="text-gray-700 mb-6 italic leading-relaxed">
                     "{testimonial.content}"
                   </p>
-                  <div className="flex items-center">
-                    <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-full p-3 mr-4">
-                      <Users className="h-6 w-6 text-primary-700" />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center">
+                      <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-full p-3 mr-4">
+                        <Users className="h-6 w-6 text-primary-700" />
+                      </div>
+                      <div>
+                        <div className="font-semibold text-gray-900">{testimonial.name}</div>
+                        <div className="text-sm text-gray-600">{testimonial.role}</div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="font-semibold text-gray-900">{testimonial.name}</div>
-                      <div className="text-sm text-gray-600">{testimonial.role}</div>
-                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      {testimonial.type}
+                    </Badge>
                   </div>
                 </CardContent>
               </Card>
@@ -245,15 +335,15 @@ const Index = () => {
         <div className="absolute inset-0 bg-black/10"></div>
         <div className="container mx-auto px-4 text-center relative z-10">
           <Award className="h-16 w-16 mx-auto mb-6 text-primary-100 animate-bounce-gentle" />
-          <h3 className="text-4xl font-bold mb-6">Ready to Transform Your Business?</h3>
+          <h3 className="text-4xl font-bold mb-6">Ready to Transform Healthcare Delivery?</h3>
           <p className="text-xl mb-8 text-primary-100 max-w-2xl mx-auto leading-relaxed">
-            Join thousands of pharmacies already using BEPAWA to optimize their supply chain, 
-            reduce costs, and improve patient care.
+            Join thousands of healthcare professionals already using BEPAWA to improve patient care, 
+            optimize operations, and grow their practice.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button size="lg" variant="secondary" asChild className="bg-white text-primary-700 hover:bg-gray-100 px-8 py-4 text-lg font-semibold">
               <Link to="/register">
-                Start Your Free Trial
+                Join Healthcare Network
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Link>
             </Button>
@@ -262,11 +352,10 @@ const Index = () => {
               variant="outline" 
               className="border-2 border-white text-white hover:bg-white hover:text-primary-700 px-8 py-4 text-lg font-semibold transition-all duration-300"
               onClick={() => {
-                // Simple demo scheduling functionality
-                alert("Demo scheduled! Our team will contact you within 24 hours.");
+                alert("Healthcare demo scheduled! Our team will contact you within 24 hours.");
               }}
             >
-              Schedule a Demo
+              Schedule Healthcare Demo
             </Button>
           </div>
         </div>
@@ -284,50 +373,50 @@ const Index = () => {
                 <span className="text-xl font-semibold">BEPAWA</span>
               </div>
               <p className="text-gray-400 mb-4 leading-relaxed">
-                Transforming pharmaceutical distribution across Tanzania with innovative technology and reliable service.
+                Tanzania's premier integrated healthcare platform connecting patients, pharmacies, wholesalers, and laboratories.
               </p>
               <div className="flex space-x-2">
                 <CheckCircle className="h-5 w-5 text-success-500" />
-                <span className="text-sm text-gray-300">Licensed & Regulated</span>
+                <span className="text-sm text-gray-300">Licensed Healthcare Platform</span>
               </div>
             </div>
             
             <div>
-              <h4 className="font-semibold mb-4 text-lg">Platform</h4>
+              <h4 className="font-semibold mb-4 text-lg">For Patients</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><Link to="/products" className="hover:text-white transition-colors">Products</Link></li>
-                <li><Link to="/register" className="hover:text-white transition-colors">Get Started</Link></li>
-                <li><a href="#" className="hover:text-white transition-colors">API Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Integrations</a></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Find Medicines</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Upload Prescriptions</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Find Pharmacies</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Health Consultations</Link></li>
+              </ul>
+            </div>
+            
+            <div>
+              <h4 className="font-semibold mb-4 text-lg">For Healthcare Providers</h4>
+              <ul className="space-y-3 text-gray-400">
+                <li><Link to="/register" className="hover:text-white transition-colors">Pharmacy Solutions</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Wholesale Platform</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Lab Management</Link></li>
+                <li><Link to="/register" className="hover:text-white transition-colors">Analytics Dashboard</Link></li>
               </ul>
             </div>
             
             <div>
               <h4 className="font-semibold mb-4 text-lg">Support</h4>
               <ul className="space-y-3 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">Help Center</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">System Status</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Training</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h4 className="font-semibold mb-4 text-lg">Company</h4>
-              <ul className="space-y-3 text-gray-400">
-                <li><a href="#" className="hover:text-white transition-colors">About Us</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Careers</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Terms of Service</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Healthcare Support</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Technical Help</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">Training Resources</a></li>
+                <li><a href="#" className="hover:text-white transition-colors">API Documentation</a></li>
               </ul>
             </div>
           </div>
           
           <div className="border-t border-gray-800 pt-8 text-center">
             <p className="text-gray-400">
-              © 2024 BEPAWA Medical Supply Chain. All rights reserved. 
+              © 2024 BEPAWA Healthcare Platform. All rights reserved. 
               <span className="mx-2">•</span>
-              Revolutionizing healthcare distribution in Tanzania.
+              Transforming healthcare delivery across Tanzania.
             </p>
           </div>
         </div>
