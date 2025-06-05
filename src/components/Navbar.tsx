@@ -105,6 +105,35 @@ const Navbar = () => {
             </>
           )}
 
+          {user?.role === 'individual' && (
+            <>
+              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/products" className="flex items-center">
+                  <Package className="h-4 w-4 mr-2" />
+                  Medicines
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/pharmacies" className="flex items-center">
+                  <MapPin className="h-4 w-4 mr-2" />
+                  Pharmacies
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/prescriptions" className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Prescriptions
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/orders" className="flex items-center">
+                  <Clock className="h-4 w-4 mr-2" />
+                  Orders
+                </Link>
+              </Button>
+            </>
+          )}
+
           {user?.role === 'admin' && (
             <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
               <Link to="/admin" className="flex items-center">
@@ -197,6 +226,35 @@ const Navbar = () => {
                 <Link to="/credit-request" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
                   <CreditCard className="h-5 w-5 mr-3" />
                   Credit Request
+                </Link>
+              </Button>
+            </>
+          )}
+
+          {user?.role === 'individual' && (
+            <>
+              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
+                  <Package className="h-5 w-5 mr-3" />
+                  Medicines
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/pharmacies" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
+                  <MapPin className="h-5 w-5 mr-3" />
+                  Find Pharmacies
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/prescriptions" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
+                  <FileText className="h-5 w-5 mr-3" />
+                  Prescriptions
+                </Link>
+              </Button>
+              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
+                <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
+                  <Clock className="h-5 w-5 mr-3" />
+                  Order History
                 </Link>
               </Button>
             </>

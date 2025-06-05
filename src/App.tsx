@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +19,8 @@ import ChatBot from "./components/ChatBot";
 import IndividualDashboard from "./pages/IndividualDashboard";
 import WholesaleDashboard from "./pages/WholesaleDashboard";
 import LabDashboard from "./pages/LabDashboard";
+import Pharmacies from "./pages/Pharmacies";
+import Prescriptions from "./pages/Prescriptions";
 
 const queryClient = new QueryClient();
 
@@ -40,6 +43,8 @@ const App = () => (
             <Route path="/products" element={<Products />} />
             <Route path="/cart" element={<Cart />} />
             <Route path="/orders" element={<Orders />} />
+            <Route path="/pharmacies" element={<Pharmacies />} />
+            <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/credit-request" element={<CreditRequest />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
