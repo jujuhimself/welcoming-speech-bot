@@ -18,6 +18,10 @@ import { AuthProvider } from "./contexts/AuthContext";
 import ChatBot from "./components/ChatBot";
 import IndividualDashboard from "./pages/IndividualDashboard";
 import WholesaleDashboard from "./pages/WholesaleDashboard";
+import WholesaleInventory from "./pages/WholesaleInventory";
+import WholesaleOrders from "./pages/WholesaleOrders";
+import WholesaleRetailers from "./pages/WholesaleRetailers";
+import WholesaleAnalytics from "./pages/WholesaleAnalytics";
 import LabDashboard from "./pages/LabDashboard";
 import Pharmacies from "./pages/Pharmacies";
 import Prescriptions from "./pages/Prescriptions";
@@ -38,6 +42,10 @@ const App = () => (
             <Route path="/individual" element={<IndividualDashboard />} />
             <Route path="/pharmacy" element={<PharmacyDashboard />} />
             <Route path="/wholesale" element={<WholesaleDashboard />} />
+            <Route path="/wholesale/inventory" element={<WholesaleInventory />} />
+            <Route path="/wholesale/orders" element={<WholesaleOrders />} />
+            <Route path="/wholesale/retailers" element={<WholesaleRetailers />} />
+            <Route path="/wholesale/analytics" element={<WholesaleAnalytics />} />
             <Route path="/lab" element={<LabDashboard />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/products" element={<Products />} />
