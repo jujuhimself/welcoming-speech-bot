@@ -35,9 +35,9 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
-  register: (userData: Partial<User> & { password: string }) => Promise<boolean>;
+  register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
 }
 
@@ -135,59 +135,82 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeDemoUsers();
     
     // Check for stored user on app load
-    const storedUser = localStorage.getItem('bepawa_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    try {
+      const storedUser = localStorage.getItem('bepawa_user');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setUser(parsedUser);
+      }
+    } catch (error) {
+      console.error('Error parsing stored user:', error);
+      localStorage.removeItem('bepawa_user');
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string): Promise<boolean> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
-    // Get users from localStorage
-    const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
-    const foundUser = users.find((u: User & { password: string }) => 
-      u.email === email && u.password === password
-    );
+    try {
+      // Get users from localStorage
+      const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
+      const foundUser = users.find((u: User & { password: string }) => 
+        u.email.toLowerCase() === email.toLowerCase() && u.password === password
+      );
 
-    if (foundUser) {
+      if (!foundUser) {
+        setIsLoading(false);
+        return { success: false, error: 'Invalid email or password' };
+      }
+
+      if (!foundUser.isApproved && foundUser.role !== 'individual' && foundUser.role !== 'admin') {
+        setIsLoading(false);
+        return { success: false, error: 'Your account is pending approval. Please contact the administrator.' };
+      }
+
       const { password: _, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
       localStorage.setItem('bepawa_user', JSON.stringify(userWithoutPassword));
       setIsLoading(false);
-      return true;
+      return { success: true };
+    } catch (error) {
+      console.error('Login error:', error);
+      setIsLoading(false);
+      return { success: false, error: 'An error occurred during login. Please try again.' };
     }
-
-    setIsLoading(false);
-    return false;
   };
 
-  const register = async (userData: Partial<User> & { password: string }): Promise<boolean> => {
+  const register = async (userData: Partial<User> & { password: string }): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
-    // Check if email already exists
-    const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
-    const existingUser = users.find((u: User) => u.email === userData.email);
-    
-    if (existingUser) {
+    try {
+      // Check if email already exists
+      const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
+      const existingUser = users.find((u: User) => u.email.toLowerCase() === userData.email?.toLowerCase());
+      
+      if (existingUser) {
+        setIsLoading(false);
+        return { success: false, error: 'Email already exists' };
+      }
+      
+      // Create new user
+      const newUser = {
+        id: Date.now().toString(),
+        ...userData,
+        isApproved: userData.role === 'admin' || userData.role === 'individual' ? true : false, // Auto-approve individuals and admins
+        createdAt: new Date().toISOString()
+      };
+      
+      users.push(newUser);
+      localStorage.setItem('bepawa_users', JSON.stringify(users));
+      
       setIsLoading(false);
-      return false; // Email already exists
+      return { success: true };
+    } catch (error) {
+      console.error('Registration error:', error);
+      setIsLoading(false);
+      return { success: false, error: 'An error occurred during registration. Please try again.' };
     }
-    
-    // Create new user
-    const newUser = {
-      id: Date.now().toString(),
-      ...userData,
-      isApproved: userData.role === 'admin' || userData.role === 'individual' ? true : false, // Auto-approve individuals and admins
-      createdAt: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('bepawa_users', JSON.stringify(users));
-    
-    setIsLoading(false);
-    return true;
   };
 
   const logout = () => {

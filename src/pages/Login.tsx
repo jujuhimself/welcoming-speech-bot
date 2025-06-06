@@ -20,11 +20,20 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please enter both email and password.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
-    const success = await login(email, password);
+    const result = await login(email, password);
     
-    if (success) {
+    if (result.success) {
       toast({
         title: "Welcome back! 🎉",
         description: "You've successfully logged into BEPAWA.",
@@ -32,23 +41,29 @@ const Login = () => {
       
       // Navigate based on user role
       const user = JSON.parse(localStorage.getItem('bepawa_user') || '{}');
-      if (user.role === 'admin') {
-        navigate('/admin');
-      } else if (user.role === 'individual') {
-        navigate('/'); // Individual users go to main page for now
-      } else if (user.role === 'retail') {
-        navigate('/pharmacy');
-      } else if (user.role === 'wholesale') {
-        navigate('/'); // Wholesale users go to main page for now
-      } else if (user.role === 'lab') {
-        navigate('/'); // Lab users go to main page for now
-      } else {
-        navigate('/');
+      switch (user.role) {
+        case 'admin':
+          navigate('/admin');
+          break;
+        case 'individual':
+          navigate('/individual');
+          break;
+        case 'retail':
+          navigate('/pharmacy');
+          break;
+        case 'wholesale':
+          navigate('/wholesale');
+          break;
+        case 'lab':
+          navigate('/lab');
+          break;
+        default:
+          navigate('/');
       }
     } else {
       toast({
         title: "Login failed",
-        description: "Invalid email or password. Please check your credentials and try again.",
+        description: result.error || "Please check your credentials and try again.",
         variant: "destructive",
       });
     }
