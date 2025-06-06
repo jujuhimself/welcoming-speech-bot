@@ -1,11 +1,10 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, X, Send, Bot, User, HelpCircle, AlertTriangle, TrendingUp, FileText, Stethoscope } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, HelpCircle, TrendingUp, FileText, Stethoscope, Pills, Calculator, Users, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
@@ -14,7 +13,16 @@ interface Message {
   content: string;
   timestamp: Date;
   suggestions?: string[];
-  category?: 'medical' | 'business' | 'general' | 'symptom' | 'lab';
+  category?: 'medical' | 'business' | 'general' | 'symptom' | 'lab' | 'medication' | 'inventory' | 'order' | 'appointment';
+  isFollowUp?: boolean;
+}
+
+interface ConversationContext {
+  lastTopic?: string;
+  userMedications?: string[];
+  pendingReminders?: boolean;
+  lastSymptoms?: string[];
+  awaitingFollowUp?: string;
 }
 
 const ChatBot = () => {
@@ -22,6 +30,7 @@ const ChatBot = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
+  const [conversationContext, setConversationContext] = useState<ConversationContext>({});
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -35,21 +44,20 @@ const ChatBot = () => {
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
-      // Role-based initial greeting
       const getRoleSpecificGreeting = () => {
         if (!user) return "Hello! 👋 I'm your BEPAWA assistant. How can I help you today?";
         
         switch (user.role) {
           case 'individual':
-            return `Hello ${user.name}! 👋 I'm your personal health assistant. I can help you with medicine information, symptom checking, finding pharmacies, and health consultations. What can I help you with today?`;
+            return `Hello ${user.name}! 👋 I'm your personal health assistant. I can help with medication tracking, symptom checking, finding nearby services, and connecting you with pharmacists. What can I help you with today?`;
           case 'retail':
-            return `Welcome back, ${user.pharmacyName}! 🏪 I'm your business assistant. I can help with inventory management, sales insights, order tracking, and customer service. How can I assist your pharmacy today?`;
+            return `Welcome back, ${user.pharmacyName}! 🏪 I'm your business assistant. I can provide inventory insights, restock suggestions, order summaries, and even generate quick invoices. How can I assist your pharmacy today?`;
           case 'wholesale':
-            return `Hello ${user.businessName}! 📦 I'm here to help with your wholesale operations including inventory alerts, retailer management, bulk pricing, and market insights. What do you need assistance with?`;
+            return `Hello ${user.businessName}! 📦 I can help with bulk order planning, profitability analysis, distributor management, and retailer support. What would you like to explore?`;
           case 'lab':
-            return `Welcome, ${user.labName}! 🔬 I can help interpret test results, manage appointments, explain medical values, and provide diagnostic insights. How can I assist your laboratory today?`;
+            return `Welcome, ${user.labName}! 🔬 I can assist with smart test routing, appointment management, result interpretation, and referral generation. How can I help your laboratory today?`;
           case 'admin':
-            return `Hello Admin! 👨‍💼 I can help with platform management, user analytics, system monitoring, and administrative tasks. What would you like to know?`;
+            return `Hello Admin! 👨‍💼 I can help with platform analytics, user management, system monitoring, and operational insights. What would you like to review?`;
           default:
             return "Hello! 👋 I'm your BEPAWA assistant. How can I help you today?";
         }
@@ -60,17 +68,17 @@ const ChatBot = () => {
         
         switch (user.role) {
           case 'individual':
-            return ['Check symptoms', 'Find nearby pharmacies', 'Medicine information', 'Upload prescription'];
+            return ['Track my medications', 'Check symptoms', 'Find nearby pharmacies', 'Ask a pharmacist'];
           case 'retail':
-            return ['Inventory alerts', 'Sales analysis', 'Reorder suggestions', 'Customer trends'];
+            return ['Inventory insights', 'Restock suggestions', 'Order summary', 'Generate invoice'];
           case 'wholesale':
-            return ['Inventory overview', 'Retailer performance', 'Market insights', 'Bulk pricing'];
+            return ['Bulk order assistant', 'Profit analysis', 'Retailer management', 'Market trends'];
           case 'lab':
-            return ['Interpret test results', 'Normal value ranges', 'Appointment scheduling', 'Lab equipment'];
+            return ['Recommend tests', 'Appointment schedule', 'Interpret results', 'Generate referral'];
           case 'admin':
-            return ['User analytics', 'System status', 'Platform metrics', 'User management'];
+            return ['Platform analytics', 'User insights', 'System status', 'Revenue reports'];
           default:
-            return ['How do I get started?', 'Platform features', 'Contact support'];
+            return ['Platform features', 'Getting started', 'Contact support'];
         }
       };
 
@@ -85,6 +93,181 @@ const ChatBot = () => {
       setMessages([greeting]);
     }
   }, [isOpen, user]);
+
+  // Individual Role Features
+  const getMedicationTrackerResponse = (query: string): Message => {
+    const medications = ['Metformin 500mg - 2x daily', 'Lisinopril 10mg - 1x daily', 'Vitamin D - 1x daily'];
+    
+    if (query.toLowerCase().includes('add') || query.toLowerCase().includes('new')) {
+      return {
+        id: Date.now().toString(),
+        type: 'bot',
+        content: `💊 **Medication Tracker**\n\nTo add a new medication, I'll need:\n• Medication name and dosage\n• Frequency (how often)\n• When to take it\n• Duration of treatment\n\nWhat medication would you like to add?`,
+        timestamp: new Date(),
+        suggestions: ['Add Paracetamol 500mg', 'Set reminder for current meds', 'View my medications'],
+        category: 'medication'
+      };
+    }
+
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `💊 **Your Current Medications**\n\n${medications.map((med, i) => `${i + 1}. ${med}`).join('\n')}\n\n⏰ **Next Reminders:**\n• Metformin - Due in 2 hours\n• Lisinopril - Due tomorrow morning\n\nWould you like to add a new medication or set up reminders?`,
+      timestamp: new Date(),
+      suggestions: ['Add new medication', 'Set reminder times', 'Mark as taken', 'Refill reminder'],
+      category: 'medication'
+    };
+  };
+
+  const getNearbyServicesResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `📍 **Nearby Healthcare Services**\n\n🏥 **Pharmacies Near You:**\n• Duka la Dawa - 0.5km (Open 24/7)\n• HealthCare Pharmacy - 1.2km (8AM-10PM)\n• City Medical Store - 1.8km (9AM-9PM)\n\n🔬 **Labs & Diagnostic Centers:**\n• QuickLab Diagnostics - 0.8km\n• MediTest Center - 1.5km\n• City Lab Services - 2.1km\n\n🏥 **Hospitals:**\n• Muhimbili Hospital - 3.2km\n• Aga Khan Hospital - 4.1km`,
+      timestamp: new Date(),
+      suggestions: ['Get directions', 'Check pharmacy stock', 'Book lab appointment', 'Call pharmacy'],
+      category: 'general'
+    };
+  };
+
+  const getPharmacistChatResponse = (query: string): Message => {
+    const responses = {
+      'interaction': 'Drug interactions can be serious. Always inform your pharmacist about all medications you\'re taking, including supplements.',
+      'side effects': 'Common side effects vary by medication. If you experience unusual symptoms, contact your pharmacist or doctor immediately.',
+      'dosage': 'Never adjust medication dosages without consulting your healthcare provider. Proper timing and dosage are crucial for effectiveness.',
+      'storage': 'Store medications in a cool, dry place away from direct sunlight. Some medications require refrigeration - check the label.'
+    };
+
+    const responseKey = Object.keys(responses).find(key => query.toLowerCase().includes(key));
+    const advice = responseKey ? responses[responseKey as keyof typeof responses] : 
+      'I\'d be happy to help with your medication question. For specific medical advice, please consult with a licensed pharmacist or your healthcare provider.';
+
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `👨‍⚕️ **Pharmacist Consultation**\n\n${advice}\n\n⚠️ **Important**: This is general guidance. For personalized advice about your specific medications, please visit your local pharmacy or consult your healthcare provider.`,
+      timestamp: new Date(),
+      suggestions: ['Drug interactions', 'Side effects', 'Proper storage', 'Dosage timing'],
+      category: 'medical'
+    };
+  };
+
+  // Retail Pharmacy Features
+  const getInventoryInsightsResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `📊 **Weekly Inventory Insights**\n\n⚠️ **Low Stock Alerts (5 items):**\n• Paracetamol 500mg - 45 units left\n• Amoxicillin 250mg - 28 units left\n• Insulin - 12 units left\n\n🔥 **Top Sellers This Week:**\n1. Vitamin C (180 sold)\n2. Paracetamol (145 sold)\n3. Cough Syrup (89 sold)\n\n📈 **Revenue Impact:**\n• Weekly sales: TZS 2,450,000\n• Profit margin: 28.5%`,
+      timestamp: new Date(),
+      suggestions: ['Restock recommendations', 'View detailed analytics', 'Generate reorder list', 'Sales forecast'],
+      category: 'inventory'
+    };
+  };
+
+  const getRestockSuggestionResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `🔄 **Smart Restock Suggestions**\n\n**Immediate Action Needed:**\n• Insulin - Order 50 units (3-day supply left)\n• Paracetamol - Order 200 units (high demand)\n\n**Recommended Orders:**\n• Amoxicillin - 100 units (TZS 45,000)\n• Vitamin C - 150 units (TZS 22,500)\n• Blood pressure meds - 80 units (TZS 96,000)\n\n💰 **Total Order Value:** TZS 163,500\n⏱️ **Expected ROI:** 35% over 2 weeks`,
+      timestamp: new Date(),
+      suggestions: ['Generate purchase order', 'Contact suppliers', 'Set auto-reorder', 'View supplier prices'],
+      category: 'inventory'
+    };
+  };
+
+  const getOrderSummaryResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `📋 **Order Summary**\n\n**Today's Orders:**\n• 15 new orders (TZS 340,000)\n• 12 fulfilled orders\n• 3 pending fulfillment\n\n**Active Prescriptions:**\n• 8 ready for pickup\n• 5 in preparation\n• 2 awaiting doctor confirmation\n\n**Recent Activity:**\n• Customer #1245 - Diabetes kit pickup\n• Customer #1246 - Antibiotic prescription\n• Customer #1247 - Vitamin order delivered`,
+      timestamp: new Date(),
+      suggestions: ['View pending orders', 'Print pickup list', 'Contact customers', 'Update order status'],
+      category: 'order'
+    };
+  };
+
+  const getInvoiceGeneratorResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `🧾 **Quick Invoice Generator**\n\n**Sample Invoice #INV-2024-0156**\n\n**Items:**\n• Paracetamol 500mg x10 - TZS 12,000\n• Vitamin C x5 - TZS 8,500\n• Consultation fee - TZS 5,000\n\n**Subtotal:** TZS 25,500\n**Tax (18%):** TZS 4,590\n**Total:** TZS 30,090\n\n**Payment Method:** Cash\n**Status:** Paid`,
+      timestamp: new Date(),
+      suggestions: ['Print invoice', 'Send via SMS', 'Email to customer', 'Generate new invoice'],
+      category: 'business'
+    };
+  };
+
+  // Wholesale Features
+  const getBulkOrderAssistantResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `📦 **Bulk Order Assistant**\n\n**Based on your recent orders, I recommend:**\n\n**High Priority:**\n• Paracetamol 500mg - 5,000 units (TZS 125,000)\n• Amoxicillin 250mg - 2,000 units (TZS 90,000)\n\n**Medium Priority:**\n• Vitamin supplements - 3,000 units (TZS 45,000)\n• Cough medications - 1,500 units (TZS 60,000)\n\n**Bulk Discount Available:**\n• Orders >TZS 300,000 get 8% discount\n• Free delivery for orders >TZS 500,000`,
+      timestamp: new Date(),
+      suggestions: ['Create purchase order', 'View supplier catalogs', 'Check bulk discounts', 'Schedule delivery'],
+      category: 'business'
+    };
+  };
+
+  const getProfitabilityResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `💰 **Profitability Snapshot**\n\n**This Month's Performance:**\n• Total Revenue: TZS 12,500,000\n• Cost of Goods: TZS 8,750,000\n• Gross Profit: TZS 3,750,000\n• Profit Margin: 30%\n\n**Top Profit Generators:**\n1. Generic medications (42% margin)\n2. Vitamins & supplements (38% margin)\n3. Health devices (35% margin)\n\n**Improvement Opportunities:**\n• Increase generic substitution rate\n• Optimize pricing on slow-moving items`,
+      timestamp: new Date(),
+      suggestions: ['Detailed P&L report', 'Product profitability', 'Cost optimization', 'Pricing strategy'],
+      category: 'business'
+    };
+  };
+
+  // Lab Features
+  const getTestRoutingResponse = (symptoms: string): Message => {
+    const testRecommendations = {
+      'diabetes': ['HbA1c', 'Fasting Blood Glucose', 'Random Blood Sugar'],
+      'heart': ['Lipid Profile', 'ECG', 'Cardiac Enzymes'],
+      'kidney': ['Creatinine', 'BUN', 'Urinalysis'],
+      'liver': ['ALT', 'AST', 'Bilirubin'],
+      'infection': ['Complete Blood Count', 'ESR', 'CRP']
+    };
+
+    const symptomKey = Object.keys(testRecommendations).find(key => 
+      symptoms.toLowerCase().includes(key)
+    );
+
+    const tests = symptomKey ? testRecommendations[symptomKey as keyof typeof testRecommendations] : 
+      ['Complete Blood Count', 'Basic Metabolic Panel', 'Urinalysis'];
+
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `🔬 **Smart Test Routing**\n\nBased on the symptoms mentioned, I recommend:\n\n**Primary Tests:**\n${tests.map(test => `• ${test}`).join('\n')}\n\n**Available Slots:**\n• Today 2:00 PM - 4:00 PM\n• Tomorrow 9:00 AM - 11:00 AM\n• Saturday 10:00 AM - 12:00 PM\n\n💰 **Package Price:** TZS 45,000\n⏱️ **Results Ready:** 24-48 hours`,
+      timestamp: new Date(),
+      suggestions: ['Book appointment', 'Add more tests', 'View test details', 'Check insurance coverage'],
+      category: 'lab'
+    };
+  };
+
+  const getAppointmentManagerResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `📅 **Appointment Manager**\n\n**Today's Schedule:**\n• 9:00 AM - John Doe (Blood test)\n• 10:30 AM - Mary Smith (X-ray)\n• 2:00 PM - Available slot\n• 3:30 PM - Peter Johnson (ECG)\n\n**Upcoming:**\n• Tomorrow: 12 appointments\n• This week: 68 appointments\n\n**Quick Actions Available:**\n• Reschedule appointments\n• Send reminder messages\n• Update test results`,
+      timestamp: new Date(),
+      suggestions: ['View full schedule', 'Send reminders', 'Block time slots', 'Generate reports'],
+      category: 'appointment'
+    };
+  };
+
+  const getReferralGeneratorResponse = (): Message => {
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: `📄 **Medical Referral Generator**\n\n**Sample Referral Letter**\n\nPatient: John Doe (ID: 12345)\nDate: ${new Date().toLocaleDateString()}\n\n**Test Results Summary:**\n• Blood Glucose: 180 mg/dL (High)\n• HbA1c: 8.2% (Elevated)\n\n**Recommendation:**\nRefer to Endocrinologist for diabetes management and treatment optimization.\n\n**Urgency:** Routine (within 2 weeks)\n**Additional Notes:** Patient requires dietary counseling`,
+      timestamp: new Date(),
+      suggestions: ['Print referral', 'Send to doctor', 'Schedule follow-up', 'Generate another'],
+      category: 'lab'
+    };
+  };
 
   const getSymptomCheckResponse = (symptoms: string): Message => {
     const commonSymptoms = {
@@ -136,39 +319,6 @@ const ChatBot = () => {
     };
   };
 
-  const getBusinessInsights = (query: string): Message => {
-    const insights = {
-      'inventory': 'Your current inventory shows 85% stock levels. Top-selling items this week: Paracetamol, Amoxicillin, Vitamin C. Consider reordering antibiotics as they\'re running low.',
-      'sales': 'This month\'s sales are up 12% compared to last month. Peak hours: 9-11 AM and 3-5 PM. Top categories: Pain relief (35%), Antibiotics (28%), Vitamins (20%).',
-      'reorder': 'Based on sales patterns, consider reordering: Paracetamol (500mg) - 200 units, Amoxicillin - 100 units, Multivitamins - 150 units. Expected delivery: 2-3 days.',
-      'customers': 'Customer traffic analysis shows 45% repeat customers, 30% new patients, 25% prescription refills. Customer satisfaction: 4.6/5 stars.',
-    };
-
-    const insightKey = Object.keys(insights).find(key => 
-      query.toLowerCase().includes(key)
-    );
-
-    if (insightKey) {
-      return {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: `📊 **Business Insight: ${insightKey.charAt(0).toUpperCase() + insightKey.slice(1)}**\n\n${insights[insightKey as keyof typeof insights]}`,
-        timestamp: new Date(),
-        suggestions: ['Detailed analytics', 'Generate report', 'Set up alerts', 'View trends'],
-        category: 'business'
-      };
-    }
-
-    return {
-      id: Date.now().toString(),
-      type: 'bot',
-      content: '📊 I can help you with business insights including inventory management, sales analysis, customer trends, and reorder suggestions. What specific aspect would you like to explore?',
-      timestamp: new Date(),
-      suggestions: ['Inventory status', 'Sales report', 'Customer analytics', 'Reorder alerts'],
-      category: 'business'
-    };
-  };
-
   const getLabResultInterpretation = (query: string): Message => {
     const labTests = {
       'blood glucose': {
@@ -214,69 +364,6 @@ const ChatBot = () => {
     };
   };
 
-  const getBotResponse = (userMessage: string): Message => {
-    const message = userMessage.toLowerCase();
-    
-    // Role-based response routing
-    if (user?.role === 'individual') {
-      if (message.includes('symptom') || message.includes('pain') || message.includes('fever') || 
-          message.includes('headache') || message.includes('cough') || message.includes('sick')) {
-        return getSymptomCheckResponse(message);
-      }
-    }
-    
-    if ((user?.role === 'retail' || user?.role === 'wholesale') && 
-        (message.includes('inventory') || message.includes('sales') || message.includes('business') || 
-         message.includes('reorder') || message.includes('customer'))) {
-      return getBusinessInsights(message);
-    }
-    
-    if (user?.role === 'lab' && 
-        (message.includes('test') || message.includes('result') || message.includes('blood') || 
-         message.includes('lab') || message.includes('glucose') || message.includes('cholesterol'))) {
-      return getLabResultInterpretation(message);
-    }
-
-    // General responses
-    if (message.includes('order') || message.includes('place')) {
-      return {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: "To place an order: 1) Go to the Products page 📦 2) Browse or search for items 3) Add them to your cart 🛒 4) Review and checkout. You can also use bulk ordering for large quantities!",
-        timestamp: new Date(),
-        suggestions: ['How to add items to cart?', 'Bulk ordering process', 'Order approval workflow'],
-        category: 'general'
-      };
-    }
-
-    if (message.includes('hello') || message.includes('hi')) {
-      return {
-        id: Date.now().toString(),
-        type: 'bot',
-        content: "Hello! 👋 Great to see you here. I'm your BEPAWA assistant, ready to help you make the most of our platform. What would you like to know about?",
-        timestamp: new Date(),
-        suggestions: ['Platform overview', 'Getting started guide', 'Key features'],
-        category: 'general'
-      };
-    }
-
-    // Default response
-    return {
-      id: Date.now().toString(),
-      type: 'bot',
-      content: "I understand you're asking about something specific! 🤔 I'm here to help with various aspects of BEPAWA based on your role. Could you rephrase your question or try one of the suggestions below?",
-      timestamp: new Date(),
-      suggestions: user?.role === 'individual' ? 
-        ['Check symptoms', 'Find pharmacies', 'Medicine info'] :
-        user?.role === 'retail' || user?.role === 'wholesale' ?
-        ['Business insights', 'Inventory help', 'Sales data'] :
-        user?.role === 'lab' ?
-        ['Interpret results', 'Test ranges', 'Lab equipment'] :
-        ['How to place an order?', 'Platform features', 'Contact support'],
-      category: 'general'
-    };
-  };
-
   const handleSendMessage = async (content?: string) => {
     const messageContent = content || inputValue.trim();
     if (!messageContent) return;
@@ -293,12 +380,134 @@ const ChatBot = () => {
     setInputValue('');
     setIsTyping(true);
 
+    // Update conversation context
+    setConversationContext(prev => ({
+      ...prev,
+      lastTopic: messageContent.toLowerCase().includes('medication') ? 'medication' :
+                messageContent.toLowerCase().includes('symptom') ? 'symptom' :
+                messageContent.toLowerCase().includes('inventory') ? 'inventory' : 'general'
+    }));
+
     // Simulate bot typing delay
     setTimeout(() => {
       const botResponse = getBotResponse(messageContent);
       setMessages(prev => [...prev, botResponse]);
       setIsTyping(false);
+
+      // Schedule follow-up for certain topics
+      if (botResponse.category === 'medication' || botResponse.category === 'symptom') {
+        setTimeout(() => {
+          const followUpMessage: Message = {
+            id: (Date.now() + 1).toString(),
+            type: 'bot',
+            content: `💭 Just checking - do you need any additional help with ${botResponse.category === 'medication' ? 'your medications' : 'your symptoms'}? I'm here if you have more questions!`,
+            timestamp: new Date(),
+            suggestions: ['I\'m all set', 'Yes, I have questions', 'Schedule reminder'],
+            category: 'general',
+            isFollowUp: true
+          };
+          setMessages(prev => [...prev, followUpMessage]);
+        }, 30000); // Follow up after 30 seconds
+      }
     }, 1000);
+  };
+
+  const getBotResponse = (userMessage: string): Message => {
+    const message = userMessage.toLowerCase();
+    
+    // Role-specific advanced features
+    if (user?.role === 'individual') {
+      if (message.includes('medication') || message.includes('pill') || message.includes('track')) {
+        return getMedicationTrackerResponse(message);
+      }
+      if (message.includes('nearby') || message.includes('pharmacy') || message.includes('location')) {
+        return getNearbyServicesResponse();
+      }
+      if (message.includes('pharmacist') || message.includes('ask') || message.includes('question')) {
+        return getPharmacistChatResponse(message);
+      }
+      if (message.includes('symptom') || message.includes('pain') || message.includes('fever') || 
+          message.includes('headache') || message.includes('cough') || message.includes('sick')) {
+        return getSymptomCheckResponse(message);
+      }
+    }
+    
+    if (user?.role === 'retail') {
+      if (message.includes('inventory') || message.includes('stock') || message.includes('insight')) {
+        return getInventoryInsightsResponse();
+      }
+      if (message.includes('restock') || message.includes('reorder') || message.includes('suggestion')) {
+        return getRestockSuggestionResponse();
+      }
+      if (message.includes('order') || message.includes('summary') || message.includes('customer')) {
+        return getOrderSummaryResponse();
+      }
+      if (message.includes('invoice') || message.includes('generate') || message.includes('receipt')) {
+        return getInvoiceGeneratorResponse();
+      }
+    }
+    
+    if (user?.role === 'wholesale') {
+      if (message.includes('bulk') || message.includes('order') || message.includes('purchase')) {
+        return getBulkOrderAssistantResponse();
+      }
+      if (message.includes('profit') || message.includes('margin') || message.includes('financial')) {
+        return getProfitabilityResponse();
+      }
+    }
+    
+    if (user?.role === 'lab') {
+      if (message.includes('test') || message.includes('recommend') || message.includes('symptom')) {
+        return getTestRoutingResponse(message);
+      }
+      if (message.includes('appointment') || message.includes('schedule') || message.includes('booking')) {
+        return getAppointmentManagerResponse();
+      }
+      if (message.includes('referral') || message.includes('letter') || message.includes('doctor')) {
+        return getReferralGeneratorResponse();
+      }
+      if (message.includes('result') || message.includes('interpret') || message.includes('blood')) {
+        return getLabResultInterpretation(message);
+      }
+    }
+
+    // General responses for existing functionality
+    if (message.includes('hello') || message.includes('hi')) {
+      return {
+        id: Date.now().toString(),
+        type: 'bot',
+        content: "Hello! 👋 Great to see you here. I'm constantly learning to better assist you. What would you like to explore today?",
+        timestamp: new Date(),
+        suggestions: user?.role === 'individual' ? 
+          ['Track medications', 'Find services', 'Check symptoms'] :
+          user?.role === 'retail' ?
+          ['Inventory insights', 'Order summary', 'Generate invoice'] :
+          user?.role === 'wholesale' ?
+          ['Bulk orders', 'Profit analysis', 'Market trends'] :
+          user?.role === 'lab' ?
+          ['Recommend tests', 'Manage appointments', 'Generate referral'] :
+          ['Platform features', 'Getting started'],
+        category: 'general'
+      };
+    }
+
+    // Default response with enhanced suggestions
+    return {
+      id: Date.now().toString(),
+      type: 'bot',
+      content: "I'm here to help with a wide range of tasks! 🤖 I've been enhanced with new capabilities specific to your role. Try asking me about the suggestions below or describe what you need assistance with.",
+      timestamp: new Date(),
+      suggestions: user?.role === 'individual' ? 
+        ['Track my medications', 'Find nearby services', 'Ask a pharmacist', 'Check symptoms'] :
+        user?.role === 'retail' ?
+        ['Show inventory insights', 'Restock suggestions', 'Order summary', 'Generate invoice'] :
+        user?.role === 'wholesale' ?
+        ['Bulk order planning', 'Profitability analysis', 'Distributor support'] :
+        user?.role === 'lab' ?
+        ['Recommend tests', 'Appointment schedule', 'Generate referral', 'Interpret results'] :
+        ['Platform overview', 'User management', 'System status'],
+      category: 'general'
+    };
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -317,6 +526,14 @@ const ChatBot = () => {
         return <TrendingUp className="h-4 w-4" />;
       case 'lab':
         return <FileText className="h-4 w-4" />;
+      case 'medication':
+        return <Pills className="h-4 w-4" />;
+      case 'inventory':
+        return <Calculator className="h-4 w-4" />;
+      case 'order':
+        return <Users className="h-4 w-4" />;
+      case 'appointment':
+        return <Calendar className="h-4 w-4" />;
       default:
         return <Bot className="h-4 w-4" />;
     }
@@ -350,9 +567,10 @@ const ChatBot = () => {
               <div>
                 <CardTitle className="text-lg font-semibold">BEPAWA AI Assistant</CardTitle>
                 <p className="text-sm text-white/80">
-                  {user?.role === 'individual' ? 'Personal Health Assistant' :
-                   user?.role === 'retail' || user?.role === 'wholesale' ? 'Business Assistant' :
-                   user?.role === 'lab' ? 'Lab Results Interpreter' : 'Healthcare Assistant'}
+                  {user?.role === 'individual' ? 'Personal Health & Medication Assistant' :
+                   user?.role === 'retail' ? 'Smart Pharmacy Business Assistant' :
+                   user?.role === 'wholesale' ? 'Wholesale Operations Assistant' :
+                   user?.role === 'lab' ? 'Smart Lab Management Assistant' : 'Healthcare Platform Assistant'}
                 </p>
               </div>
             </div>
@@ -386,10 +604,14 @@ const ChatBot = () => {
                           ? 'bg-primary-600 text-white' 
                           : message.category === 'symptom' 
                           ? 'bg-red-50 text-red-900 border border-red-200'
-                          : message.category === 'business'
+                          : message.category === 'business' || message.category === 'inventory'
                           ? 'bg-blue-50 text-blue-900 border border-blue-200'
-                          : message.category === 'lab'
+                          : message.category === 'lab' || message.category === 'appointment'
                           ? 'bg-purple-50 text-purple-900 border border-purple-200'
+                          : message.category === 'medication'
+                          ? 'bg-green-50 text-green-900 border border-green-200'
+                          : message.isFollowUp
+                          ? 'bg-yellow-50 text-yellow-900 border border-yellow-200'
                           : 'bg-gray-100 text-gray-800'
                       }`}>
                         <p className="text-sm leading-relaxed whitespace-pre-line">{message.content}</p>
@@ -438,9 +660,10 @@ const ChatBot = () => {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder={
-                  user?.role === 'individual' ? "Ask about symptoms, medicines, or health..." :
-                  user?.role === 'retail' || user?.role === 'wholesale' ? "Ask about inventory, sales, or business insights..." :
-                  user?.role === 'lab' ? "Ask about test results or lab values..." :
+                  user?.role === 'individual' ? "Track meds, check symptoms, find services..." :
+                  user?.role === 'retail' ? "Inventory insights, orders, invoices..." :
+                  user?.role === 'wholesale' ? "Bulk orders, profits, distribution..." :
+                  user?.role === 'lab' ? "Test routing, appointments, referrals..." :
                   "Ask me anything about BEPAWA..."
                 }
                 className="flex-1 border-gray-200 focus:border-primary-500 focus:ring-primary-500"
@@ -454,7 +677,7 @@ const ChatBot = () => {
               </Button>
             </div>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              AI-powered healthcare assistant • Always consult professionals for medical decisions
+              Enhanced AI assistant with role-specific features • Always consult professionals for medical decisions
             </p>
           </div>
         </CardContent>
