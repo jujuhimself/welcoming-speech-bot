@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -528,7 +527,7 @@ const ChatBot = () => {
       case 'lab':
         return <FileText className="h-4 w-4" />;
       case 'medication':
-        return <Pills className="h-4 w-4" />;
+        return <Pill className="h-4 w-4" />;
       case 'inventory':
         return <Calculator className="h-4 w-4" />;
       case 'order':
