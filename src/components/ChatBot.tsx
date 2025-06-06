@@ -1,10 +1,11 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { MessageCircle, X, Send, Bot, User, HelpCircle, TrendingUp, FileText, Stethoscope, Pills, Calculator, Users, Calendar } from 'lucide-react';
+import { MessageCircle, X, Send, Bot, User, HelpCircle, TrendingUp, FileText, Stethoscope, Pill, Calculator, Users, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
