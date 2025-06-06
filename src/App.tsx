@@ -14,6 +14,7 @@ import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import CreditRequest from "./pages/CreditRequest";
 import NotFound from "./pages/NotFound";
+import BusinessTools from "./pages/BusinessTools";
 import { AuthProvider } from "./contexts/AuthContext";
 import ChatBot from "./components/ChatBot";
 import IndividualDashboard from "./pages/IndividualDashboard";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/pharmacies" element={<Pharmacies />} />
             <Route path="/prescriptions" element={<Prescriptions />} />
             <Route path="/credit-request" element={<CreditRequest />} />
+            <Route path="/business-tools" element={<BusinessTools />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

@@ -1,289 +1,177 @@
 
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Package, ShoppingCart, User, Menu, X, CreditCard, BarChart3, Settings, LogOut, MapPin, FileText, Clock } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { useState, useEffect } from "react";
-import NotificationCenter from "./NotificationCenter";
+import { Package, User, LogOut, Menu, X, Bell, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, Microscope, Building, UserCheck, CreditCard, Wrench } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [cartCount, setCartCount] = useState(0);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-
-  useEffect(() => {
-    if (user && user.role === 'retail') {
-      const cart = JSON.parse(localStorage.getItem(`bepawa_cart_${user.id}`) || '[]');
-      setCartCount(cart.length);
-    }
-  }, [user]);
+  const { toast } = useToast();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
-    navigate('/');
-    setIsMobileMenuOpen(false);
+    toast({
+      title: "Logged out successfully",
+      description: "You have been signed out of your account.",
+    });
+    navigate("/");
   };
 
-  const getDashboardLink = () => {
+  const getDashboardRoute = () => {
     switch (user?.role) {
-      case 'admin':
-        return '/admin';
-      case 'individual':
-        return '/individual';
-      case 'retail':
-        return '/pharmacy';
-      case 'wholesale':
-        return '/wholesale';
-      case 'lab':
-        return '/lab';
-      default:
-        return '/';
+      case 'admin': return '/admin';
+      case 'individual': return '/individual';
+      case 'retail': return '/pharmacy';
+      case 'wholesale': return '/wholesale';
+      case 'lab': return '/lab';
+      default: return '/';
     }
   };
 
+  const getNavigationItems = () => {
+    if (!user) return [];
+
+    const commonItems = [
+      { href: getDashboardRoute(), label: 'Dashboard', icon: <Home className="h-4 w-4" /> }
+    ];
+
+    switch (user.role) {
+      case 'admin':
+        return [
+          ...commonItems,
+          { href: '/admin', label: 'Admin Panel', icon: <Settings className="h-4 w-4" /> },
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+        ];
+      
+      case 'individual':
+        return [
+          ...commonItems,
+          { href: '/pharmacies', label: 'Find Pharmacies', icon: <Building className="h-4 w-4" /> },
+          { href: '/prescriptions', label: 'My Prescriptions', icon: <FileText className="h-4 w-4" /> }
+        ];
+      
+      case 'retail':
+        return [
+          ...commonItems,
+          { href: '/products', label: 'Browse Products', icon: <Package className="h-4 w-4" /> },
+          { href: '/cart', label: 'Cart', icon: <ShoppingCart className="h-4 w-4" /> },
+          { href: '/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
+          { href: '/credit-request', label: 'Credit Request', icon: <CreditCard className="h-4 w-4" /> },
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+        ];
+      
+      case 'wholesale':
+        return [
+          ...commonItems,
+          { href: '/wholesale/inventory', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
+          { href: '/wholesale/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
+          { href: '/wholesale/retailers', label: 'Retailers', icon: <Users className="h-4 w-4" /> },
+          { href: '/wholesale/analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+        ];
+      
+      case 'lab':
+        return [
+          ...commonItems,
+          { href: '/lab', label: 'Lab Dashboard', icon: <Microscope className="h-4 w-4" /> },
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+        ];
+      
+      default:
+        return commonItems;
+    }
+  };
+
+  const navigationItems = getNavigationItems();
+
   return (
-    <nav className="border-b bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-40">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        {/* Logo */}
-        <Link 
-          to={getDashboardLink()} 
-          className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
-        >
-          <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-2 rounded-xl shadow-lg">
-            <Package className="h-8 w-8 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent">
-              BEPAWA
-            </h1>
-            <p className="text-xs text-gray-500 hidden sm:block font-medium">Medical Supply Chain</p>
-          </div>
-        </Link>
+    <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link to={getDashboardRoute()} className="flex items-center space-x-2">
+            <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-2 rounded-lg">
+              <Package className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-xl font-bold text-gray-900">BEPAWA</span>
+          </Link>
 
-        {/* Desktop Navigation */}
-        <div className="hidden md:flex items-center space-x-2">
-          {user?.role === 'retail' && (
-            <>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/products" className="flex items-center">
-                  <Package className="h-4 w-4 mr-2" />
-                  Products
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="relative text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/cart" className="flex items-center">
-                  <ShoppingCart className="h-4 w-4 mr-2" />
-                  Cart
-                  {cartCount > 0 && (
-                    <Badge variant="destructive" className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
-                      {cartCount}
-                    </Badge>
-                  )}
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/orders" className="flex items-center">
-                  <Package className="h-4 w-4 mr-2" />
-                  Orders
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/credit-request" className="flex items-center">
-                  <CreditCard className="h-4 w-4 mr-2" />
-                  Credit
-                </Link>
-              </Button>
-            </>
-          )}
-
-          {user?.role === 'individual' && (
-            <>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/products" className="flex items-center">
-                  <Package className="h-4 w-4 mr-2" />
-                  Medicines
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/pharmacies" className="flex items-center">
-                  <MapPin className="h-4 w-4 mr-2" />
-                  Pharmacies
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/prescriptions" className="flex items-center">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Prescriptions
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/orders" className="flex items-center">
-                  <Clock className="h-4 w-4 mr-2" />
-                  Orders
-                </Link>
-              </Button>
-            </>
-          )}
-
-          {user?.role === 'admin' && (
-            <Button variant="ghost" asChild className="text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-              <Link to="/admin" className="flex items-center">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Dashboard
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-6">
+            {navigationItems.map((item) => (
+              <Link
+                key={item.href}
+                to={item.href}
+                className="flex items-center space-x-1 text-gray-600 hover:text-primary-600 transition-colors"
+              >
+                {item.icon}
+                <span>{item.label}</span>
               </Link>
-            </Button>
-          )}
-
-          {/* Notification Center */}
-          <NotificationCenter />
+            ))}
+          </div>
 
           {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="border-gray-200 hover:border-primary-300 hover:bg-primary-50">
-                <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-full p-1 mr-2">
-                  <User className="h-4 w-4 text-primary-700" />
-                </div>
-                <span className="font-medium text-gray-700">{user?.name}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-white border shadow-lg w-56 z-50">
-              <div className="px-3 py-2 border-b">
-                <p className="font-medium text-gray-900">{user?.name}</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-                <Badge variant="secondary" className="mt-1 text-xs">
-                  {user?.role === 'admin' ? 'Administrator' : user?.role === 'retail' ? 'Pharmacy' : user?.role?.charAt(0).toUpperCase() + user?.role?.slice(1)}
-                </Badge>
-              </div>
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to="/profile" className="flex items-center">
-                  <User className="h-4 w-4 mr-2" />
-                  Profile Settings
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="cursor-pointer">
-                <Settings className="h-4 w-4 mr-2" />
-                Account Settings
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-700 focus:bg-red-50">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Mobile Menu Button */}
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          className="md:hidden text-gray-700"
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-        >
-          {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </Button>
-      </div>
-
-      {/* Mobile Navigation */}
-      {isMobileMenuOpen && (
-        <div className="md:hidden border-t bg-white/95 backdrop-blur-md px-4 py-4 space-y-3">
-          {user?.role === 'retail' && (
-            <>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <Package className="h-5 w-5 mr-3" />
-                  Products
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50 relative">
-                <Link to="/cart" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <ShoppingCart className="h-5 w-5 mr-3" />
-                  Cart
-                  {cartCount > 0 && (
-                    <Badge variant="destructive" className="ml-auto">
-                      {cartCount}
-                    </Badge>
-                  )}
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <Package className="h-5 w-5 mr-3" />
-                  Orders
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/credit-request" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <CreditCard className="h-5 w-5 mr-3" />
-                  Credit Request
-                </Link>
-              </Button>
-            </>
-          )}
-
-          {user?.role === 'individual' && (
-            <>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/products" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <Package className="h-5 w-5 mr-3" />
-                  Medicines
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/pharmacies" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <MapPin className="h-5 w-5 mr-3" />
-                  Find Pharmacies
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/prescriptions" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <FileText className="h-5 w-5 mr-3" />
-                  Prescriptions
-                </Link>
-              </Button>
-              <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-                <Link to="/orders" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                  <Clock className="h-5 w-5 mr-3" />
-                  Order History
-                </Link>
-              </Button>
-            </>
-          )}
-          
-          <div className="border-t pt-3 mt-3">
-            <div className="flex items-center mb-3 p-2 bg-gray-50 rounded-lg">
-              <div className="bg-gradient-to-br from-primary-100 to-primary-200 rounded-full p-2 mr-3">
-                <User className="h-5 w-5 text-primary-700" />
-              </div>
-              <div>
-                <p className="font-medium text-gray-900">{user?.name}</p>
-                <p className="text-sm text-gray-500">{user?.email}</p>
-              </div>
-            </div>
-            
-            <Button variant="ghost" asChild className="w-full justify-start text-gray-700 hover:text-primary-700 hover:bg-primary-50">
-              <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center">
-                <User className="h-5 w-5 mr-3" />
-                Profile Settings
-              </Link>
+          <div className="flex items-center space-x-4">
+            {/* Notifications */}
+            <Button variant="ghost" size="sm" className="relative">
+              <Bell className="h-5 w-5" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                3
+              </span>
             </Button>
-            <Button variant="ghost" onClick={handleLogout} className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50">
-              <LogOut className="h-5 w-5 mr-3" />
-              Sign Out
+
+            {/* User Info */}
+            <div className="hidden md:flex items-center space-x-3">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-900">{user?.name}</p>
+                <p className="text-xs text-gray-500 capitalize">{user?.role}</p>
+              </div>
+              <Button variant="ghost" size="sm">
+                <User className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Logout */}
+            <Button variant="ghost" size="sm" onClick={handleLogout}>
+              <LogOut className="h-5 w-5" />
+              <span className="hidden sm:inline ml-2">Logout</span>
+            </Button>
+
+            {/* Mobile Menu Toggle */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="md:hidden"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+            >
+              {isMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
             </Button>
           </div>
         </div>
-      )}
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t">
+            <div className="space-y-2">
+              {navigationItems.map((item) => (
+                <Link
+                  key={item.href}
+                  to={item.href}
+                  className="flex items-center space-x-2 text-gray-600 hover:text-primary-600 transition-colors py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.icon}
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
     </nav>
   );
 };
