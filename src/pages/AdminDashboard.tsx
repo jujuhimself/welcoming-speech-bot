@@ -1,33 +1,56 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Package, Users, ShoppingCart, Clock, BarChart3, CreditCard } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
+import { 
+  Users, 
+  Building, 
+  Package, 
+  TrendingUp, 
+  AlertCircle, 
+  CheckCircle,
+  Clock,
+  DollarSign,
+  ShieldCheck,
+  Settings,
+  UserCheck,
+  UserX,
+  Eye
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
-import AdminAnalytics from "@/components/AdminAnalytics";
+import { useToast } from "@/hooks/use-toast";
+
+interface UserAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  status: 'pending' | 'approved' | 'rejected';
+  businessName?: string;
+  registeredAt: string;
+}
 
 const AdminDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    pendingOrders: 0,
-    totalPharmacies: 0,
+  const [activeTab, setActiveTab] = useState("overview");
+  const [pendingUsers, setPendingUsers] = useState<UserAccount[]>([]);
+  const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
+  const [systemStats, setSystemStats] = useState({
+    totalUsers: 0,
     pendingApprovals: 0,
-    totalProducts: 0,
-    lowStockProducts: 0,
-    pendingCreditRequests: 0
+    totalRevenue: 0,
+    activeOrders: 0,
+    pharmacies: 0,
+    wholesalers: 0,
+    labs: 0,
+    individuals: 0
   });
-  const [pendingPharmacies, setPendingPharmacies] = useState([]);
-  const [recentOrders, setRecentOrders] = useState([]);
-  const [creditRequests, setCreditRequests] = useState([]);
 
   useEffect(() => {
     if (!user || user.role !== 'admin') {
@@ -35,227 +58,369 @@ const AdminDashboard = () => {
       return;
     }
 
-    // Load admin stats
-    const orders = JSON.parse(localStorage.getItem('bepawa_orders') || '[]');
-    const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
-    const products = JSON.parse(localStorage.getItem('bepawa_products') || '[]');
-    const creditReqs = JSON.parse(localStorage.getItem('bepawa_credit_requests') || '[]');
-    
-    const pharmacies = users.filter((u: any) => u.role === 'pharmacy');
-    const pending = pharmacies.filter((p: any) => !p.isApproved);
-    const lowStock = products.filter((p: any) => p.stock < 10);
-    const pendingCredit = creditReqs.filter((req: any) => req.status === 'pending');
+    // Load sample data
+    const sampleUsers: UserAccount[] = [
+      {
+        id: '1',
+        name: 'City Pharmacy Ltd',
+        email: 'admin@citypharmacy.co.tz',
+        role: 'retail',
+        status: 'pending',
+        businessName: 'City Pharmacy',
+        registeredAt: '2024-06-05'
+      },
+      {
+        id: '2',
+        name: 'MedSupply Wholesale',
+        email: 'contact@medsupply.co.tz',
+        role: 'wholesale',
+        status: 'pending',
+        businessName: 'MedSupply Distribution',
+        registeredAt: '2024-06-04'
+      },
+      {
+        id: '3',
+        name: 'HealthLab Diagnostics',
+        email: 'info@healthlab.co.tz',
+        role: 'lab',
+        status: 'approved',
+        businessName: 'HealthLab Center',
+        registeredAt: '2024-06-03'
+      },
+      {
+        id: '4',
+        name: 'John Mwangi',
+        email: 'john.mwangi@email.com',
+        role: 'individual',
+        status: 'approved',
+        registeredAt: '2024-06-02'
+      }
+    ];
 
-    setStats({
-      totalOrders: orders.length,
-      pendingOrders: orders.filter((o: any) => o.status === 'pending').length,
-      totalPharmacies: pharmacies.length,
+    const pending = sampleUsers.filter(u => u.status === 'pending');
+    setPendingUsers(pending);
+    setAllUsers(sampleUsers);
+
+    setSystemStats({
+      totalUsers: sampleUsers.length,
       pendingApprovals: pending.length,
-      totalProducts: products.length,
-      lowStockProducts: lowStock.length,
-      pendingCreditRequests: pendingCredit.length
+      totalRevenue: 15750000,
+      activeOrders: 43,
+      pharmacies: sampleUsers.filter(u => u.role === 'retail').length,
+      wholesalers: sampleUsers.filter(u => u.role === 'wholesale').length,
+      labs: sampleUsers.filter(u => u.role === 'lab').length,
+      individuals: sampleUsers.filter(u => u.role === 'individual').length
     });
-
-    setPendingPharmacies(pending);
-    setRecentOrders(orders.slice(0, 10));
-    setCreditRequests(pendingCredit);
   }, [user, navigate]);
 
-  const approvePharmacy = (pharmacyId: string) => {
-    const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
-    const updatedUsers = users.map((u: any) => 
-      u.id === pharmacyId ? { ...u, isApproved: true } : u
-    );
-    localStorage.setItem('bepawa_users', JSON.stringify(updatedUsers));
-    
-    // Refresh data
-    setPendingPharmacies(prev => prev.filter((p: any) => p.id !== pharmacyId));
-    setStats(prev => ({ ...prev, pendingApprovals: prev.pendingApprovals - 1 }));
+  const handleApproveUser = (userId: string) => {
+    setPendingUsers(prev => prev.filter(u => u.id !== userId));
+    setAllUsers(prev => prev.map(u => 
+      u.id === userId ? { ...u, status: 'approved' as const } : u
+    ));
+    setSystemStats(prev => ({ ...prev, pendingApprovals: prev.pendingApprovals - 1 }));
     
     toast({
-      title: "Pharmacy approved",
-      description: "The pharmacy has been successfully approved and can now place orders.",
+      title: "User Approved",
+      description: "Account has been approved successfully.",
     });
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: string) => {
-    const orders = JSON.parse(localStorage.getItem('bepawa_orders') || '[]');
-    const updatedOrders = orders.map((o: any) => 
-      o.id === orderId ? { ...o, status: newStatus } : o
-    );
-    localStorage.setItem('bepawa_orders', JSON.stringify(updatedOrders));
-    
-    // Refresh orders
-    setRecentOrders(updatedOrders.slice(0, 10));
+  const handleRejectUser = (userId: string) => {
+    setPendingUsers(prev => prev.filter(u => u.id !== userId));
+    setAllUsers(prev => prev.map(u => 
+      u.id === userId ? { ...u, status: 'rejected' as const } : u
+    ));
+    setSystemStats(prev => ({ ...prev, pendingApprovals: prev.pendingApprovals - 1 }));
     
     toast({
-      title: "Order status updated",
-      description: `Order #${orderId} status changed to ${newStatus.replace('-', ' ')}`,
+      title: "User Rejected",
+      description: "Account has been rejected.",
+      variant: "destructive"
     });
   };
 
-  const approveCreditRequest = (requestId: string) => {
-    const requests = JSON.parse(localStorage.getItem('bepawa_credit_requests') || '[]');
-    const updatedRequests = requests.map((req: any) => 
-      req.id === requestId ? { ...req, status: 'approved' } : req
-    );
-    localStorage.setItem('bepawa_credit_requests', JSON.stringify(updatedRequests));
-    
-    setCreditRequests(prev => prev.filter((req: any) => req.id !== requestId));
-    setStats(prev => ({ ...prev, pendingCreditRequests: prev.pendingCreditRequests - 1 }));
-    
-    toast({
-      title: "Credit request approved",
-      description: "The credit request has been approved.",
-    });
-  };
-
-  if (!user || user.role !== 'admin') {
-    return <div>Loading...</div>;
-  }
-
-  const getStatusColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500';
-      case 'packed': return 'bg-blue-500';
-      case 'out-for-delivery': return 'bg-orange-500';
-      case 'delivered': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'pending':
+        return <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">Pending</Badge>;
+      case 'approved':
+        return <Badge variant="default" className="bg-green-100 text-green-800">Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="destructive">Rejected</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  const getRoleIcon = (role: string) => {
+    switch (role) {
+      case 'retail': return <Building className="h-4 w-4" />;
+      case 'wholesale': return <Package className="h-4 w-4" />;
+      case 'lab': return <Settings className="h-4 w-4" />;
+      case 'individual': return <Users className="h-4 w-4" />;
+      default: return <Users className="h-4 w-4" />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600 text-lg">Manage your pharmaceutical distribution business</p>
+          <p className="text-gray-600 text-lg">Manage the BEPAWA healthcare platform</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-8">
+        {/* System Stats */}
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-blue-100">Orders</CardTitle>
-              <ShoppingCart className="h-4 w-4 text-blue-200" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-blue-100">Total Users</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalOrders}</div>
+              <div className="text-3xl font-bold">{systemStats.totalUsers}</div>
+              <div className="flex items-center mt-2">
+                <Users className="h-4 w-4 mr-1" />
+                <span className="text-sm text-blue-100">All accounts</span>
+              </div>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-yellow-100">Pending</CardTitle>
-              <Clock className="h-4 w-4 text-yellow-200" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-yellow-100">Pending Approvals</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingOrders}</div>
+              <div className="text-3xl font-bold">{systemStats.pendingApprovals}</div>
+              <div className="flex items-center mt-2">
+                <Clock className="h-4 w-4 mr-1" />
+                <span className="text-sm text-yellow-100">Awaiting review</span>
+              </div>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-green-100">Pharmacies</CardTitle>
-              <Users className="h-4 w-4 text-green-200" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-green-100">Platform Revenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalPharmacies}</div>
+              <div className="text-2xl font-bold">TZS {systemStats.totalRevenue.toLocaleString()}</div>
+              <div className="flex items-center mt-2">
+                <DollarSign className="h-4 w-4 mr-1" />
+                <span className="text-sm text-green-100">This month</span>
+              </div>
             </CardContent>
           </Card>
           
           <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-purple-100">Approvals</CardTitle>
-              <Users className="h-4 w-4 text-purple-200" />
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-purple-100">Active Orders</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingApprovals}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-indigo-100">Products</CardTitle>
-              <Package className="h-4 w-4 text-indigo-200" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.totalProducts}</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-r from-red-500 to-red-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-red-100">Low Stock</CardTitle>
-              <Package className="h-4 w-4 text-red-200" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.lowStockProducts}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xs font-medium text-orange-100">Credit Req</CardTitle>
-              <CreditCard className="h-4 w-4 text-orange-200" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stats.pendingCreditRequests}</div>
+              <div className="text-3xl font-bold">{systemStats.activeOrders}</div>
+              <div className="flex items-center mt-2">
+                <TrendingUp className="h-4 w-4 mr-1" />
+                <span className="text-sm text-purple-100">In progress</span>
+              </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Main Content Tabs */}
-        <Tabs defaultValue="analytics" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 h-12">
-            <TabsTrigger value="analytics" className="text-sm">Analytics</TabsTrigger>
-            <TabsTrigger value="orders" className="text-sm">Orders</TabsTrigger>
-            <TabsTrigger value="pharmacies" className="text-sm">Pharmacies</TabsTrigger>
-            <TabsTrigger value="products" className="text-sm">Products</TabsTrigger>
-            <TabsTrigger value="credit" className="text-sm">Credit</TabsTrigger>
+        {/* Management Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="overview">Platform Overview</TabsTrigger>
+            <TabsTrigger value="approvals">Account Approvals</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="analytics">System Analytics</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="analytics" className="mt-6">
-            <AdminAnalytics />
-          </TabsContent>
-          
-          <TabsContent value="orders" className="space-y-4 mt-6">
-            <Card className="shadow-lg border-0">
+
+          <TabsContent value="overview" className="space-y-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Pharmacies</CardTitle>
+                  <Building className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{systemStats.pharmacies}</div>
+                  <p className="text-xs text-muted-foreground">Retail partners</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Wholesalers</CardTitle>
+                  <Package className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{systemStats.wholesalers}</div>
+                  <p className="text-xs text-muted-foreground">Distribution partners</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Labs</CardTitle>
+                  <Settings className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{systemStats.labs}</div>
+                  <p className="text-xs text-muted-foreground">Laboratory partners</p>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">Individuals</CardTitle>
+                  <Users className="h-4 w-4 text-muted-foreground" />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{systemStats.individuals}</div>
+                  <p className="text-xs text-muted-foreground">Individual users</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
               <CardHeader>
-                <CardTitle className="text-2xl">Orders Management</CardTitle>
+                <CardTitle>Recent Platform Activity</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {recentOrders.map((order: any) => (
-                    <div key={order.id} className="flex justify-between items-center p-6 border rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <CheckCircle className="h-5 w-5 text-green-600" />
                       <div>
-                        <p className="font-semibold text-lg">Order #{order.id}</p>
-                        <p className="text-gray-600">Pharmacy: {order.pharmacyName}</p>
-                        <p className="text-gray-600">
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="font-bold text-blue-600">TZS {order.total.toLocaleString()}</p>
+                        <p className="font-medium">New pharmacy approved</p>
+                        <p className="text-sm text-gray-600">City Pharmacy - Dar es Salaam</p>
                       </div>
-                      <div className="flex items-center space-x-4">
-                        <Badge className={`${getStatusColor(order.status)} text-white px-3 py-1`}>
-                          {order.status.replace('-', ' ').toUpperCase()}
-                        </Badge>
-                        <Select 
-                          value={order.status}
-                          onValueChange={(value) => updateOrderStatus(order.id, value)}
-                        >
-                          <SelectTrigger className="w-40">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="bg-white border shadow-lg">
-                            <SelectItem value="pending">Pending</SelectItem>
-                            <SelectItem value="packed">Packed</SelectItem>
-                            <SelectItem value="out-for-delivery">Out for Delivery</SelectItem>
-                            <SelectItem value="delivered">Delivered</SelectItem>
-                          </SelectContent>
-                        </Select>
+                    </div>
+                    <Badge variant="default">2 hours ago</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <Package className="h-5 w-5 text-blue-600" />
+                      <div>
+                        <p className="font-medium">Large order processed</p>
+                        <p className="text-sm text-gray-600">TZS 2,450,000 - MedSupply to HealthPharm</p>
+                      </div>
+                    </div>
+                    <Badge variant="outline">4 hours ago</Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <AlertCircle className="h-5 w-5 text-yellow-600" />
+                      <div>
+                        <p className="font-medium">System maintenance scheduled</p>
+                        <p className="text-sm text-gray-600">Weekend update - June 8-9</p>
+                      </div>
+                    </div>
+                    <Badge variant="secondary">Upcoming</Badge>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="approvals" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShieldCheck className="h-5 w-5" />
+                  Pending Account Approvals ({pendingUsers.length})
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {pendingUsers.length === 0 ? (
+                  <div className="text-center py-8">
+                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
+                    <p className="text-gray-600">No pending approvals</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {pendingUsers.map((user) => (
+                      <div key={user.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-3">
+                          <div className="flex items-center gap-3">
+                            {getRoleIcon(user.role)}
+                            <div>
+                              <h4 className="font-semibold">{user.businessName || user.name}</h4>
+                              <p className="text-sm text-gray-600">{user.email}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <Badge variant="outline" className="capitalize">{user.role}</Badge>
+                                {getStatusBadge(user.status)}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xs text-gray-500">Registered</p>
+                            <p className="text-sm font-medium">{user.registeredAt}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleApproveUser(user.id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <UserCheck className="h-4 w-4 mr-1" />
+                            Approve
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="destructive"
+                            onClick={() => handleRejectUser(user.id)}
+                          >
+                            <UserX className="h-4 w-4 mr-1" />
+                            Reject
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>All User Accounts</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {allUsers.map((user) => (
+                    <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {getRoleIcon(user.role)}
+                        <div>
+                          <h4 className="font-semibold">{user.businessName || user.name}</h4>
+                          <p className="text-sm text-gray-600">{user.email}</p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <Badge variant="outline" className="capitalize">{user.role}</Badge>
+                            {getStatusBadge(user.status)}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-4 w-4 mr-1" />
+                          View
+                        </Button>
+                        <Button size="sm" variant="outline">
+                          <Settings className="h-4 w-4 mr-1" />
+                          Manage
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -263,84 +428,53 @@ const AdminDashboard = () => {
               </CardContent>
             </Card>
           </TabsContent>
-          
-          <TabsContent value="pharmacies" className="space-y-4 mt-6">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-2xl">Pending Pharmacy Approvals</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {pendingPharmacies.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8 text-lg">No pending approvals</p>
-                  ) : (
-                    pendingPharmacies.map((pharmacy: any) => (
-                      <div key={pharmacy.id} className="flex justify-between items-center p-6 border rounded-xl bg-gray-50">
-                        <div>
-                          <p className="font-semibold text-lg">{pharmacy.pharmacyName}</p>
-                          <p className="text-gray-600">Contact: {pharmacy.name}</p>
-                          <p className="text-gray-600">Email: {pharmacy.email}</p>
-                          <p className="text-gray-600">Address: {pharmacy.address}</p>
-                        </div>
-                        <Button onClick={() => approvePharmacy(pharmacy.id)} size="lg">
-                          Approve
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="products" className="space-y-4 mt-6">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-2xl">Product Management</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12">
-                  <Package className="h-20 w-20 text-gray-400 mx-auto mb-6" />
-                  <p className="text-gray-600 mb-6 text-lg">Product management features coming soon</p>
-                  <Button disabled size="lg">Add New Product</Button>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          <TabsContent value="credit" className="space-y-4 mt-6">
-            <Card className="shadow-lg border-0">
-              <CardHeader>
-                <CardTitle className="text-2xl">Credit Requests</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {creditRequests.length === 0 ? (
-                    <p className="text-gray-600 text-center py-8 text-lg">No pending credit requests</p>
-                  ) : (
-                    creditRequests.map((request: any) => (
-                      <div key={request.id} className="flex justify-between items-center p-6 border rounded-xl bg-gray-50">
-                        <div>
-                          <p className="font-semibold text-lg">{request.pharmacyName}</p>
-                          <p className="text-gray-600">Amount: TZS {request.amount.toLocaleString()}</p>
-                          <p className="text-gray-600">Period: {request.repaymentPeriod}</p>
-                          <p className="text-gray-600">Reason: {request.reason}</p>
-                          <p className="text-gray-600 text-sm mt-2">{request.businessJustification}</p>
-                        </div>
-                        <div className="flex space-x-2">
-                          <Button onClick={() => approveCreditRequest(request.id)} size="lg">
-                            Approve
-                          </Button>
-                          <Button variant="outline" size="lg">
-                            Reject
-                          </Button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Platform Growth</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>New registrations this week</span>
+                      <Badge variant="default">+12</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Order volume growth</span>
+                      <Badge variant="default">+18%</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Revenue growth</span>
+                      <Badge variant="default">+25%</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>System Health</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span>Server uptime</span>
+                      <Badge variant="default" className="bg-green-100 text-green-800">99.9%</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Average response time</span>
+                      <Badge variant="outline">120ms</Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Active sessions</span>
+                      <Badge variant="outline">247</Badge>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
