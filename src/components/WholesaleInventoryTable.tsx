@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -64,9 +63,10 @@ const WholesaleInventoryTable = ({
   };
 
   const handleSubmit = (data: Omit<Product, 'id' | 'status'>) => {
+    const status: Product['status'] = data.stock <= data.minStock ? 'low-stock' : 'in-stock';
     const productData = {
       ...data,
-      status: data.stock <= data.minStock ? 'low-stock' : 'in-stock' as const
+      status
     };
 
     if (editingProduct) {

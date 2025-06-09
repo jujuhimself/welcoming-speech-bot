@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,7 +20,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RechartsPieChart, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RechartsPieChart, Cell, LineChart, Line, ResponsiveContainer, Pie } from 'recharts';
 
 const WholesaleBusinessTools = () => {
   const { user } = useAuth();
@@ -37,7 +36,6 @@ const WholesaleBusinessTools = () => {
     }
   }, [user, navigate]);
 
-  // Sample data for charts
   const salesData = [
     { month: 'Jan', sales: 4500000, profit: 1350000 },
     { month: 'Feb', sales: 5200000, profit: 1560000 },
@@ -95,7 +93,6 @@ const WholesaleBusinessTools = () => {
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
-          {/* Invoice Generator */}
           <TabsContent value="invoice">
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
@@ -171,10 +168,8 @@ const WholesaleBusinessTools = () => {
             </div>
           </TabsContent>
 
-          {/* Sales Overview */}
           <TabsContent value="sales">
             <div className="space-y-6">
-              {/* Controls */}
               <Card>
                 <CardContent className="pt-6">
                   <div className="flex gap-4 items-center">
@@ -209,7 +204,6 @@ const WholesaleBusinessTools = () => {
                 </CardContent>
               </Card>
 
-              {/* KPI Cards */}
               <div className="grid md:grid-cols-4 gap-6">
                 <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
                   <CardContent className="p-6">
@@ -264,7 +258,6 @@ const WholesaleBusinessTools = () => {
                 </Card>
               </div>
 
-              {/* Charts */}
               <div className="grid lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
@@ -312,7 +305,6 @@ const WholesaleBusinessTools = () => {
             </div>
           </TabsContent>
 
-          {/* Profitability Analysis */}
           <TabsContent value="profitability">
             <div className="space-y-6">
               <Card>
@@ -373,7 +365,6 @@ const WholesaleBusinessTools = () => {
                 </CardContent>
               </Card>
 
-              {/* Profitability Metrics */}
               <div className="grid md:grid-cols-3 gap-6">
                 <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-0">
                   <CardContent className="p-6">
@@ -417,7 +408,6 @@ const WholesaleBusinessTools = () => {
             </div>
           </TabsContent>
 
-          {/* Analytics */}
           <TabsContent value="analytics">
             <div className="grid lg:grid-cols-2 gap-6">
               <Card>
