@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link, useNavigate } from "react-router-dom";
-import { MapPin, Search, FileText, Clock, Heart, ShoppingCart, Upload, Stethoscope } from "lucide-react";
+import { MapPin, Search, FileText, Clock, Heart, ShoppingCart, Upload, Stethoscope, TestTube, Building } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 
@@ -112,7 +112,7 @@ const IndividualDashboard = () => {
             <CardTitle className="text-2xl">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
               <Button asChild className="h-24 flex-col bg-blue-600 hover:bg-blue-700 text-white">
                 <Link to="/products">
                   <Search className="h-8 w-8 mb-2" />
@@ -120,9 +120,15 @@ const IndividualDashboard = () => {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
-                <Link to="/pharmacies">
-                  <MapPin className="h-8 w-8 mb-2" />
+                <Link to="/pharmacy-directory">
+                  <Building className="h-8 w-8 mb-2" />
                   Find Pharmacies
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
+                <Link to="/lab-directory">
+                  <TestTube className="h-8 w-8 mb-2" />
+                  Find Labs
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
@@ -148,7 +154,7 @@ const IndividualDashboard = () => {
               <div className="flex justify-between items-center">
                 <CardTitle className="text-2xl">Nearby Pharmacies</CardTitle>
                 <Button variant="outline" size="sm" asChild>
-                  <Link to="/pharmacies">View All</Link>
+                  <Link to="/pharmacy-directory">View All</Link>
                 </Button>
               </div>
             </CardHeader>
@@ -166,8 +172,8 @@ const IndividualDashboard = () => {
                         </Badge>
                       </div>
                     </div>
-                    <Button variant="outline" size="sm">
-                      View Store
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/pharmacy-directory">View Store</Link>
                     </Button>
                   </div>
                 ))}

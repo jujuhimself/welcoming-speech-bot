@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Package, User, LogOut, Menu, X, Bell, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, Microscope, Building, UserCheck, CreditCard, Wrench } from "lucide-react";
+import { Package, User, LogOut, Menu, X, Bell, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, TestTube, Building, UserCheck, CreditCard, Wrench } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
@@ -50,13 +50,15 @@ const Navbar = () => {
       case 'individual':
         return [
           ...commonItems,
-          { href: '/pharmacies', label: 'Find Pharmacies', icon: <Building className="h-4 w-4" /> },
+          { href: '/pharmacy-directory', label: 'Find Pharmacies', icon: <Building className="h-4 w-4" /> },
+          { href: '/lab-directory', label: 'Find Labs', icon: <TestTube className="h-4 w-4" /> },
           { href: '/prescriptions', label: 'My Prescriptions', icon: <FileText className="h-4 w-4" /> }
         ];
       
       case 'retail':
         return [
           ...commonItems,
+          { href: '/inventory-management', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
           { href: '/products', label: 'Browse Products', icon: <Package className="h-4 w-4" /> },
           { href: '/cart', label: 'Cart', icon: <ShoppingCart className="h-4 w-4" /> },
           { href: '/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
@@ -77,7 +79,7 @@ const Navbar = () => {
       case 'lab':
         return [
           ...commonItems,
-          { href: '/lab', label: 'Lab Dashboard', icon: <Microscope className="h-4 w-4" /> },
+          { href: '/lab', label: 'Lab Dashboard', icon: <TestTube className="h-4 w-4" /> },
           { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
         ];
       

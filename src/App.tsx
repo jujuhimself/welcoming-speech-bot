@@ -27,6 +27,9 @@ import WholesaleAnalytics from "./pages/WholesaleAnalytics";
 import LabDashboard from "./pages/LabDashboard";
 import Pharmacies from "./pages/Pharmacies";
 import Prescriptions from "./pages/Prescriptions";
+import PharmacyDirectory from "./pages/PharmacyDirectory";
+import LabDirectory from "./pages/LabDirectory";
+import InventoryManagement from "./pages/InventoryManagement";
 
 const App = () => {
   // Create QueryClient inside the component to ensure proper React context
@@ -63,6 +66,9 @@ const App = () => {
               <Route path="/cart" element={<Cart />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/pharmacies" element={<Pharmacies />} />
+              <Route path="/pharmacy-directory" element={<PharmacyDirectory />} />
+              <Route path="/lab-directory" element={<LabDirectory />} />
+              <Route path="/inventory-management" element={<InventoryManagement />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
               <Route path="/credit-request" element={<CreditRequest />} />
               <Route path="/business-tools" element={<BusinessTools />} />
