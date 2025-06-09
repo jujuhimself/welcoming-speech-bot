@@ -11,6 +11,7 @@ import Register from "./pages/Register";
 import PharmacyDashboard from "./pages/PharmacyDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Products from "./pages/Products";
+import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import CreditRequest from "./pages/CreditRequest";
@@ -73,6 +74,7 @@ const App = () => {
               <Route path="/lab/test-catalog" element={<LabTestCatalog />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/products" element={<Products />} />
+              <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
               <Route path="/orders" element={<Orders />} />
               <Route path="/pharmacies" element={<Pharmacies />} />
