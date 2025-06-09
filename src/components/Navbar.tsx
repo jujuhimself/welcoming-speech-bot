@@ -73,15 +73,17 @@ const Navbar = () => {
           ...commonItems,
           { href: '/wholesale/inventory', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
           { href: '/wholesale/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
+          { href: '/wholesale/retailer-orders', label: 'Retailer Orders', icon: <Users className="h-4 w-4" /> },
+          { href: '/wholesale/purchase-orders', label: 'Purchase Orders', icon: <FileText className="h-4 w-4" /> },
           { href: '/wholesale/retailers', label: 'Retailers', icon: <Users className="h-4 w-4" /> },
           { href: '/wholesale/analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
-          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+          { href: '/wholesale/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
         ];
       
       case 'lab':
         return [
           ...commonItems,
-          { href: '/lab', label: 'Lab Dashboard', icon: <TestTube className="h-4 w-4" /> },
+          { href: '/lab/test-catalog', label: 'Test Catalog', icon: <TestTube className="h-4 w-4" /> },
           { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
         ];
       

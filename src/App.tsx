@@ -26,7 +26,11 @@ import WholesaleInventory from "./pages/WholesaleInventory";
 import WholesaleOrders from "./pages/WholesaleOrders";
 import WholesaleRetailers from "./pages/WholesaleRetailers";
 import WholesaleAnalytics from "./pages/WholesaleAnalytics";
+import WholesaleRetailerOrders from "./pages/WholesaleRetailerOrders";
+import WholesalePurchaseOrders from "./pages/WholesalePurchaseOrders";
+import WholesaleBusinessTools from "./pages/WholesaleBusinessTools";
 import LabDashboard from "./pages/LabDashboard";
+import LabTestCatalog from "./pages/LabTestCatalog";
 import Pharmacies from "./pages/Pharmacies";
 import Prescriptions from "./pages/Prescriptions";
 import PharmacyDirectory from "./pages/PharmacyDirectory";
@@ -60,9 +64,13 @@ const App = () => {
               <Route path="/wholesale" element={<WholesaleDashboard />} />
               <Route path="/wholesale/inventory" element={<WholesaleInventory />} />
               <Route path="/wholesale/orders" element={<WholesaleOrders />} />
+              <Route path="/wholesale/retailer-orders" element={<WholesaleRetailerOrders />} />
+              <Route path="/wholesale/purchase-orders" element={<WholesalePurchaseOrders />} />
               <Route path="/wholesale/retailers" element={<WholesaleRetailers />} />
               <Route path="/wholesale/analytics" element={<WholesaleAnalytics />} />
+              <Route path="/wholesale/business-tools" element={<WholesaleBusinessTools />} />
               <Route path="/lab" element={<LabDashboard />} />
+              <Route path="/lab/test-catalog" element={<LabTestCatalog />} />
               <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/products" element={<Products />} />
               <Route path="/cart" element={<Cart />} />
