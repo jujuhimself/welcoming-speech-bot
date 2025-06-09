@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Package, User, LogOut, Menu, X, Bell, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, TestTube, Building, UserCheck, CreditCard, Wrench } from "lucide-react";
+import { Package, User, LogOut, Menu, X, Bell, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, TestTube, Building, UserCheck, CreditCard, Wrench, Calculator, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const Navbar = () => {
@@ -60,8 +60,10 @@ const Navbar = () => {
           ...commonItems,
           { href: '/inventory-management', label: 'Inventory', icon: <Package className="h-4 w-4" /> },
           { href: '/products', label: 'Browse Products', icon: <Package className="h-4 w-4" /> },
+          { href: '/wholesale-ordering', label: 'Wholesale Orders', icon: <Truck className="h-4 w-4" /> },
           { href: '/cart', label: 'Cart', icon: <ShoppingCart className="h-4 w-4" /> },
           { href: '/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
+          { href: '/business-center', label: 'Business Center', icon: <Calculator className="h-4 w-4" /> },
           { href: '/credit-request', label: 'Credit Request', icon: <CreditCard className="h-4 w-4" /> },
           { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
         ];
