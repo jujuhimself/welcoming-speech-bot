@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -153,7 +154,7 @@ const Register = () => {
       toast({
         title: "Registration successful! 🎉",
         description: formData.role === 'individual' 
-          ? "Welcome to BEPAWA! Please check your email to verify your account."
+          ? "Welcome to BEPAWA! You can now sign in to your account."
           : "Your account has been created and is pending admin approval. You'll be notified once approved.",
       });
       navigate('/login');

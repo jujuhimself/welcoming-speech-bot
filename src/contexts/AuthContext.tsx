@@ -212,14 +212,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         operatingHours: userData.operatingHours,
       };
 
-      const redirectUrl = `${window.location.origin}/`;
+      // Use the actual site URL for the redirect
+      const redirectUrl = `${window.location.origin}/auth-callback`;
       
       const { data, error } = await supabase.auth.signUp({
         email: userData.email!,
         password: userData.password,
         options: {
-          emailRedirectTo: redirectUrl,
-          data: userMetadata
+          data: userMetadata,
+          emailRedirectTo: redirectUrl
         }
       });
       

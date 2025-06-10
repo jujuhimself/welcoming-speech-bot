@@ -180,16 +180,6 @@ const Login = () => {
             </div>
           </CardContent>
         </Card>
-
-        {/* Demo Notice */}
-        <Card className="mt-6 bg-blue-50/80 backdrop-blur-sm border border-blue-200">
-          <CardContent className="p-4">
-            <p className="text-sm text-blue-800 font-medium mb-2">Demo Mode</p>
-            <p className="text-xs text-blue-700">
-              This app is now using Supabase authentication. You can register a new account or contact the administrator for demo credentials.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   );
