@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +12,7 @@ import {
   CheckCircle, 
   Info, 
   X,
-  MarkAsUnread,
+  Mail,
   Trash2,
   Settings
 } from "lucide-react";
@@ -322,7 +321,7 @@ const NotificationPanel = () => {
                             }
                             className="h-8 w-8 p-0"
                           >
-                            <MarkAsUnread className="h-4 w-4" />
+                            <Mail className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
