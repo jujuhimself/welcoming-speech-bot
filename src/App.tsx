@@ -15,6 +15,8 @@ import ProductDetail from "./pages/ProductDetail";
 import Cart from "./pages/Cart";
 import Orders from "./pages/Orders";
 import CreditRequest from "./pages/CreditRequest";
+import CreditRequestManagement from "./pages/CreditRequestManagement";
+import PrescriptionManagement from "./pages/PrescriptionManagement";
 import NotFound from "./pages/NotFound";
 import BusinessTools from "./pages/BusinessTools";
 import BusinessCenter from "./pages/BusinessCenter";
@@ -82,7 +84,9 @@ const App = () => {
               <Route path="/lab-directory" element={<LabDirectory />} />
               <Route path="/inventory-management" element={<InventoryManagement />} />
               <Route path="/prescriptions" element={<Prescriptions />} />
+              <Route path="/prescription-management" element={<PrescriptionManagement />} />
               <Route path="/credit-request" element={<CreditRequest />} />
+              <Route path="/credit-management" element={<CreditRequestManagement />} />
               <Route path="/business-tools" element={<BusinessTools />} />
               <Route path="/business-center" element={<BusinessCenter />} />
               <Route path="/wholesale-ordering" element={<WholesaleOrdering />} />

@@ -132,7 +132,7 @@ const IndividualDashboard = () => {
                 </Link>
               </Button>
               <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
-                <Link to="/prescriptions">
+                <Link to="/prescription-management">
                   <Upload className="h-8 w-8 mb-2" />
                   Upload Prescription
                 </Link>
@@ -220,7 +220,7 @@ const IndividualDashboard = () => {
                       <div>
                         <p className="font-semibold">Order #{order.id}</p>
                         <p className="text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</p>
-                        <p className="font-bold text-blue-600">KSh {order.total.toLocaleString()}</p>
+                        <p className="font-bold text-blue-600">TZS {order.total.toLocaleString()}</p>
                       </div>
                       <Badge>{order.status}</Badge>
                     </div>
