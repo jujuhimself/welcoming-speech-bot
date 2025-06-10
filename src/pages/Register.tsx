@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -148,20 +147,20 @@ const Register = () => {
       userData.operatingHours = formData.operatingHours;
     }
 
-    const success = await register(userData);
+    const result = await register(userData);
     
-    if (success) {
+    if (result.success) {
       toast({
         title: "Registration successful! 🎉",
         description: formData.role === 'individual' 
-          ? "Welcome to BEPAWA! You can now log in and start exploring."
-          : "Your account is pending admin approval. You'll be notified once approved.",
+          ? "Welcome to BEPAWA! Please check your email to verify your account."
+          : "Your account has been created and is pending admin approval. You'll be notified once approved.",
       });
       navigate('/login');
     } else {
       toast({
         title: "Registration failed",
-        description: "Email already exists. Please try with a different email.",
+        description: result.error || "An error occurred during registration. Please try again.",
         variant: "destructive",
       });
     }

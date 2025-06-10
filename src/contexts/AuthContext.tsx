@@ -1,5 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User as SupabaseUser, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface User {
   id: string;
@@ -35,6 +37,7 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
+  session: Session | null;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>;
@@ -51,126 +54,131 @@ export const useAuth = () => {
   return context;
 };
 
-// Initialize demo users for all stakeholder types
-const initializeDemoUsers = () => {
-  const existingUsers = localStorage.getItem('bepawa_users');
-  if (!existingUsers) {
-    const demoUsers = [
-      {
-        id: '1',
-        email: 'admin@bepawa.com',
-        password: 'admin123',
-        name: 'System Admin',
-        role: 'admin',
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '2',
-        email: 'individual@test.com',
-        password: 'password123',
-        name: 'John Doe',
-        role: 'individual',
-        phone: '+255123456789',
-        address: 'Dar es Salaam, Tanzania',
-        dateOfBirth: '1990-01-01',
-        emergencyContact: '+255987654321',
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '3',
-        email: 'retail@test.com',
-        password: 'password123',
-        name: 'Jane Smith',
-        role: 'retail',
-        pharmacyName: 'City Pharmacy',
-        address: 'Kisutu Street, Dar es Salaam',
-        phone: '+255111222333',
-        licenseNumber: 'PHA-2024-001',
-        pharmacistName: 'Dr. Jane Smith',
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '4',
-        email: 'wholesale@test.com',
-        password: 'password123',
-        name: 'Ahmed Hassan',
-        role: 'wholesale',
-        businessName: 'MediSupply Wholesale',
-        address: 'Industrial Area, Dar es Salaam',
-        phone: '+255444555666',
-        businessLicense: 'WHS-2024-001',
-        taxId: 'TAX123456789',
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      },
-      {
-        id: '5',
-        email: 'lab@test.com',
-        password: 'password123',
-        name: 'Dr. Sarah Johnson',
-        role: 'lab',
-        labName: 'HealthLab Diagnostics',
-        address: 'Upanga, Dar es Salaam',
-        phone: '+255777888999',
-        labLicense: 'LAB-2024-001',
-        specializations: ['Blood Tests', 'Urine Analysis', 'X-Ray', 'Ultrasound'],
-        operatingHours: '8:00 AM - 6:00 PM',
-        isApproved: true,
-        createdAt: new Date().toISOString()
-      }
-    ];
-    localStorage.setItem('bepawa_users', JSON.stringify(demoUsers));
-  }
-};
-
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    // Initialize demo users on first load
-    initializeDemoUsers();
-    
-    // Check for stored user on app load
+  // Convert Supabase profile to our User type
+  const convertProfileToUser = (profile: any, supabaseUser: SupabaseUser): User => {
+    return {
+      id: profile.id,
+      email: profile.email,
+      name: profile.name,
+      role: profile.role,
+      phone: profile.phone,
+      address: profile.address,
+      isApproved: profile.is_approved,
+      createdAt: profile.created_at,
+      dateOfBirth: profile.date_of_birth,
+      emergencyContact: profile.emergency_contact,
+      pharmacyName: profile.pharmacy_name,
+      licenseNumber: profile.license_number,
+      pharmacistName: profile.pharmacist_name,
+      businessName: profile.business_name,
+      businessLicense: profile.business_license,
+      taxId: profile.tax_id,
+      labName: profile.lab_name,
+      labLicense: profile.lab_license,
+      specializations: profile.specializations,
+      operatingHours: profile.operating_hours,
+    };
+  };
+
+  // Fetch user profile from Supabase
+  const fetchUserProfile = async (userId: string) => {
     try {
-      const storedUser = localStorage.getItem('bepawa_user');
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        setUser(parsedUser);
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.error('Error fetching profile:', error);
+        return null;
       }
+
+      return profile;
     } catch (error) {
-      console.error('Error parsing stored user:', error);
-      localStorage.removeItem('bepawa_user');
+      console.error('Error fetching profile:', error);
+      return null;
     }
-    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log('Auth state changed:', event, session);
+        setSession(session);
+        
+        if (session?.user) {
+          // Fetch user profile when authenticated
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(session.user.id);
+            if (profile) {
+              const userData = convertProfileToUser(profile, session.user);
+              setUser(userData);
+            }
+          }, 0);
+        } else {
+          setUser(null);
+        }
+        
+        setIsLoading(false);
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (session?.user) {
+        fetchUserProfile(session.user.id).then(profile => {
+          if (profile) {
+            const userData = convertProfileToUser(profile, session.user);
+            setUser(userData);
+          }
+          setIsLoading(false);
+        });
+      } else {
+        setIsLoading(false);
+      }
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     setIsLoading(true);
     
     try {
-      // Get users from localStorage
-      const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
-      const foundUser = users.find((u: User & { password: string }) => 
-        u.email.toLowerCase() === email.toLowerCase() && u.password === password
-      );
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      });
 
-      if (!foundUser) {
+      if (error) {
         setIsLoading(false);
-        return { success: false, error: 'Invalid email or password' };
+        return { success: false, error: error.message };
       }
 
-      if (!foundUser.isApproved && foundUser.role !== 'individual' && foundUser.role !== 'admin') {
-        setIsLoading(false);
-        return { success: false, error: 'Your account is pending approval. Please contact the administrator.' };
+      if (data.user) {
+        const profile = await fetchUserProfile(data.user.id);
+        if (profile) {
+          // Check if user is approved (except for individuals and admins)
+          if (!profile.is_approved && profile.role !== 'individual' && profile.role !== 'admin') {
+            await supabase.auth.signOut();
+            setIsLoading(false);
+            return { success: false, error: 'Your account is pending approval. Please contact the administrator.' };
+          }
+
+          const userData = convertProfileToUser(profile, data.user);
+          setUser(userData);
+          setSession(data.session);
+        }
       }
 
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      localStorage.setItem('bepawa_user', JSON.stringify(userWithoutPassword));
       setIsLoading(false);
       return { success: true };
     } catch (error) {
@@ -184,25 +192,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsLoading(true);
     
     try {
-      // Check if email already exists
-      const users = JSON.parse(localStorage.getItem('bepawa_users') || '[]');
-      const existingUser = users.find((u: User) => u.email.toLowerCase() === userData.email?.toLowerCase());
-      
-      if (existingUser) {
-        setIsLoading(false);
-        return { success: false, error: 'Email already exists' };
-      }
-      
-      // Create new user
-      const newUser = {
-        id: Date.now().toString(),
-        ...userData,
-        isApproved: userData.role === 'admin' || userData.role === 'individual' ? true : false, // Auto-approve individuals and admins
-        createdAt: new Date().toISOString()
+      // Prepare metadata for the trigger
+      const userMetadata = {
+        name: userData.name,
+        role: userData.role || 'individual',
+        phone: userData.phone,
+        address: userData.address,
+        dateOfBirth: userData.dateOfBirth,
+        emergencyContact: userData.emergencyContact,
+        pharmacyName: userData.pharmacyName,
+        licenseNumber: userData.licenseNumber,
+        pharmacistName: userData.pharmacistName,
+        businessName: userData.businessName,
+        businessLicense: userData.businessLicense,
+        taxId: userData.taxId,
+        labName: userData.labName,
+        labLicense: userData.labLicense,
+        specializations: userData.specializations?.join(','),
+        operatingHours: userData.operatingHours,
       };
+
+      const redirectUrl = `${window.location.origin}/`;
       
-      users.push(newUser);
-      localStorage.setItem('bepawa_users', JSON.stringify(users));
+      const { data, error } = await supabase.auth.signUp({
+        email: userData.email!,
+        password: userData.password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: userMetadata
+        }
+      });
+      
+      if (error) {
+        setIsLoading(false);
+        return { success: false, error: error.message };
+      }
       
       setIsLoading(false);
       return { success: true };
@@ -213,13 +237,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
-    localStorage.removeItem('bepawa_user');
+    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, register, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, logout, register, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

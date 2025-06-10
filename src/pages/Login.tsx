@@ -39,27 +39,8 @@ const Login = () => {
         description: "You've successfully logged into BEPAWA.",
       });
       
-      // Navigate based on user role
-      const user = JSON.parse(localStorage.getItem('bepawa_user') || '{}');
-      switch (user.role) {
-        case 'admin':
-          navigate('/admin');
-          break;
-        case 'individual':
-          navigate('/individual');
-          break;
-        case 'retail':
-          navigate('/pharmacy');
-          break;
-        case 'wholesale':
-          navigate('/wholesale');
-          break;
-        case 'lab':
-          navigate('/lab');
-          break;
-        default:
-          navigate('/');
-      }
+      // Navigate to home page - routing will be handled by the app based on user role
+      navigate('/');
     } else {
       toast({
         title: "Login failed",
@@ -69,22 +50,6 @@ const Login = () => {
     }
 
     setIsLoading(false);
-  };
-
-  const fillDemoCredentials = (userType: string) => {
-    const credentials = {
-      individual: { email: 'individual@test.com', password: 'password123' },
-      retail: { email: 'retail@test.com', password: 'password123' },
-      wholesale: { email: 'wholesale@test.com', password: 'password123' },
-      lab: { email: 'lab@test.com', password: 'password123' },
-      admin: { email: 'admin@bepawa.com', password: 'admin123' }
-    };
-    
-    const creds = credentials[userType as keyof typeof credentials];
-    if (creds) {
-      setEmail(creds.email);
-      setPassword(creds.password);
-    }
   };
 
   return (
@@ -216,67 +181,13 @@ const Login = () => {
           </CardContent>
         </Card>
 
-        {/* Demo Credentials */}
-        <Card className="mt-6 bg-gray-50/80 backdrop-blur-sm border border-gray-200">
+        {/* Demo Notice */}
+        <Card className="mt-6 bg-blue-50/80 backdrop-blur-sm border border-blue-200">
           <CardContent className="p-4">
-            <p className="text-sm text-gray-600 font-medium mb-3">Demo Credentials - Click to auto-fill:</p>
-            <div className="grid grid-cols-1 gap-2 text-xs">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fillDemoCredentials('individual')}
-                className="justify-start h-auto p-2 text-left"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">Individual User</p>
-                  <p className="text-gray-600">individual@test.com | password123</p>
-                </div>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fillDemoCredentials('retail')}
-                className="justify-start h-auto p-2 text-left"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">Retail Pharmacy</p>
-                  <p className="text-gray-600">retail@test.com | password123</p>
-                </div>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fillDemoCredentials('wholesale')}
-                className="justify-start h-auto p-2 text-left"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">Wholesale Pharmacy</p>
-                  <p className="text-gray-600">wholesale@test.com | password123</p>
-                </div>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fillDemoCredentials('lab')}
-                className="justify-start h-auto p-2 text-left"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">Lab/Health Center</p>
-                  <p className="text-gray-600">lab@test.com | password123</p>
-                </div>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => fillDemoCredentials('admin')}
-                className="justify-start h-auto p-2 text-left"
-              >
-                <div>
-                  <p className="font-medium text-gray-700">System Admin</p>
-                  <p className="text-gray-600">admin@bepawa.com | admin123</p>
-                </div>
-              </Button>
-            </div>
+            <p className="text-sm text-blue-800 font-medium mb-2">Demo Mode</p>
+            <p className="text-xs text-blue-700">
+              This app is now using Supabase authentication. You can register a new account or contact the administrator for demo credentials.
+            </p>
           </CardContent>
         </Card>
       </div>
