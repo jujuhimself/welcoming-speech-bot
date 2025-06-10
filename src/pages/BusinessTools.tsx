@@ -9,7 +9,7 @@ import BarcodeScanner from "@/components/BarcodeScanner";
 import FinancialManagement from "@/components/FinancialManagement";
 import CustomerRelationshipManagement from "@/components/CustomerRelationshipManagement";
 import DeliveryTracking from "@/components/DeliveryTracking";
-import { NotificationCenter } from "@/components/NotificationSystem";
+import NotificationCenter from "@/components/NotificationCenter";
 import { 
   Scan, 
   DollarSign, 
