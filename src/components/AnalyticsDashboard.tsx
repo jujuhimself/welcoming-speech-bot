@@ -1,359 +1,298 @@
 
-import React, { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  BarChart, 
-  Bar, 
-  XAxis, 
-  YAxis, 
-  CartesianGrid, 
-  Tooltip, 
-  ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
-  AreaChart,
-  Area
-} from 'recharts';
-import { 
-  TrendingUp, 
-  TrendingDown, 
-  DollarSign, 
-  ShoppingCart, 
-  Package, 
-  Users,
-  Calendar,
-  Download,
-  Filter,
-  BarChart3,
-  PieChart as PieChartIcon
-} from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { TrendingUp, TrendingDown, DollarSign, Package, Users, ShoppingCart } from 'lucide-react';
+import { dataService } from '@/services/dataService';
 
-const AnalyticsDashboard = () => {
-  const [dateRange, setDateRange] = useState("30d");
-  const [selectedMetric, setSelectedMetric] = useState("revenue");
+interface AnalyticsData {
+  revenue: { period: string; amount: number; }[];
+  orders: { period: string; count: number; }[];
+  topProducts: { name: string; sales: number; revenue: number; }[];
+  customerMetrics: { newCustomers: number; returningCustomers: number; totalCustomers: number; };
+  inventoryTurnover: { product: string; turnoverRate: number; daysInStock: number; }[];
+}
 
-  // Sample data
-  const salesData = [
-    { month: 'Jan', revenue: 45000, orders: 120, customers: 89 },
-    { month: 'Feb', revenue: 52000, orders: 145, customers: 102 },
-    { month: 'Mar', revenue: 48000, orders: 132, customers: 95 },
-    { month: 'Apr', revenue: 61000, orders: 178, customers: 134 },
-    { month: 'May', revenue: 55000, orders: 156, customers: 118 },
-    { month: 'Jun', revenue: 67000, orders: 203, customers: 157 }
-  ];
+export const AnalyticsDashboard = () => {
+  const [timeframe, setTimeframe] = useState('7d');
+  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+    revenue: [],
+    orders: [],
+    topProducts: [],
+    customerMetrics: { newCustomers: 0, returningCustomers: 0, totalCustomers: 0 },
+    inventoryTurnover: []
+  });
 
-  const productCategories = [
-    { name: 'Pain Relief', value: 35, sales: 2400000, color: '#0088FE' },
-    { name: 'Antibiotics', value: 25, sales: 1700000, color: '#00C49F' },
-    { name: 'Vitamins', value: 20, sales: 1400000, color: '#FFBB28' },
-    { name: 'Heart Medicine', value: 12, sales: 800000, color: '#FF8042' },
-    { name: 'Others', value: 8, sales: 550000, color: '#8884d8' }
-  ];
+  useEffect(() => {
+    generateAnalyticsData();
+  }, [timeframe]);
 
-  const topProducts = [
-    { name: 'Paracetamol 500mg', sales: 450000, units: 1200, growth: 12 },
-    { name: 'Amoxicillin 250mg', sales: 380000, units: 950, growth: 8 },
-    { name: 'Vitamin C 1000mg', sales: 290000, units: 720, growth: -3 },
-    { name: 'Aspirin 300mg', sales: 220000, units: 890, growth: 15 },
-    { name: 'Ibuprofen 400mg', sales: 180000, units: 540, growth: 5 }
-  ];
+  const generateAnalyticsData = () => {
+    const orders = dataService.getOrders();
+    const inventory = dataService.getInventory();
+    
+    // Generate revenue data
+    const revenueData = generateTimeSeriesData('revenue', timeframe);
+    const ordersData = generateTimeSeriesData('orders', timeframe);
+    
+    // Calculate top products
+    const productSales: { [key: string]: { sales: number; revenue: number; } } = {};
+    orders.forEach(order => {
+      order.items?.forEach((item: any) => {
+        if (!productSales[item.name]) {
+          productSales[item.name] = { sales: 0, revenue: 0 };
+        }
+        productSales[item.name].sales += item.quantity;
+        productSales[item.name].revenue += item.price * item.quantity;
+      });
+    });
 
-  const dailyTrends = [
-    { day: 'Mon', orders: 45, revenue: 12000 },
-    { day: 'Tue', orders: 52, revenue: 14500 },
-    { day: 'Wed', orders: 38, revenue: 10200 },
-    { day: 'Thu', orders: 61, revenue: 16800 },
-    { day: 'Fri', orders: 55, revenue: 15300 },
-    { day: 'Sat', orders: 43, revenue: 11900 },
-    { day: 'Sun', orders: 29, revenue: 8100 }
-  ];
+    const topProducts = Object.entries(productSales)
+      .map(([name, data]) => ({ name, ...data }))
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 10);
 
-  const kpiData = [
-    {
-      title: "Total Revenue",
-      value: "TZS 328,000",
-      change: "+12.5%",
-      changeType: "positive",
-      icon: DollarSign,
-      description: "Last 30 days"
-    },
-    {
-      title: "Total Orders",
-      value: "1,234",
-      change: "+8.2%",
-      changeType: "positive",
-      icon: ShoppingCart,
-      description: "Last 30 days"
-    },
-    {
-      title: "Active Customers",
-      value: "892",
-      change: "+15.3%",
-      changeType: "positive",
-      icon: Users,
-      description: "This month"
-    },
-    {
-      title: "Products Sold",
-      value: "5,678",
-      change: "-2.1%",
-      changeType: "negative",
-      icon: Package,
-      description: "Last 30 days"
-    }
-  ];
+    // Calculate customer metrics
+    const uniqueCustomers = new Set(orders.map(order => order.pharmacyId)).size;
+    const customerMetrics = {
+      newCustomers: Math.floor(uniqueCustomers * 0.3),
+      returningCustomers: Math.floor(uniqueCustomers * 0.7),
+      totalCustomers: uniqueCustomers
+    };
 
-  const formatCurrency = (value: number) => {
-    return `TZS ${value.toLocaleString()}`;
+    // Calculate inventory turnover
+    const inventoryTurnover = inventory.slice(0, 10).map(item => ({
+      product: item.name,
+      turnoverRate: Math.random() * 12 + 1, // Mock turnover rate
+      daysInStock: Math.floor(Math.random() * 90) + 1
+    }));
+
+    setAnalyticsData({
+      revenue: revenueData,
+      orders: ordersData,
+      topProducts,
+      customerMetrics,
+      inventoryTurnover
+    });
   };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8'];
+  const generateTimeSeriesData = (type: 'revenue' | 'orders', timeframe: string) => {
+    const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+    const data = [];
+    
+    for (let i = days - 1; i >= 0; i--) {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      const period = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      
+      if (type === 'revenue') {
+        data.push({
+          period,
+          amount: Math.floor(Math.random() * 50000) + 10000
+        });
+      } else {
+        data.push({
+          period,
+          count: Math.floor(Math.random() * 20) + 5
+        });
+      }
+    }
+    
+    return data;
+  };
+
+  const calculateGrowth = (data: any[], key: string) => {
+    if (data.length < 2) return 0;
+    const current = data[data.length - 1][key];
+    const previous = data[data.length - 2][key];
+    return ((current - previous) / previous * 100).toFixed(1);
+  };
+
+  const revenueGrowth = calculateGrowth(analyticsData.revenue, 'amount');
+  const orderGrowth = calculateGrowth(analyticsData.orders, 'count');
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold text-gray-900">Analytics Dashboard</h2>
-          <p className="text-gray-600">Track your business performance and insights</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="1y">Last year</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Analytics Dashboard</h2>
+        <Select value={timeframe} onValueChange={setTimeframe}>
+          <SelectTrigger className="w-32">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="7d">Last 7 days</SelectItem>
+            <SelectItem value="30d">Last 30 days</SelectItem>
+            <SelectItem value="90d">Last 90 days</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {kpiData.map((kpi, index) => (
-          <Card key={index} className="hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">{kpi.title}</p>
-                  <p className="text-2xl font-bold text-gray-900">{kpi.value}</p>
-                  <div className="flex items-center mt-2">
-                    <Badge 
-                      variant={kpi.changeType === 'positive' ? 'default' : 'destructive'}
-                      className="flex items-center gap-1"
-                    >
-                      {kpi.changeType === 'positive' ? (
-                        <TrendingUp className="h-3 w-3" />
-                      ) : (
-                        <TrendingDown className="h-3 w-3" />
-                      )}
-                      {kpi.change}
-                    </Badge>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">{kpi.description}</p>
-                </div>
-                <div className="p-3 bg-primary/10 rounded-full">
-                  <kpi.icon className="h-6 w-6 text-primary" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Revenue</p>
+                <p className="text-2xl font-bold">
+                  TZS {analyticsData.revenue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+                </p>
+                <div className="flex items-center mt-1">
+                  {parseFloat(revenueGrowth) >= 0 ? (
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className={`text-sm ml-1 ${parseFloat(revenueGrowth) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {revenueGrowth}%
+                  </span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        ))}
+              <DollarSign className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Total Orders</p>
+                <p className="text-2xl font-bold">
+                  {analyticsData.orders.reduce((sum, item) => sum + item.count, 0)}
+                </p>
+                <div className="flex items-center mt-1">
+                  {parseFloat(orderGrowth) >= 0 ? (
+                    <TrendingUp className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                  )}
+                  <span className={`text-sm ml-1 ${parseFloat(orderGrowth) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                    {orderGrowth}%
+                  </span>
+                </div>
+              </div>
+              <ShoppingCart className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Active Customers</p>
+                <p className="text-2xl font-bold">{analyticsData.customerMetrics.totalCustomers}</p>
+                <p className="text-sm text-gray-500">
+                  {analyticsData.customerMetrics.newCustomers} new this period
+                </p>
+              </div>
+              <Users className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-gray-600">Products Sold</p>
+                <p className="text-2xl font-bold">
+                  {analyticsData.topProducts.reduce((sum, product) => sum + product.sales, 0)}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {analyticsData.topProducts.length} unique products
+                </p>
+              </div>
+              <Package className="h-8 w-8 text-primary" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Charts */}
-      <Tabs defaultValue="overview" className="space-y-6">
+      <Tabs defaultValue="revenue" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="products">Products</TabsTrigger>
-          <TabsTrigger value="customers">Customers</TabsTrigger>
-          <TabsTrigger value="trends">Trends</TabsTrigger>
+          <TabsTrigger value="revenue">Revenue</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
+          <TabsTrigger value="products">Top Products</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid lg:grid-cols-2 gap-6">
-            {/* Revenue Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <BarChart3 className="h-5 w-5" />
-                  Revenue Trends
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={salesData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis tickFormatter={(value) => `${(value / 1000).toFixed(0)}K`} />
-                    <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Revenue']} />
-                    <Area type="monotone" dataKey="revenue" stroke="#8884d8" fill="#8884d8" fillOpacity={0.3} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            {/* Orders Chart */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Order Volume
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={salesData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="month" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="orders" fill="#82ca9d" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Product Categories */}
+        <TabsContent value="revenue">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PieChartIcon className="h-5 w-5" />
-                Sales by Category
-              </CardTitle>
+              <CardTitle>Revenue Trend</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid lg:grid-cols-2 gap-6">
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie
-                      data={productCategories}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {productCategories.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-                
-                <div className="space-y-3">
-                  {productCategories.map((category, index) => (
-                    <div key={category.name} className="flex items-center justify-between p-3 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        <div 
-                          className="w-4 h-4 rounded"
-                          style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                        />
-                        <span className="font-medium">{category.name}</span>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-semibold">{formatCurrency(category.sales)}</p>
-                        <p className="text-sm text-gray-500">{category.value}%</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="products" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Top Performing Products</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {topProducts.map((product, index) => (
-                  <div key={product.name} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center justify-center w-8 h-8 bg-primary/10 rounded-full">
-                        <span className="text-sm font-bold text-primary">#{index + 1}</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.units} units sold</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">{formatCurrency(product.sales)}</p>
-                      <div className="flex items-center gap-1">
-                        {product.growth > 0 ? (
-                          <TrendingUp className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <TrendingDown className="h-4 w-4 text-red-600" />
-                        )}
-                        <span className={`text-sm ${product.growth > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {product.growth > 0 ? '+' : ''}{product.growth}%
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="customers" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Customer Growth</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={salesData}>
+              <ResponsiveContainer width="100%" height={300}>
+                <LineChart data={analyticsData.revenue}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="month" />
+                  <XAxis dataKey="period" />
                   <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="customers" stroke="#8884d8" strokeWidth={2} />
+                  <Tooltip formatter={(value) => [`TZS ${Number(value).toLocaleString()}`, 'Revenue']} />
+                  <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
         </TabsContent>
 
-        <TabsContent value="trends" className="space-y-6">
+        <TabsContent value="orders">
           <Card>
             <CardHeader>
-              <CardTitle>Daily Performance</CardTitle>
+              <CardTitle>Order Volume</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={dailyTrends}>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analyticsData.orders}>
                   <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="day" />
-                  <YAxis yAxisId="left" />
-                  <YAxis yAxisId="right" orientation="right" />
+                  <XAxis dataKey="period" />
+                  <YAxis />
                   <Tooltip />
-                  <Bar yAxisId="left" dataKey="orders" fill="#8884d8" />
-                  <Bar yAxisId="right" dataKey="revenue" fill="#82ca9d" />
+                  <Bar dataKey="count" fill="#8884d8" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="products">
+          <Card>
+            <CardHeader>
+              <CardTitle>Top Products by Revenue</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analyticsData.topProducts.slice(0, 8)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <Tooltip formatter={(value) => [`TZS ${Number(value).toLocaleString()}`, 'Revenue']} />
+                  <Bar dataKey="revenue" fill="#82ca9d" />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory">
+          <Card>
+            <CardHeader>
+              <CardTitle>Inventory Turnover</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={analyticsData.inventoryTurnover}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="product" angle={-45} textAnchor="end" height={80} />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="turnoverRate" fill="#ffc658" />
                 </BarChart>
               </ResponsiveContainer>
             </CardContent>
@@ -363,5 +302,3 @@ const AnalyticsDashboard = () => {
     </div>
   );
 };
-
-export default AnalyticsDashboard;

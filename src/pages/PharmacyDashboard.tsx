@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,10 @@ import { Package, ShoppingCart, Clock, User, FileText, CreditCard } from "lucide
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import QuickReorder from "@/components/QuickReorder";
+import { BreadcrumbNavigation } from "@/components/BreadcrumbNavigation";
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
+import { dataService } from "@/services/dataService";
+import { NotificationService } from "@/components/NotificationSystem";
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
@@ -30,8 +33,8 @@ const PharmacyDashboard = () => {
       return;
     }
 
-    // Load pharmacy stats and recent orders
-    const orders = JSON.parse(localStorage.getItem('bepawa_orders') || '[]');
+    // Load pharmacy stats and recent orders using dataService
+    const orders = dataService.getOrders();
     const userOrders = orders.filter((order: any) => order.pharmacyId === user.id);
     const cart = JSON.parse(localStorage.getItem(`bepawa_cart_${user.id}`) || '[]');
     
@@ -41,6 +44,9 @@ const PharmacyDashboard = () => {
       pendingOrders: userOrders.filter((order: any) => order.status === 'pending').length,
       cartItems: cart.length
     });
+
+    // Add welcome notification
+    NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
   }, [user, navigate]);
 
   if (!user || user.role !== 'retail') {
@@ -83,6 +89,8 @@ const PharmacyDashboard = () => {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
+        <BreadcrumbNavigation />
+        
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome back, {user?.pharmacyName}
@@ -125,6 +133,16 @@ const PharmacyDashboard = () => {
 
         {/* Quick Reorder */}
         <QuickReorder />
+
+        {/* Analytics Dashboard */}
+        <Card className="mb-8 shadow-lg border-0">
+          <CardHeader>
+            <CardTitle className="text-2xl">Business Analytics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AnalyticsDashboard />
+          </CardContent>
+        </Card>
 
         {/* Quick Actions */}
         <Card className="mb-8 shadow-lg border-0">

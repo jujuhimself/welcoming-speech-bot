@@ -1,10 +1,11 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { Package, User, LogOut, Menu, X, Bell, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, TestTube, Building, UserCheck, CreditCard, Wrench, Calculator, Truck } from "lucide-react";
+import { Package, User, LogOut, Menu, X, Settings, Home, ShoppingCart, FileText, Users, BarChart3, Pill, TestTube, Building, UserCheck, CreditCard, Wrench, Calculator, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { NotificationCenter } from "./NotificationSystem";
+import { GlobalSearch } from "./GlobalSearch";
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -120,15 +121,17 @@ const Navbar = () => {
             ))}
           </div>
 
-          {/* User Menu */}
+          {/* Search and User Menu */}
           <div className="flex items-center space-x-4">
+            {/* Global Search */}
+            {user && (
+              <div className="hidden md:block">
+                <GlobalSearch />
+              </div>
+            )}
+
             {/* Notifications */}
-            <Button variant="ghost" size="sm" className="relative">
-              <Bell className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                3
-              </span>
-            </Button>
+            {user && <NotificationCenter />}
 
             {/* User Info */}
             <div className="hidden md:flex items-center space-x-3">
@@ -162,6 +165,11 @@ const Navbar = () => {
         {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t">
+            {/* Mobile Search */}
+            <div className="mb-4">
+              <GlobalSearch />
+            </div>
+            
             <div className="space-y-2">
               {navigationItems.map((item) => (
                 <Link

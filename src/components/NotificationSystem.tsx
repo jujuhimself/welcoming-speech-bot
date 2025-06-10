@@ -1,314 +1,215 @@
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Bell, Mail, MessageSquare, Check, X, Settings } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import React, { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Bell, X, AlertTriangle, CheckCircle, Info, Clock } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { dataService } from '@/services/dataService';
 
-interface NotificationSettings {
-  orderUpdates: { email: boolean; sms: boolean; push: boolean; };
-  inventoryAlerts: { email: boolean; sms: boolean; push: boolean; };
-  appointments: { email: boolean; sms: boolean; push: boolean; };
-  testResults: { email: boolean; sms: boolean; push: boolean; };
-  payments: { email: boolean; sms: boolean; push: boolean; };
-}
-
-interface Notification {
+export interface Notification {
   id: string;
-  type: 'order' | 'inventory' | 'appointment' | 'test' | 'payment';
+  type: 'info' | 'success' | 'warning' | 'error';
   title: string;
   message: string;
   timestamp: string;
   read: boolean;
+  category: 'order' | 'inventory' | 'system' | 'appointment' | 'credit';
   priority: 'low' | 'medium' | 'high';
 }
 
-const NotificationSystem = () => {
+export const NotificationCenter = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [settings, setSettings] = useState<NotificationSettings>({
-    orderUpdates: { email: true, sms: true, push: true },
-    inventoryAlerts: { email: true, sms: false, push: true },
-    appointments: { email: true, sms: true, push: true },
-    testResults: { email: true, sms: true, push: false },
-    payments: { email: true, sms: false, push: true }
-  });
-  const [showSettings, setShowSettings] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load sample notifications
-    const sampleNotifications: Notification[] = [
-      {
-        id: '1',
-        type: 'order',
-        title: 'Order Delivered',
-        message: 'Order #DEL-001 has been delivered to Grace Pharmacy',
-        timestamp: '2024-06-06T10:30:00',
-        read: false,
-        priority: 'medium'
-      },
-      {
-        id: '2',
-        type: 'inventory',
-        title: 'Low Stock Alert',
-        message: 'Paracetamol 500mg is running low (50 units remaining)',
-        timestamp: '2024-06-06T09:15:00',
-        read: false,
-        priority: 'high'
-      },
-      {
-        id: '3',
-        type: 'appointment',
-        title: 'Upcoming Appointment',
-        message: 'Appointment with Dr. Mwangi scheduled for 2:00 PM today',
-        timestamp: '2024-06-06T08:00:00',
-        read: true,
-        priority: 'medium'
-      },
-      {
-        id: '4',
-        type: 'test',
-        title: 'Test Results Ready',
-        message: 'Blood test results for patient John Doe are now available',
-        timestamp: '2024-06-05T16:45:00',
-        read: false,
-        priority: 'high'
-      },
-      {
-        id: '5',
-        type: 'payment',
-        title: 'Payment Received',
-        message: 'Payment of TZS 2,500,000 received from Central Hospital',
-        timestamp: '2024-06-05T14:20:00',
-        read: true,
-        priority: 'low'
+    loadNotifications();
+    
+    // Listen for storage changes
+    const handleStorageChange = (event: CustomEvent) => {
+      if (event.detail.key === 'notifications') {
+        loadNotifications();
       }
-    ];
+    };
 
-    setNotifications(sampleNotifications);
+    window.addEventListener('bepawa-storage-change', handleStorageChange as EventListener);
+    return () => window.removeEventListener('bepawa-storage-change', handleStorageChange as EventListener);
   }, []);
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
-    );
+  const loadNotifications = () => {
+    const storedNotifications = dataService.getNotifications();
+    setNotifications(storedNotifications);
   };
 
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
+  const markAsRead = (id: string) => {
+    const updated = notifications.map(n => 
+      n.id === id ? { ...n, read: true } : n
     );
-    toast({
-      title: "All notifications marked as read",
-      description: "Your notification list has been updated.",
-    });
+    setNotifications(updated);
+    dataService.saveNotifications(updated);
   };
 
   const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
+    const updated = notifications.filter(n => n.id !== id);
+    setNotifications(updated);
+    dataService.saveNotifications(updated);
   };
 
-  const updateSettings = (category: keyof NotificationSettings, channel: 'email' | 'sms' | 'push', value: boolean) => {
-    setSettings(prev => ({
-      ...prev,
-      [category]: {
-        ...prev[category],
-        [channel]: value
-      }
-    }));
-    
-    toast({
-      title: "Settings Updated",
-      description: "Your notification preferences have been saved.",
-    });
+  const markAllAsRead = () => {
+    const updated = notifications.map(n => ({ ...n, read: true }));
+    setNotifications(updated);
+    dataService.saveNotifications(updated);
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getIcon = (type: string) => {
     switch (type) {
-      case 'order': return '📦';
-      case 'inventory': return '📊';
-      case 'appointment': return '📅';
-      case 'test': return '🧪';
-      case 'payment': return '💰';
-      default: return '🔔';
-    }
-  };
-
-  const getPriorityColor = (priority: string) => {
-    switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'success': return <CheckCircle className="h-5 w-5 text-green-500" />;
+      case 'warning': return <AlertTriangle className="h-5 w-5 text-yellow-500" />;
+      case 'error': return <AlertTriangle className="h-5 w-5 text-red-500" />;
+      default: return <Info className="h-5 w-5 text-blue-500" />;
     }
   };
 
   const unreadCount = notifications.filter(n => !n.read).length;
-  const sortedNotifications = notifications.sort((a, b) => 
-    new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-  );
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex justify-between items-center">
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="h-5 w-5" />
-              Notifications
-              {unreadCount > 0 && (
-                <Badge variant="destructive">{unreadCount} new</Badge>
-              )}
-            </CardTitle>
+    <div className="relative">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={() => setIsOpen(!isOpen)}
+        className="relative"
+      >
+        <Bell className="h-5 w-5" />
+        {unreadCount > 0 && (
+          <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-red-500">
+            {unreadCount}
+          </Badge>
+        )}
+      </Button>
+
+      {isOpen && (
+        <div className="absolute right-0 top-full mt-2 w-96 bg-white border rounded-lg shadow-lg z-50 max-h-96 overflow-auto">
+          <div className="p-4 border-b flex justify-between items-center">
+            <h3 className="font-semibold">Notifications</h3>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={markAllAsRead}>
-                <Check className="h-4 w-4 mr-2" />
-                Mark All Read
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowSettings(!showSettings)}
-              >
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
+              {unreadCount > 0 && (
+                <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                  Mark all read
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
+                <X className="h-4 w-4" />
               </Button>
             </div>
           </div>
-        </CardHeader>
-      </Card>
-
-      {/* Notification Settings */}
-      {showSettings && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Notification Settings</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
-              {Object.entries(settings).map(([category, channels]) => (
-                <div key={category}>
-                  <h3 className="font-medium mb-3 capitalize">
-                    {category.replace(/([A-Z])/g, ' $1').trim()}
-                  </h3>
-                  <div className="grid grid-cols-3 gap-4 pl-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Mail className="h-4 w-4" />
-                        <span className="text-sm">Email</span>
-                      </div>
-                      <Switch
-                        checked={channels.email}
-                        onCheckedChange={(value) => 
-                          updateSettings(category as keyof NotificationSettings, 'email', value)
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <MessageSquare className="h-4 w-4" />
-                        <span className="text-sm">SMS</span>
-                      </div>
-                      <Switch
-                        checked={channels.sms}
-                        onCheckedChange={(value) => 
-                          updateSettings(category as keyof NotificationSettings, 'sms', value)
-                        }
-                      />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Bell className="h-4 w-4" />
-                        <span className="text-sm">Push</span>
-                      </div>
-                      <Switch
-                        checked={channels.push}
-                        onCheckedChange={(value) => 
-                          updateSettings(category as keyof NotificationSettings, 'push', value)
-                        }
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Notifications List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Notifications</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {sortedNotifications.length === 0 ? (
-            <div className="text-center py-12">
-              <Bell className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">No notifications</p>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {sortedNotifications.map(notification => (
+          
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="p-4 text-center text-gray-500">
+                No notifications
+              </div>
+            ) : (
+              notifications.map((notification) => (
                 <div
                   key={notification.id}
-                  className={`p-4 border rounded-lg ${
-                    notification.read ? 'bg-gray-50' : 'bg-blue-50 border-blue-200'
-                  }`}
+                  className={`p-4 border-b hover:bg-gray-50 ${!notification.read ? 'bg-blue-50' : ''}`}
                 >
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-3 flex-1">
-                      <span className="text-2xl">{getNotificationIcon(notification.type)}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className={`font-medium ${!notification.read ? 'font-semibold' : ''}`}>
-                            {notification.title}
-                          </h3>
-                          <Badge className={`${getPriorityColor(notification.priority)} text-white text-xs`}>
-                            {notification.priority}
-                          </Badge>
-                          {!notification.read && (
-                            <Badge variant="default" className="text-xs">New</Badge>
-                          )}
+                  <div className="flex items-start gap-3">
+                    {getIcon(notification.type)}
+                    <div className="flex-1">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="font-medium text-sm">{notification.title}</p>
+                          <p className="text-sm text-gray-600">{notification.message}</p>
+                          <p className="text-xs text-gray-400 mt-1">
+                            {new Date(notification.timestamp).toLocaleString()}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600 mb-2">{notification.message}</p>
-                        <p className="text-xs text-gray-500">
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </p>
+                        <div className="flex gap-1">
+                          {!notification.read && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              Mark read
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => deleteNotification(notification.id)}
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex gap-1 ml-4">
-                      {!notification.read && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => markAsRead(notification.id)}
-                        >
-                          <Check className="h-4 w-4" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteNotification(notification.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              ))
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
-export default NotificationSystem;
+// Notification service for creating notifications
+export class NotificationService {
+  static addNotification(notification: Omit<Notification, 'id' | 'timestamp' | 'read'>) {
+    const newNotification: Notification = {
+      ...notification,
+      id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      timestamp: new Date().toISOString(),
+      read: false
+    };
+
+    const existing = dataService.getNotifications();
+    const updated = [newNotification, ...existing].slice(0, 100); // Keep only last 100
+    dataService.saveNotifications(updated);
+
+    // Show toast for high priority notifications
+    if (notification.priority === 'high') {
+      const { toast } = useToast();
+      toast({
+        title: notification.title,
+        description: notification.message,
+        variant: notification.type === 'error' ? 'destructive' : 'default'
+      });
+    }
+  }
+
+  static addOrderNotification(orderId: string, status: string) {
+    this.addNotification({
+      type: 'info',
+      title: 'Order Update',
+      message: `Order #${orderId} status changed to ${status}`,
+      category: 'order',
+      priority: 'medium'
+    });
+  }
+
+  static addInventoryAlert(productName: string, currentStock: number) {
+    this.addNotification({
+      type: 'warning',
+      title: 'Low Stock Alert',
+      message: `${productName} is running low (${currentStock} remaining)`,
+      category: 'inventory',
+      priority: 'high'
+    });
+  }
+
+  static addSystemNotification(message: string) {
+    this.addNotification({
+      type: 'info',
+      title: 'System Update',
+      message,
+      category: 'system',
+      priority: 'low'
+    });
+  }
+}
