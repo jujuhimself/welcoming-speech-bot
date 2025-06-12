@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import AuthCallback from "./pages/AuthCallback";
 import PharmacyDashboard from "./pages/PharmacyDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import Products from "./pages/Products";
@@ -62,6 +63,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/auth-callback" element={<AuthCallback />} />
               <Route path="/individual" element={<IndividualDashboard />} />
               <Route path="/pharmacy" element={<PharmacyDashboard />} />
               <Route path="/wholesale" element={<WholesaleDashboard />} />
