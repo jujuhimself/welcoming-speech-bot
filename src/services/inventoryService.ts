@@ -62,7 +62,10 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(product => ({
+      ...product,
+      status: product.status as Product['status']
+    }));
   }
 
   async createProduct(product: Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Product> {
@@ -83,7 +86,10 @@ class InventoryService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      status: data.status as Product['status']
+    };
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {
@@ -99,7 +105,10 @@ class InventoryService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      status: data.status as Product['status']
+    };
   }
 
   async deleteProduct(id: string): Promise<void> {
@@ -144,7 +153,10 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(movement => ({
+      ...movement,
+      movement_type: movement.movement_type as InventoryMovement['movement_type']
+    }));
   }
 
   async createInventoryMovement(movement: Omit<InventoryMovement, 'id' | 'user_id' | 'created_at' | 'created_by'>): Promise<InventoryMovement> {
@@ -166,7 +178,10 @@ class InventoryService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      movement_type: data.movement_type as InventoryMovement['movement_type']
+    };
   }
 
   // Suppliers methods
@@ -235,7 +250,10 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(product => ({
+      ...product,
+      status: product.status as Product['status']
+    }));
   }
 
   async getExpiringProducts(days: number = 30): Promise<Product[]> {
@@ -254,7 +272,10 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(product => ({
+      ...product,
+      status: product.status as Product['status']
+    }));
   }
 }
 
