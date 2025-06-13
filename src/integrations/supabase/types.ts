@@ -165,6 +165,44 @@ export type Database = {
         }
         Relationships: []
       }
+      generated_reports: {
+        Row: {
+          created_at: string
+          file_format: string
+          file_path: string
+          id: string
+          parameters: Json | null
+          status: string
+          template_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_format: string
+          file_path: string
+          id?: string
+          parameters?: Json | null
+          status: string
+          template_id: string
+        }
+        Update: {
+          created_at?: string
+          file_format?: string
+          file_path?: string
+          id?: string
+          parameters?: Json | null
+          status?: string
+          template_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_reports_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "report_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_movements: {
         Row: {
           cost_per_unit: number | null
@@ -376,6 +414,45 @@ export type Database = {
           test_name?: string
           turnaround_time_hours?: number
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          action_url: string | null
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_read: boolean
+          message: string
+          metadata: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          message: string
+          metadata?: Json | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_read?: boolean
+          message?: string
+          metadata?: Json | null
+          title?: string
+          type?: string
           user_id?: string
         }
         Relationships: []
@@ -972,6 +1049,45 @@ export type Database = {
           },
         ]
       }
+      report_templates: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          query_config: Json
+          report_type: string
+          schedule: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          query_config: Json
+          report_type: string
+          schedule?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          query_config?: Json
+          report_type?: string
+          schedule?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       sales_analytics: {
         Row: {
           average_order_value: number
@@ -1062,6 +1178,42 @@ export type Database = {
         }
         Relationships: []
       }
+      system_alerts: {
+        Row: {
+          category: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          message: string
+          severity: string
+          target_roles: string[] | null
+          title: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message: string
+          severity: string
+          target_roles?: string[] | null
+          title: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          message?: string
+          severity?: string
+          target_roles?: string[] | null
+          title?: string
+        }
+        Relationships: []
+      }
       transactions: {
         Row: {
           amount: number
@@ -1118,6 +1270,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_settings: {
+        Row: {
+          business_settings: Json | null
+          created_at: string
+          currency: string
+          id: string
+          language: string
+          notifications: Json
+          privacy: Json
+          theme: string
+          timezone: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          business_settings?: Json | null
+          created_at?: string
+          currency?: string
+          id?: string
+          language?: string
+          notifications?: Json
+          privacy?: Json
+          theme?: string
+          timezone?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          business_settings?: Json | null
+          created_at?: string
+          currency?: string
+          id?: string
+          language?: string
+          notifications?: Json
+          privacy?: Json
+          theme?: string
+          timezone?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
