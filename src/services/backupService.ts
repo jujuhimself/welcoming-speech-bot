@@ -19,7 +19,7 @@ class BackupService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('backup_jobs')
+      .from('backup_jobs' as any)
       .insert({
         user_id: user.id,
         backup_type: backupType,
@@ -41,7 +41,7 @@ class BackupService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('backup_jobs')
+      .from('backup_jobs' as any)
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -77,10 +77,13 @@ class BackupService {
     if (!user) throw new Error('User not authenticated');
 
     const { error } = await supabase
-      .from('backup_schedules')
+      .from('backup_schedules' as any)
       .upsert({
         user_id: user.id,
-        ...schedule
+        frequency: schedule.frequency,
+        time: schedule.time,
+        backup_type: schedule.backupType,
+        is_active: schedule.isActive
       });
 
     if (error) {

@@ -28,7 +28,7 @@ class AuditService {
     if (!user) return;
 
     const { error } = await supabase
-      .from('audit_logs')
+      .from('audit_logs' as any)
       .insert({
         user_id: user.id,
         action: params.action,
@@ -56,7 +56,7 @@ class AuditService {
     limit = 100
   ): Promise<AuditLog[]> {
     let query = supabase
-      .from('audit_logs')
+      .from('audit_logs' as any)
       .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
