@@ -84,7 +84,11 @@ class AuditService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      old_values: item.old_values as Record<string, any> | undefined,
+      new_values: item.new_values as Record<string, any> | undefined,
+    }));
   }
 }
 

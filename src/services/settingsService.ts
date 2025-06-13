@@ -45,7 +45,15 @@ class SettingsService {
       throw error;
     }
 
-    return data;
+    if (!data) return null;
+
+    return {
+      ...data,
+      theme: data.theme as UserSettings['theme'],
+      notifications: data.notifications as UserSettings['notifications'],
+      privacy: data.privacy as UserSettings['privacy'],
+      business_settings: data.business_settings as UserSettings['business_settings'],
+    };
   }
 
   async updateUserSettings(settings: Partial<Omit<UserSettings, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<UserSettings> {
@@ -67,7 +75,13 @@ class SettingsService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      theme: data.theme as UserSettings['theme'],
+      notifications: data.notifications as UserSettings['notifications'],
+      privacy: data.privacy as UserSettings['privacy'],
+      business_settings: data.business_settings as UserSettings['business_settings'],
+    };
   }
 
   async resetToDefaults(): Promise<UserSettings> {

@@ -40,7 +40,11 @@ class NotificationService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      type: item.type as Notification['type'],
+      metadata: item.metadata as Record<string, any> | undefined,
+    }));
   }
 
   async createNotification(notification: Omit<Notification, 'id' | 'created_at' | 'is_read'>): Promise<Notification> {
@@ -58,7 +62,11 @@ class NotificationService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      type: data.type as Notification['type'],
+      metadata: data.metadata as Record<string, any> | undefined,
+    };
   }
 
   async markAsRead(notificationId: string): Promise<void> {
@@ -97,7 +105,11 @@ class NotificationService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      severity: item.severity as SystemAlert['severity'],
+      category: item.category as SystemAlert['category'],
+    }));
   }
 
   async getUnreadCount(userId: string): Promise<number> {
@@ -128,7 +140,12 @@ class NotificationService {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          callback(payload.new as Notification);
+          const notification = payload.new as any;
+          callback({
+            ...notification,
+            type: notification.type as Notification['type'],
+            metadata: notification.metadata as Record<string, any> | undefined,
+          });
         }
       )
       .subscribe();

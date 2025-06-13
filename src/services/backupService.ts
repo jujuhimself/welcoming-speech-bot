@@ -33,7 +33,11 @@ class BackupService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      backup_type: data.backup_type as BackupJob['backup_type'],
+      status: data.status as BackupJob['status'],
+    };
   }
 
   async getBackupHistory(): Promise<BackupJob[]> {
@@ -51,7 +55,11 @@ class BackupService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      backup_type: item.backup_type as BackupJob['backup_type'],
+      status: item.status as BackupJob['status'],
+    }));
   }
 
   async downloadBackup(backupId: string): Promise<Blob> {
