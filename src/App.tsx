@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -40,6 +39,8 @@ import Prescriptions from "./pages/Prescriptions";
 import PharmacyDirectory from "./pages/PharmacyDirectory";
 import LabDirectory from "./pages/LabDirectory";
 import InventoryManagement from "./pages/InventoryManagement";
+import SystemSettings from "./pages/SystemSettings";
+import AdminAnalytics from "./pages/AdminAnalytics";
 
 const App = () => {
   // Create QueryClient inside the component to ensure proper React context
@@ -77,6 +78,7 @@ const App = () => {
               <Route path="/lab" element={<LabDashboard />} />
               <Route path="/lab/test-catalog" element={<LabTestCatalog />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
               <Route path="/products" element={<Products />} />
               <Route path="/product/:id" element={<ProductDetail />} />
               <Route path="/cart" element={<Cart />} />
@@ -92,6 +94,7 @@ const App = () => {
               <Route path="/business-tools" element={<BusinessTools />} />
               <Route path="/business-center" element={<BusinessCenter />} />
               <Route path="/wholesale-ordering" element={<WholesaleOrdering />} />
+              <Route path="/settings" element={<SystemSettings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

@@ -45,7 +45,8 @@ const Navbar = () => {
         return [
           ...commonItems,
           { href: '/admin', label: 'Admin Panel', icon: <Settings className="h-4 w-4" /> },
-          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
         ];
       
       case 'individual':
@@ -53,7 +54,8 @@ const Navbar = () => {
           ...commonItems,
           { href: '/pharmacy-directory', label: 'Find Pharmacies', icon: <Building className="h-4 w-4" /> },
           { href: '/lab-directory', label: 'Find Labs', icon: <TestTube className="h-4 w-4" /> },
-          { href: '/prescriptions', label: 'My Prescriptions', icon: <FileText className="h-4 w-4" /> }
+          { href: '/prescriptions', label: 'My Prescriptions', icon: <FileText className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
         ];
       
       case 'retail':
@@ -66,7 +68,8 @@ const Navbar = () => {
           { href: '/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
           { href: '/business-center', label: 'Business Center', icon: <Calculator className="h-4 w-4" /> },
           { href: '/credit-request', label: 'Credit Request', icon: <CreditCard className="h-4 w-4" /> },
-          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
         ];
       
       case 'wholesale':
@@ -78,18 +81,20 @@ const Navbar = () => {
           { href: '/wholesale/purchase-orders', label: 'Purchase Orders', icon: <FileText className="h-4 w-4" /> },
           { href: '/wholesale/retailers', label: 'Retailers', icon: <Users className="h-4 w-4" /> },
           { href: '/wholesale/analytics', label: 'Analytics', icon: <BarChart3 className="h-4 w-4" /> },
-          { href: '/wholesale/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+          { href: '/wholesale/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
         ];
       
       case 'lab':
         return [
           ...commonItems,
           { href: '/lab/test-catalog', label: 'Test Catalog', icon: <TestTube className="h-4 w-4" /> },
-          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> }
+          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> },
+          { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
         ];
       
       default:
-        return commonItems;
+        return [...commonItems, { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }];
     }
   };
 
