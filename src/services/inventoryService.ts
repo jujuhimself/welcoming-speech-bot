@@ -49,6 +49,32 @@ export interface Supplier {
   updated_at: string;
 }
 
+export interface PurchaseOrder {
+  id: string;
+  user_id: string;
+  supplier_id?: string;
+  po_number: string;
+  status: 'pending' | 'approved' | 'ordered' | 'received' | 'cancelled';
+  total_amount: number;
+  order_date: string;
+  expected_delivery?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderItem {
+  id: string;
+  purchase_order_id: string;
+  product_id?: string;
+  product_name: string;
+  quantity: number;
+  unit_cost: number;
+  total_cost: number;
+  received_quantity?: number;
+  created_at: string;
+}
+
 class InventoryService {
   // Products methods
   async getProducts(): Promise<Product[]> {
@@ -231,6 +257,78 @@ class InventoryService {
 
     if (error) {
       console.error('Error updating supplier:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  // Purchase Orders methods
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
+
+    return (data || []).map(order => ({
+      ...order,
+      status: order.status as PurchaseOrder['status']
+    }));
+  }
+
+  async createPurchaseOrder(order: Omit<PurchaseOrder, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<PurchaseOrder> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .insert({
+        ...order,
+        user_id: user.id
+      })
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating purchase order:', error);
+      throw error;
+    }
+
+    return {
+      ...data,
+      status: data.status as PurchaseOrder['status']
+    };
+  }
+
+  async getPurchaseOrderItems(purchaseOrderId: string): Promise<PurchaseOrderItem[]> {
+    const { data, error } = await supabase
+      .from('purchase_order_items')
+      .select('*')
+      .eq('purchase_order_id', purchaseOrderId)
+      .order('created_at');
+
+    if (error) {
+      console.error('Error fetching purchase order items:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async createPurchaseOrderItem(item: Omit<PurchaseOrderItem, 'id' | 'created_at'>): Promise<PurchaseOrderItem> {
+    const { data, error } = await supabase
+      .from('purchase_order_items')
+      .insert(item)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating purchase order item:', error);
       throw error;
     }
 

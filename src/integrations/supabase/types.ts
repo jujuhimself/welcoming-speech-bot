@@ -9,6 +9,54 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      customer_analytics: {
+        Row: {
+          average_order_value: number
+          created_at: string
+          customer_id: string
+          customer_lifetime_value: number
+          favorite_category: string | null
+          first_order_date: string | null
+          id: string
+          last_activity_date: string | null
+          last_order_date: string | null
+          total_orders: number
+          total_spent: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_order_value?: number
+          created_at?: string
+          customer_id: string
+          customer_lifetime_value?: number
+          favorite_category?: string | null
+          first_order_date?: string | null
+          id?: string
+          last_activity_date?: string | null
+          last_order_date?: string | null
+          total_orders?: number
+          total_spent?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_order_value?: number
+          created_at?: string
+          customer_id?: string
+          customer_lifetime_value?: number
+          favorite_category?: string | null
+          first_order_date?: string | null
+          id?: string
+          last_activity_date?: string | null
+          last_order_date?: string | null
+          total_orders?: number
+          total_spent?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_movements: {
         Row: {
           cost_per_unit: number | null
@@ -52,6 +100,257 @@ export type Database = {
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          lab_order_id: string
+          lab_test_id: string
+          result: string | null
+          result_date: string | null
+          status: string
+          test_name: string
+          test_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          lab_order_id: string
+          lab_test_id: string
+          result?: string | null
+          result_date?: string | null
+          status?: string
+          test_name: string
+          test_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          lab_order_id?: string
+          lab_test_id?: string
+          result?: string | null
+          result_date?: string | null
+          status?: string
+          test_name?: string
+          test_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lab_order_items_lab_order_id_fkey"
+            columns: ["lab_order_id"]
+            isOneToOne: false
+            referencedRelation: "lab_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lab_order_items_lab_test_id_fkey"
+            columns: ["lab_test_id"]
+            isOneToOne: false
+            referencedRelation: "lab_tests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lab_orders: {
+        Row: {
+          created_at: string
+          doctor_name: string
+          doctor_phone: string | null
+          id: string
+          lab_id: string | null
+          order_date: string
+          patient_age: number | null
+          patient_gender: string | null
+          patient_name: string
+          patient_phone: string | null
+          payment_status: string
+          sample_collection_date: string | null
+          sample_collection_time: string | null
+          special_instructions: string | null
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          doctor_name: string
+          doctor_phone?: string | null
+          id?: string
+          lab_id?: string | null
+          order_date?: string
+          patient_age?: number | null
+          patient_gender?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          payment_status?: string
+          sample_collection_date?: string | null
+          sample_collection_time?: string | null
+          special_instructions?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          doctor_name?: string
+          doctor_phone?: string | null
+          id?: string
+          lab_id?: string | null
+          order_date?: string
+          patient_age?: number | null
+          patient_gender?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          payment_status?: string
+          sample_collection_date?: string | null
+          sample_collection_time?: string | null
+          special_instructions?: string | null
+          status?: string
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      lab_tests: {
+        Row: {
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          lab_id: string | null
+          normal_range: string | null
+          preparation_instructions: string | null
+          price: number
+          sample_type: string
+          test_code: string
+          test_name: string
+          turnaround_time_hours: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lab_id?: string | null
+          normal_range?: string | null
+          preparation_instructions?: string | null
+          price: number
+          sample_type: string
+          test_code: string
+          test_name: string
+          turnaround_time_hours?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          lab_id?: string | null
+          normal_range?: string | null
+          preparation_instructions?: string | null
+          price?: number
+          sample_type?: string
+          test_code?: string
+          test_name?: string
+          turnaround_time_hours?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      order_items: {
+        Row: {
+          created_at: string
+          id: string
+          order_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          order_id: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_status_history: {
+        Row: {
+          changed_at: string
+          changed_by: string | null
+          id: string
+          notes: string | null
+          order_id: string
+          status: string
+        }
+        Insert: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id: string
+          status: string
+        }
+        Update: {
+          changed_at?: string
+          changed_by?: string | null
+          id?: string
+          notes?: string | null
+          order_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_status_history_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -161,6 +460,170 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescription_items: {
+        Row: {
+          created_at: string
+          dispensed_quantity: number | null
+          dosage: string
+          duration: string
+          frequency: string
+          id: string
+          medication_name: string
+          prescription_id: string
+          product_id: string | null
+          quantity: number
+          special_instructions: string | null
+          unit: string
+        }
+        Insert: {
+          created_at?: string
+          dispensed_quantity?: number | null
+          dosage: string
+          duration: string
+          frequency: string
+          id?: string
+          medication_name: string
+          prescription_id: string
+          product_id?: string | null
+          quantity: number
+          special_instructions?: string | null
+          unit?: string
+        }
+        Update: {
+          created_at?: string
+          dispensed_quantity?: number | null
+          dosage?: string
+          duration?: string
+          frequency?: string
+          id?: string
+          medication_name?: string
+          prescription_id?: string
+          product_id?: string | null
+          quantity?: number
+          special_instructions?: string | null
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prescription_items_prescription_id_fkey"
+            columns: ["prescription_id"]
+            isOneToOne: false
+            referencedRelation: "prescriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prescription_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prescriptions: {
+        Row: {
+          created_at: string
+          diagnosis: string | null
+          dispensed_at: string | null
+          dispensed_by: string | null
+          doctor_license: string | null
+          doctor_name: string
+          id: string
+          instructions: string | null
+          patient_name: string
+          patient_phone: string | null
+          pharmacy_id: string | null
+          prescription_date: string
+          status: string
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          diagnosis?: string | null
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          doctor_license?: string | null
+          doctor_name: string
+          id?: string
+          instructions?: string | null
+          patient_name: string
+          patient_phone?: string | null
+          pharmacy_id?: string | null
+          prescription_date?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          diagnosis?: string | null
+          dispensed_at?: string | null
+          dispensed_by?: string | null
+          doctor_license?: string | null
+          doctor_name?: string
+          id?: string
+          instructions?: string | null
+          patient_name?: string
+          patient_phone?: string | null
+          pharmacy_id?: string | null
+          prescription_date?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      product_analytics: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          product_id: string
+          profit_margin: number
+          quantity_sold: number
+          revenue: number
+          stock_turnover_rate: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          product_id: string
+          profit_margin?: number
+          quantity_sold?: number
+          revenue?: number
+          stock_turnover_rate?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          product_id?: string
+          profit_margin?: number
+          quantity_sold?: number
+          revenue?: number
+          stock_turnover_rate?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_analytics_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -400,6 +863,54 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      sales_analytics: {
+        Row: {
+          average_order_value: number
+          created_at: string
+          date: string
+          id: string
+          lab_orders: number
+          new_customers: number
+          prescription_orders: number
+          top_selling_category: string | null
+          total_items_sold: number
+          total_orders: number
+          total_sales: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          average_order_value?: number
+          created_at?: string
+          date: string
+          id?: string
+          lab_orders?: number
+          new_customers?: number
+          prescription_orders?: number
+          top_selling_category?: string | null
+          total_items_sold?: number
+          total_orders?: number
+          total_sales?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          average_order_value?: number
+          created_at?: string
+          date?: string
+          id?: string
+          lab_orders?: number
+          new_customers?: number
+          prescription_orders?: number
+          top_selling_category?: string | null
+          total_items_sold?: number
+          total_orders?: number
+          total_sales?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       suppliers: {
         Row: {

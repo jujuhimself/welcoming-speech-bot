@@ -1,6 +1,6 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { inventoryService, Product, InventoryMovement, Supplier } from '@/services/inventoryService';
+import { inventoryService, Product, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem } from '@/services/inventoryService';
 import { useToast } from '@/hooks/use-toast';
 
 export const useProducts = () => {
@@ -116,6 +116,31 @@ export const useInventoryMovements = (productId?: string) => {
   });
 };
 
+export const useCreateInventoryMovement = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: inventoryService.createInventoryMovement,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      toast({
+        title: "Inventory movement recorded",
+        description: "Inventory movement has been successfully recorded.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to record inventory movement. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Error creating inventory movement:', error);
+    },
+  });
+};
+
 export const useSuppliers = () => {
   return useQuery({
     queryKey: ['suppliers'],
@@ -143,6 +168,69 @@ export const useCreateSupplier = () => {
         variant: "destructive",
       });
       console.error('Error creating supplier:', error);
+    },
+  });
+};
+
+export const usePurchaseOrders = () => {
+  return useQuery({
+    queryKey: ['purchase-orders'],
+    queryFn: inventoryService.getPurchaseOrders,
+  });
+};
+
+export const useCreatePurchaseOrder = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: inventoryService.createPurchaseOrder,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      toast({
+        title: "Purchase order created",
+        description: "Purchase order has been successfully created.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to create purchase order. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Error creating purchase order:', error);
+    },
+  });
+};
+
+export const usePurchaseOrderItems = (purchaseOrderId: string) => {
+  return useQuery({
+    queryKey: ['purchase-order-items', purchaseOrderId],
+    queryFn: () => inventoryService.getPurchaseOrderItems(purchaseOrderId),
+    enabled: !!purchaseOrderId,
+  });
+};
+
+export const useCreatePurchaseOrderItem = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: inventoryService.createPurchaseOrderItem,
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-order-items', data.purchase_order_id] });
+      toast({
+        title: "Purchase order item added",
+        description: "Purchase order item has been successfully added.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add purchase order item. Please try again.",
+        variant: "destructive",
+      });
+      console.error('Error creating purchase order item:', error);
     },
   });
 };
