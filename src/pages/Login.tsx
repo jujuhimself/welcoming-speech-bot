@@ -39,8 +39,9 @@ const Login = () => {
         description: "You've successfully logged into BEPAWA.",
       });
       
-      // Navigate to home page - routing will be handled by the app based on user role
-      navigate('/');
+      // Navigate to the role-specific dashboard
+      const redirectTo = result.redirectTo || '/';
+      navigate(redirectTo, { replace: true });
     } else {
       toast({
         title: "Login failed",

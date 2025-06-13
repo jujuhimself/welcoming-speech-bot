@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -41,6 +42,7 @@ import LabDirectory from "./pages/LabDirectory";
 import InventoryManagement from "./pages/InventoryManagement";
 import SystemSettings from "./pages/SystemSettings";
 import AdminAnalytics from "./pages/AdminAnalytics";
+import RouteGuard from "./components/RouteGuard";
 
 const App = () => {
   // Create QueryClient inside the component to ensure proper React context
@@ -65,36 +67,191 @@ const App = () => {
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/auth-callback" element={<AuthCallback />} />
-              <Route path="/individual" element={<IndividualDashboard />} />
-              <Route path="/pharmacy" element={<PharmacyDashboard />} />
-              <Route path="/wholesale" element={<WholesaleDashboard />} />
-              <Route path="/wholesale/inventory" element={<WholesaleInventory />} />
-              <Route path="/wholesale/orders" element={<WholesaleOrders />} />
-              <Route path="/wholesale/retailer-orders" element={<WholesaleRetailerOrders />} />
-              <Route path="/wholesale/purchase-orders" element={<WholesalePurchaseOrders />} />
-              <Route path="/wholesale/retailers" element={<WholesaleRetailers />} />
-              <Route path="/wholesale/analytics" element={<WholesaleAnalytics />} />
-              <Route path="/wholesale/business-tools" element={<WholesaleBusinessTools />} />
-              <Route path="/lab" element={<LabDashboard />} />
-              <Route path="/lab/test-catalog" element={<LabTestCatalog />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="/products" element={<Products />} />
-              <Route path="/product/:id" element={<ProductDetail />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/orders" element={<Orders />} />
-              <Route path="/pharmacies" element={<Pharmacies />} />
-              <Route path="/pharmacy-directory" element={<PharmacyDirectory />} />
-              <Route path="/lab-directory" element={<LabDirectory />} />
-              <Route path="/inventory-management" element={<InventoryManagement />} />
-              <Route path="/prescriptions" element={<Prescriptions />} />
-              <Route path="/prescription-management" element={<PrescriptionManagement />} />
-              <Route path="/credit-request" element={<CreditRequest />} />
-              <Route path="/credit-management" element={<CreditRequestManagement />} />
-              <Route path="/business-tools" element={<BusinessTools />} />
-              <Route path="/business-center" element={<BusinessCenter />} />
-              <Route path="/wholesale-ordering" element={<WholesaleOrdering />} />
-              <Route path="/settings" element={<SystemSettings />} />
+              
+              {/* Protected Dashboard Routes */}
+              <Route path="/individual" element={
+                <RouteGuard allowedRoles={['individual']}>
+                  <IndividualDashboard />
+                </RouteGuard>
+              } />
+              
+              <Route path="/pharmacy" element={
+                <RouteGuard allowedRoles={['retail']} requireApproval={true}>
+                  <PharmacyDashboard />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleDashboard />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/inventory" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleInventory />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/orders" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleOrders />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/retailer-orders" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleRetailerOrders />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/purchase-orders" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <Wholesal
+
+ePurchaseOrders />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/retailers" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleRetailers />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/analytics" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleAnalytics />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale/business-tools" element={
+                <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
+                  <WholesaleBusinessTools />
+                </RouteGuard>
+              } />
+              
+              <Route path="/lab" element={
+                <RouteGuard allowedRoles={['lab']} requireApproval={true}>
+                  <LabDashboard />
+                </RouteGuard>
+              } />
+              
+              <Route path="/lab/test-catalog" element={
+                <RouteGuard allowedRoles={['lab']} requireApproval={true}>
+                  <LabTestCatalog />
+                </RouteGuard>
+              } />
+              
+              <Route path="/admin" element={
+                <RouteGuard allowedRoles={['admin']}>
+                  <AdminDashboard />
+                </RouteGuard>
+              } />
+              
+              <Route path="/admin/analytics" element={
+                <RouteGuard allowedRoles={['admin']}>
+                  <AdminAnalytics />
+                </RouteGuard>
+              } />
+              
+              {/* Protected General Routes */}
+              <Route path="/products" element={
+                <RouteGuard>
+                  <Products />
+                </RouteGuard>
+              } />
+              
+              <Route path="/product/:id" element={
+                <RouteGuard>
+                  <ProductDetail />
+                </RouteGuard>
+              } />
+              
+              <Route path="/cart" element={
+                <RouteGuard>
+                  <Cart />
+                </RouteGuard>
+              } />
+              
+              <Route path="/orders" element={
+                <RouteGuard>
+                  <Orders />
+                </RouteGuard>
+              } />
+              
+              <Route path="/pharmacies" element={
+                <RouteGuard>
+                  <Pharmacies />
+                </RouteGuard>
+              } />
+              
+              <Route path="/pharmacy-directory" element={
+                <RouteGuard>
+                  <PharmacyDirectory />
+                </RouteGuard>
+              } />
+              
+              <Route path="/lab-directory" element={
+                <RouteGuard>
+                  <LabDirectory />
+                </RouteGuard>
+              } />
+              
+              <Route path="/inventory-management" element={
+                <RouteGuard>
+                  <InventoryManagement />
+                </RouteGuard>
+              } />
+              
+              <Route path="/prescriptions" element={
+                <RouteGuard>
+                  <Prescriptions />
+                </RouteGuard>
+              } />
+              
+              <Route path="/prescription-management" element={
+                <RouteGuard>
+                  <PrescriptionManagement />
+                </RouteGuard>
+              } />
+              
+              <Route path="/credit-request" element={
+                <RouteGuard>
+                  <CreditRequest />
+                </RouteGuard>
+              } />
+              
+              <Route path="/credit-management" element={
+                <RouteGuard>
+                  <CreditRequestManagement />
+                </RouteGuard>
+              } />
+              
+              <Route path="/business-tools" element={
+                <RouteGuard>
+                  <BusinessTools />
+                </RouteGuard>
+              } />
+              
+              <Route path="/business-center" element={
+                <RouteGuard>
+                  <BusinessCenter />
+                </RouteGuard>
+              } />
+              
+              <Route path="/wholesale-ordering" element={
+                <RouteGuard>
+                  <WholesaleOrdering />
+                </RouteGuard>
+              } />
+              
+              <Route path="/settings" element={
+                <RouteGuard>
+                  <SystemSettings />
+                </RouteGuard>
+              } />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

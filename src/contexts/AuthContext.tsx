@@ -38,10 +38,11 @@ export interface User {
 interface AuthContextType {
   user: User | null;
   session: Session | null;
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string; redirectTo?: string }>;
   logout: () => void;
   register: (userData: Partial<User> & { password: string }) => Promise<{ success: boolean; error?: string }>;
   isLoading: boolean;
+  getDashboardRoute: (user?: User | null) => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -58,6 +59,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Helper function to get dashboard route based on user role
+  const getDashboardRoute = (userData?: User | null): string => {
+    const currentUser = userData || user;
+    if (!currentUser) return '/';
+    
+    switch (currentUser.role) {
+      case 'admin': return '/admin';
+      case 'individual': return '/individual';
+      case 'retail': return '/pharmacy';
+      case 'wholesale': return '/wholesale';
+      case 'lab': return '/lab';
+      default: return '/';
+    }
+  };
 
   // Convert Supabase profile to our User type
   const convertProfileToUser = (profile: any, supabaseUser: SupabaseUser): User => {
@@ -149,7 +165,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; redirectTo?: string }> => {
     setIsLoading(true);
     
     try {
@@ -176,11 +192,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const userData = convertProfileToUser(profile, data.user);
           setUser(userData);
           setSession(data.session);
+          
+          // Return the redirect route
+          const redirectTo = getDashboardRoute(userData);
+          setIsLoading(false);
+          return { success: true, redirectTo };
         }
       }
 
       setIsLoading(false);
-      return { success: true };
+      return { success: true, redirectTo: '/' };
     } catch (error) {
       console.error('Login error:', error);
       setIsLoading(false);
@@ -245,7 +266,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, login, logout, register, isLoading }}>
+    <AuthContext.Provider value={{ user, session, login, logout, register, isLoading, getDashboardRoute }}>
       {children}
     </AuthContext.Provider>
   );

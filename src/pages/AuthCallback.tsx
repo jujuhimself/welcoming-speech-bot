@@ -6,10 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Package, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 const AuthCallback = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { getDashboardRoute } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
@@ -26,6 +28,20 @@ const AuthCallback = () => {
         }
 
         if (data.session) {
+          // Fetch user profile to determine dashboard route
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('*')
+            .eq('id', data.session.user.id)
+            .single();
+
+          if (profileError) {
+            console.error('Profile fetch error:', profileError);
+            setStatus('error');
+            setMessage('Failed to load user profile');
+            return;
+          }
+
           // User is authenticated
           setStatus('success');
           setMessage('Email verified successfully! Redirecting to your dashboard...');
@@ -35,9 +51,14 @@ const AuthCallback = () => {
             description: "Welcome to BEPAWA! You're now logged in.",
           });
 
-          // Redirect based on user role after a short delay
+          // Redirect to role-specific dashboard
+          const dashboardRoute = getDashboardRoute({ 
+            ...profile, 
+            isApproved: profile.is_approved 
+          } as any);
+          
           setTimeout(() => {
-            navigate('/', { replace: true });
+            navigate(dashboardRoute, { replace: true });
           }, 2000);
         } else {
           // No session found
@@ -52,7 +73,7 @@ const AuthCallback = () => {
     };
 
     handleAuthCallback();
-  }, [navigate, toast]);
+  }, [navigate, toast, getDashboardRoute]);
 
   const handleReturnToLogin = () => {
     navigate('/login');
@@ -127,12 +148,6 @@ const AuthCallback = () => {
                     You will be redirected to your dashboard automatically.
                   </p>
                 </div>
-                <Button 
-                  onClick={() => navigate('/')}
-                  className="w-full bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800"
-                >
-                  Go to Dashboard Now
-                </Button>
               </div>
             )}
 
