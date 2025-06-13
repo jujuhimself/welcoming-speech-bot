@@ -103,7 +103,8 @@ class LabService {
     return (data || []).map(order => ({
       ...order,
       status: order.status as LabOrder['status'],
-      payment_status: order.payment_status as LabOrder['payment_status']
+      payment_status: order.payment_status as LabOrder['payment_status'],
+      patient_gender: order.patient_gender as LabOrder['patient_gender']
     }));
   }
 
@@ -128,7 +129,8 @@ class LabService {
     return {
       ...data,
       status: data.status as LabOrder['status'],
-      payment_status: data.payment_status as LabOrder['payment_status']
+      payment_status: data.payment_status as LabOrder['payment_status'],
+      patient_gender: data.patient_gender as LabOrder['patient_gender']
     };
   }
 
@@ -187,7 +189,8 @@ class LabService {
     return {
       ...data,
       status: data.status as LabOrder['status'],
-      payment_status: data.payment_status as LabOrder['payment_status']
+      payment_status: data.payment_status as LabOrder['payment_status'],
+      patient_gender: data.patient_gender as LabOrder['patient_gender']
     };
   }
 }
