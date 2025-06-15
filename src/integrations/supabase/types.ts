@@ -383,6 +383,7 @@ export type Database = {
           patient_name: string
           patient_phone: string | null
           payment_status: string
+          pharmacy_id: string | null
           sample_collection_date: string | null
           sample_collection_time: string | null
           special_instructions: string | null
@@ -403,6 +404,7 @@ export type Database = {
           patient_name: string
           patient_phone?: string | null
           payment_status?: string
+          pharmacy_id?: string | null
           sample_collection_date?: string | null
           sample_collection_time?: string | null
           special_instructions?: string | null
@@ -423,6 +425,7 @@ export type Database = {
           patient_name?: string
           patient_phone?: string | null
           payment_status?: string
+          pharmacy_id?: string | null
           sample_collection_date?: string | null
           sample_collection_time?: string | null
           special_instructions?: string | null
@@ -617,12 +620,14 @@ export type Database = {
           items: Json
           order_number: string
           payment_status: string
+          pharmacy_id: string | null
           profile_id: string | null
           shipping_address: Json | null
           status: string
           total_amount: number
           updated_at: string
           user_id: string
+          wholesaler_id: string | null
         }
         Insert: {
           business_id?: string | null
@@ -631,12 +636,14 @@ export type Database = {
           items: Json
           order_number: string
           payment_status?: string
+          pharmacy_id?: string | null
           profile_id?: string | null
           shipping_address?: Json | null
           status?: string
           total_amount: number
           updated_at?: string
           user_id: string
+          wholesaler_id?: string | null
         }
         Update: {
           business_id?: string | null
@@ -645,12 +652,14 @@ export type Database = {
           items?: Json
           order_number?: string
           payment_status?: string
+          pharmacy_id?: string | null
           profile_id?: string | null
           shipping_address?: Json | null
           status?: string
           total_amount?: number
           updated_at?: string
           user_id?: string
+          wholesaler_id?: string | null
         }
         Relationships: [
           {
@@ -963,6 +972,7 @@ export type Database = {
           max_stock: number | null
           min_stock: number
           name: string
+          pharmacy_id: string | null
           sell_price: number
           sku: string
           status: string
@@ -970,6 +980,7 @@ export type Database = {
           supplier: string | null
           updated_at: string
           user_id: string
+          wholesaler_id: string | null
         }
         Insert: {
           batch_number?: string | null
@@ -983,6 +994,7 @@ export type Database = {
           max_stock?: number | null
           min_stock?: number
           name: string
+          pharmacy_id?: string | null
           sell_price: number
           sku: string
           status?: string
@@ -990,6 +1002,7 @@ export type Database = {
           supplier?: string | null
           updated_at?: string
           user_id: string
+          wholesaler_id?: string | null
         }
         Update: {
           batch_number?: string | null
@@ -1003,6 +1016,7 @@ export type Database = {
           max_stock?: number | null
           min_stock?: number
           name?: string
+          pharmacy_id?: string | null
           sell_price?: number
           sku?: string
           status?: string
@@ -1010,6 +1024,7 @@ export type Database = {
           supplier?: string | null
           updated_at?: string
           user_id?: string
+          wholesaler_id?: string | null
         }
         Relationships: []
       }
@@ -1018,20 +1033,26 @@ export type Database = {
           address: string | null
           business_license: string | null
           business_name: string | null
+          city: string | null
           created_at: string | null
           date_of_birth: string | null
           email: string
           emergency_contact: string | null
           id: string
           is_approved: boolean | null
+          is_pharmacy: boolean | null
           lab_license: string | null
           lab_name: string | null
+          latitude: number | null
           license_number: string | null
+          longitude: number | null
           name: string
           operating_hours: string | null
           pharmacist_name: string | null
           pharmacy_name: string | null
+          pharmacy_rating: number | null
           phone: string | null
+          region: string | null
           role: Database["public"]["Enums"]["user_role"]
           specializations: string[] | null
           tax_id: string | null
@@ -1041,20 +1062,26 @@ export type Database = {
           address?: string | null
           business_license?: string | null
           business_name?: string | null
+          city?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email: string
           emergency_contact?: string | null
           id: string
           is_approved?: boolean | null
+          is_pharmacy?: boolean | null
           lab_license?: string | null
           lab_name?: string | null
+          latitude?: number | null
           license_number?: string | null
+          longitude?: number | null
           name: string
           operating_hours?: string | null
           pharmacist_name?: string | null
           pharmacy_name?: string | null
+          pharmacy_rating?: number | null
           phone?: string | null
+          region?: string | null
           role: Database["public"]["Enums"]["user_role"]
           specializations?: string[] | null
           tax_id?: string | null
@@ -1064,20 +1091,26 @@ export type Database = {
           address?: string | null
           business_license?: string | null
           business_name?: string | null
+          city?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email?: string
           emergency_contact?: string | null
           id?: string
           is_approved?: boolean | null
+          is_pharmacy?: boolean | null
           lab_license?: string | null
           lab_name?: string | null
+          latitude?: number | null
           license_number?: string | null
+          longitude?: number | null
           name?: string
           operating_hours?: string | null
           pharmacist_name?: string | null
           pharmacy_name?: string | null
+          pharmacy_rating?: number | null
           phone?: string | null
+          region?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           specializations?: string[] | null
           tax_id?: string | null

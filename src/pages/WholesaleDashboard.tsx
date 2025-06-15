@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,11 +8,30 @@ import { Package, TrendingUp, DollarSign, Users, BarChart3, FileText } from "luc
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import BackupScheduleManager from "@/components/BackupScheduleManager";
+import { supabase } from "@/integrations/supabase/client";
+
+// Define type for orders
+type WholesaleOrder = {
+  id: string;
+  order_number: string;
+  created_at: string;
+  total_amount: number;
+  status: string;
+  pharmacy_id?: string;
+  pharmacy_name?: string;
+};
+
+// Type for retail profile
+type RetailerProfile = {
+  id: string;
+  name: string;
+  business_name: string;
+};
 
 const WholesaleDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<WholesaleOrder[]>([]);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalOrders: 0,
@@ -19,6 +39,7 @@ const WholesaleDashboard = () => {
     lowStockItems: 0
   });
 
+  // Helper: load orders, stats, retailers
   useEffect(() => {
     if (!user || user.role !== 'wholesale') {
       navigate('/login');
@@ -29,17 +50,72 @@ const WholesaleDashboard = () => {
       return;
     }
 
-    // Load wholesale stats
-    const allOrders = JSON.parse(localStorage.getItem('bepawa_orders') || '[]');
-    const wholesaleOrders = allOrders.filter((order: any) => order.wholesalerId === user.id);
-    
-    setOrders(wholesaleOrders.slice(0, 5));
-    setStats({
-      totalRevenue: wholesaleOrders.reduce((sum: number, order: any) => sum + order.total, 0),
-      totalOrders: wholesaleOrders.length,
-      activeRetailers: new Set(wholesaleOrders.map((order: any) => order.pharmacyId)).size,
-      lowStockItems: 5 // Mock data
-    });
+    // Fetch orders from Supabase by wholesaler_id
+    async function fetchWholesaleData() {
+      // 1. Orders
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .select('id, order_number, created_at, total_amount, status, pharmacy_id')
+        .eq('wholesaler_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (orderError) {
+        setOrders([]); // fallback
+        return;
+      }
+
+      // Fetch pharmacy names for display (batch query)
+      const pharmacyIds = orderData?.map((o: any) => o.pharmacy_id).filter(Boolean);
+      let pharmacies: Record<string, string> = {};
+      if (pharmacyIds && pharmacyIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, business_name, name')
+          .in('id', pharmacyIds);
+
+        profileData?.forEach((profile: any) => {
+          pharmacies[profile.id] = profile.business_name || profile.name;
+        });
+      }
+
+      const enhancedOrders = (orderData || []).map((order: any) => ({
+        ...order,
+        pharmacy_name: pharmacies[order.pharmacy_id] || ""
+      }));
+
+      setOrders(enhancedOrders);
+
+      // 2. Stats - aggregate from all orders for this wholesaler
+      const { data: allOrders } = await supabase
+        .from('orders')
+        .select('id, total_amount, pharmacy_id')
+        .eq('wholesaler_id', user.id);
+
+      const totalRevenue = (allOrders || []).reduce((sum: number, ord: any) => sum + Number(ord.total_amount || 0), 0);
+      const totalOrders = (allOrders || []).length || 0;
+      const activeRetailers = new Set((allOrders || []).map((o: any) => o.pharmacy_id)).size;
+
+      // Count low stock items (mock, or fetch products if you want)
+      let lowStockItems = 0;
+      const { data: productData } = await supabase
+        .from('products')
+        .select('id, stock, min_stock')
+        .eq('wholesaler_id', user.id);
+
+      if (productData) {
+        lowStockItems = productData.filter((prod: any) => Number(prod.stock) <= Number(prod.min_stock)).length;
+      }
+
+      setStats({
+        totalRevenue,
+        totalOrders,
+        activeRetailers,
+        lowStockItems
+      });
+    }
+
+    fetchWholesaleData();
   }, [user, navigate]);
 
   if (!user || user.role !== 'wholesale') {
@@ -98,7 +174,6 @@ const WholesaleDashboard = () => {
               <div className="text-2xl font-bold">TZS {stats.totalRevenue.toLocaleString()}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-blue-100">Total Orders</CardTitle>
@@ -108,7 +183,6 @@ const WholesaleDashboard = () => {
               <div className="text-3xl font-bold">{stats.totalOrders}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-purple-100">Active Retailers</CardTitle>
@@ -118,7 +192,6 @@ const WholesaleDashboard = () => {
               <div className="text-3xl font-bold">{stats.activeRetailers}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-orange-100">Low Stock Items</CardTitle>
@@ -181,13 +254,15 @@ const WholesaleDashboard = () => {
               </div>
             ) : (
               <div className="space-y-4">
-                {orders.map((order: any) => (
+                {orders.map((order) => (
                   <div key={order.id} className="flex justify-between items-center p-6 border rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div>
-                      <p className="font-semibold text-lg">Order #{order.id}</p>
-                      <p className="text-gray-600">From: {order.pharmacyName}</p>
-                      <p className="text-gray-600">{new Date(order.createdAt).toLocaleDateString()}</p>
-                      <p className="font-bold text-green-600">TZS {order.total.toLocaleString()}</p>
+                      <p className="font-semibold text-lg">
+                        Order #{order.order_number || order.id}
+                      </p>
+                      <p className="text-gray-600">From: {order.pharmacy_name || order.pharmacy_id}</p>
+                      <p className="text-gray-600">{new Date(order.created_at).toLocaleDateString()}</p>
+                      <p className="font-bold text-green-600">TZS {Number(order.total_amount).toLocaleString()}</p>
                     </div>
                     <Badge className="bg-blue-500 text-white">
                       {order.status.replace('-', ' ').toUpperCase()}
@@ -207,3 +282,4 @@ const WholesaleDashboard = () => {
 };
 
 export default WholesaleDashboard;
+
