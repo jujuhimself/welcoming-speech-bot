@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { TestTube, Calendar, User, Phone, Plus } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -94,7 +92,6 @@ const LabOrders = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div>Loading orders...</div>
         </div>
@@ -104,7 +101,6 @@ const LabOrders = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         <PageHeader
           title="Lab Orders"

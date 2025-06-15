@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Shield, CheckCircle, AlertTriangle, Search, Plus, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
 
 interface QualityControlCheck {

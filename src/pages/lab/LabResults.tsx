@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { TestTube, Calendar, User, Search, Plus } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
-import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
