@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Product {
@@ -76,46 +75,57 @@ export interface PurchaseOrderItem {
 }
 
 class InventoryService {
-  // Products methods
+  // Enhanced products methods with better error handling
   async getProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('name');
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .neq('status', 'deleted')
+        .order('name');
 
-    if (error) {
-      console.error('Error fetching products:', error);
+      if (error) {
+        console.error('Error fetching products:', error);
+        throw error;
+      }
+
+      return (data || []).map(product => ({
+        ...product,
+        status: product.status as Product['status']
+      }));
+    } catch (error) {
+      console.error('InventoryService.getProducts error:', error);
       throw error;
     }
-
-    return (data || []).map(product => ({
-      ...product,
-      status: product.status as Product['status']
-    }));
   }
 
   async createProduct(product: Omit<Product, 'id' | 'user_id' | 'created_at' | 'updated_at'>): Promise<Product> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
-      .from('products')
-      .insert({
-        ...product,
-        user_id: user.id
-      })
-      .select()
-      .single();
+      const { data, error } = await supabase
+        .from('products')
+        .insert({
+          ...product,
+          user_id: user.id
+        })
+        .select()
+        .single();
 
-    if (error) {
-      console.error('Error creating product:', error);
+      if (error) {
+        console.error('Error creating product:', error);
+        throw error;
+      }
+
+      return {
+        ...data,
+        status: data.status as Product['status']
+      };
+    } catch (error) {
+      console.error('InventoryService.createProduct error:', error);
       throw error;
     }
-
-    return {
-      ...data,
-      status: data.status as Product['status']
-    };
   }
 
   async updateProduct(id: string, updates: Partial<Product>): Promise<Product> {

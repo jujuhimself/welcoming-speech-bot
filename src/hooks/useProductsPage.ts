@@ -1,6 +1,7 @@
-
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
+import { inventoryService } from '@/services/inventoryService';
+import { useCategories } from '@/hooks/useCategories';
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeInput } from "@/utils/security"; 
@@ -22,9 +23,11 @@ export interface Product {
   status?: string;
 }
 
-export function useProductsPage() {
+export const useProductsPage = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const { data: categoryData } = useCategories();
+  
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [wishlist, setWishlist] = useState<string[]>([]);
@@ -37,6 +40,12 @@ export function useProductsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState("name");
+
+  // Get categories from the new category service
+  const categories = useMemo(() => {
+    if (!categoryData) return [];
+    return categoryData.map(cat => cat.name);
+  }, [categoryData]);
 
   // Fetch products from Supabase
   useEffect(() => {
@@ -211,8 +220,6 @@ export function useProductsPage() {
     setShowProductDetails(true);
   };
 
-  const categories = Array.from(new Set(products.map(product => product.category))).filter(Boolean);
-
   return {
     user,
     products,
@@ -239,5 +246,4 @@ export function useProductsPage() {
     openProductDetails,
     categories,
   };
-}
-
+};
