@@ -1,11 +1,11 @@
 
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Grid, List } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import ProductFilters from "@/components/ProductFilters";
 import ProductDetails from "@/components/ProductDetails";
 import ProductList from "@/components/ProductList";
+import ProductViewHeader from "@/components/ProductViewHeader";
+import ProductViewControls from "@/components/ProductViewControls";
+import ProductEmptyState from "@/components/ProductEmptyState";
 import {
   Dialog,
   DialogContent,
@@ -47,17 +47,9 @@ const Products = () => {
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
         <Navbar />
-
         <div className="container mx-auto px-4 py-4 md:py-8">
           {/* Header */}
-          <div className="mb-6 md:mb-8">
-            <h1 className="text-2xl md:text-4xl font-bold text-gray-900 mb-2">
-              Medical Products Catalog
-            </h1>
-            <p className="text-gray-600 text-sm md:text-lg">
-              Browse our comprehensive selection of pharmaceutical products
-            </p>
-          </div>
+          <ProductViewHeader />
 
           {/* Filters */}
           <div className="mb-6">
@@ -69,35 +61,16 @@ const Products = () => {
           </div>
 
           {/* View Controls */}
-          <div className="flex justify-between items-center mb-6">
-            <p className="text-sm text-gray-600">
-              Showing {filteredProducts.length} of {products.length} products
-            </p>
-            <div className="flex gap-2">
-              <Button
-                variant={viewMode === "grid" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("grid")}
-              >
-                <Grid className="h-4 w-4" />
-              </Button>
-              <Button
-                variant={viewMode === "list" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setViewMode("list")}
-              >
-                <List className="h-4 w-4" />
-              </Button>
-            </div>
-          </div>
+          <ProductViewControls
+            productCount={filteredProducts.length}
+            totalProducts={products.length}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
+          />
 
-          {/* Products Grid/List */}
+          {/* Products Grid/List or Empty State */}
           {filteredProducts.length === 0 ? (
-            <div className="text-center py-16">
-              <Package className="h-20 w-20 text-gray-400 mx-auto mb-6" />
-              <h3 className="text-2xl font-semibold text-gray-600 mb-3">No products found</h3>
-              <p className="text-gray-500 text-lg">Try adjusting your search or filter criteria</p>
-            </div>
+            <ProductEmptyState />
           ) : (
             <ProductList
               products={filteredProducts}
