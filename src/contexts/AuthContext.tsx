@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -167,45 +166,43 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string; redirectTo?: string }> => {
     setIsLoading(true);
-    
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setIsLoading(false);
         return { success: false, error: error.message };
       }
-
       if (data.user) {
         const profile = await fetchUserProfile(data.user.id);
         if (profile) {
           // Check if user is approved (except for individuals and admins)
-          if (!profile.is_approved && profile.role !== 'individual' && profile.role !== 'admin') {
+          if (!profile.is_approved && profile.role !== "individual" && profile.role !== "admin") {
             await supabase.auth.signOut();
             setIsLoading(false);
-            return { success: false, error: 'Your account is pending approval. Please contact the administrator.' };
+            return { success: false, error: "Your account is pending approval. Please contact the administrator." };
           }
-
           const userData = convertProfileToUser(profile, data.user);
           setUser(userData);
           setSession(data.session);
-          
-          // Return the redirect route
+
+          // Begin: Robust redirect logic (double-check session before redirect)
           const redirectTo = getDashboardRoute(userData);
+          setTimeout(() => {
+            // Resilient navigation strategy
+            if (window?.location?.pathname !== redirectTo) {
+              window.location.replace(redirectTo);
+            }
+          }, 100); // A tiny delay to ensure in-app state flushes before navigation
           setIsLoading(false);
           return { success: true, redirectTo };
         }
       }
-
       setIsLoading(false);
-      return { success: true, redirectTo: '/' };
+      return { success: true, redirectTo: "/" };
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       setIsLoading(false);
-      return { success: false, error: 'An error occurred during login. Please try again.' };
+      return { success: false, error: "An error occurred during login. Please try again." };
     }
   };
 
