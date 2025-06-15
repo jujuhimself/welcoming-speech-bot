@@ -1,5 +1,3 @@
-
-import Navbar from "@/components/Navbar";
 import ProductFilters from "@/components/ProductFilters";
 import ProductDetails from "@/components/ProductDetails";
 import ProductList from "@/components/ProductList";
@@ -46,7 +44,6 @@ const Products = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-4 md:py-8">
           {/* Header */}
           <ProductViewHeader />

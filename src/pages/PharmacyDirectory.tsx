@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MapPin, Search, Star, Clock, Phone, ShoppingCart } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import PharmacyCard from "@/components/PharmacyCard";
 import PharmacyStockDialog from "@/components/PharmacyStockDialog";
 import PageHeader from "@/components/PageHeader";
@@ -40,7 +38,6 @@ const PharmacyDirectory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         <PageHeader 
           title="Find Pharmacies"

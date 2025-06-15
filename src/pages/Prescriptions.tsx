@@ -1,7 +1,5 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import PrescriptionUpload from "@/components/PrescriptionUpload";
 import PageHeader from "@/components/PageHeader";
 
@@ -16,15 +14,12 @@ const Prescriptions = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <PageHeader
           title="Prescriptions"
           description="Upload and manage your medical prescriptions"
           badge={{ text: "Health Records", variant: "outline" }}
         />
-
         <PrescriptionUpload />
       </div>
     </div>

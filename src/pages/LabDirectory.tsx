@@ -1,11 +1,9 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Search, Star, Clock, Phone, TestTube } from "lucide-react";
-import Navbar from "@/components/Navbar";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 
@@ -22,7 +20,6 @@ const LabDirectory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         <PageHeader 
           title="Find Laboratories"

@@ -1,8 +1,5 @@
 // Basic tool demo UI for POS, Forecast, Adjustments, Credit Management. Adapt as needed.
 import { useEffect, useState } from "react";
-import Navbar from "@/components/Navbar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { posService, PosSale } from "@/services/posService";
 import { inventoryForecastService, InventoryForecast } from "@/services/inventoryForecastService";
@@ -33,7 +30,6 @@ const WholesaleBusinessTools = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8 space-y-10">
         <h1 className="text-4xl font-bold mb-6">Wholesale Business Tools (Preview)</h1>
         

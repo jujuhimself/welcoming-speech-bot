@@ -1,8 +1,6 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
-import Navbar from "@/components/Navbar";
 import PageHeader from "@/components/PageHeader";
 import InventoryDashboard from "@/components/inventory/InventoryDashboard";
 
@@ -22,8 +20,6 @@ const InventoryDashboardPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <PageHeader
           title="Inventory Dashboard"

@@ -104,7 +104,6 @@ const LabResults = () => {
           description="Manage and view laboratory test results"
           badge={{ text: "Lab Portal", variant: "outline" }}
         />
-
         <div className="flex flex-col md:flex-row gap-4 mb-6">
           <div className="flex-1">
             <div className="relative">
