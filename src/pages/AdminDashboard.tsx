@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import AdminStatsCards from "@/components/admin/AdminStatsCards";
@@ -218,7 +217,6 @@ const AdminDashboard = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="flex items-center justify-center min-h-96">
             <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
@@ -232,7 +230,6 @@ const AdminDashboard = () => {
   if (error) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center min-h-96">
             <div className="text-red-600 text-lg mb-4">Error loading dashboard: {error}</div>
@@ -251,7 +248,6 @@ const AdminDashboard = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-        <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
