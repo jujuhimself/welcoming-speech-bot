@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User as SupabaseUser, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { auditService } from '@/services/auditService';
 
 export interface User {
   id: string;
@@ -199,6 +200,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(userData);
           setSession(data.session);
 
+          // Log successful login
+          auditService.logLogin();
+
           // Toast on successful login
           import("@/hooks/use-toast").then(({ toast }) => {
             toast({
@@ -286,6 +290,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // Log logout before signing out
+    await auditService.logLogout();
+    
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);

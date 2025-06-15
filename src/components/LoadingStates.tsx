@@ -1,71 +1,68 @@
 
-import React from "react";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2, Package, AlertCircle } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, RefreshCw, Wifi, WifiOff } from "lucide-react";
 
-// Loading Spinner Component
-export const LoadingSpinner = ({ size = "default" }: { size?: "sm" | "default" | "lg" }) => {
+interface LoadingSpinnerProps {
+  size?: "sm" | "md" | "lg";
+  text?: string;
+}
+
+export const LoadingSpinner = ({ size = "md", text }: LoadingSpinnerProps) => {
   const sizeClasses = {
     sm: "h-4 w-4",
-    default: "h-8 w-8",
+    md: "h-8 w-8",
     lg: "h-12 w-12"
   };
 
   return (
-    <div className="flex items-center justify-center">
-      <div className={`${sizeClasses[size]} animate-spin rounded-full border-2 border-gray-300 border-t-primary`} />
+    <div className="flex flex-col items-center justify-center space-y-2">
+      <Loader2 className={`${sizeClasses[size]} animate-spin text-primary-600`} />
+      {text && <p className="text-sm text-gray-600">{text}</p>}
     </div>
   );
 };
 
-// Page Loading Component
-export const PageLoading = ({ message = "Loading..." }: { message?: string }) => {
+interface PageLoadingProps {
+  title?: string;
+  description?: string;
+}
+
+export const PageLoading = ({ title = "Loading", description = "Please wait while we load your data..." }: PageLoadingProps) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-      <LoadingSpinner size="lg" />
-      <p className="text-lg text-gray-600">{message}</p>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <Card className="w-full max-w-md">
+        <CardContent className="pt-6">
+          <div className="text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-3 rounded-2xl">
+                <Package className="h-8 w-8 text-white" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
+              <p className="text-gray-600 mt-2">{description}</p>
+            </div>
+            <LoadingSpinner size="lg" />
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-// Card Loading Skeleton
-export const CardSkeleton = () => {
-  return (
-    <Card>
-      <CardHeader>
-        <Skeleton className="h-6 w-3/4" />
-        <Skeleton className="h-4 w-1/2" />
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-5/6" />
-        <Skeleton className="h-4 w-2/3" />
-        <div className="flex space-x-2 pt-4">
-          <Skeleton className="h-8 w-20" />
-          <Skeleton className="h-8 w-20" />
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
+interface TableLoadingProps {
+  rows?: number;
+  columns?: number;
+}
 
-// Table Loading Skeleton
-export const TableSkeleton = ({ rows = 5, columns = 4 }: { rows?: number; columns?: number }) => {
+export const TableLoading = ({ rows = 5, columns = 4 }: TableLoadingProps) => {
   return (
     <div className="space-y-3">
-      {/* Header */}
-      <div className="flex space-x-4">
-        {[...Array(columns)].map((_, i) => (
-          <Skeleton key={i} className="h-8 flex-1" />
-        ))}
-      </div>
-      {/* Rows */}
-      {[...Array(rows)].map((_, rowIndex) => (
-        <div key={rowIndex} className="flex space-x-4">
-          {[...Array(columns)].map((_, colIndex) => (
-            <Skeleton key={colIndex} className="h-6 flex-1" />
+      {Array.from({ length: rows }).map((_, i) => (
+        <div key={i} className="flex space-x-4">
+          {Array.from({ length: columns }).map((_, j) => (
+            <div key={j} className="h-4 bg-gray-200 rounded animate-pulse flex-1" />
           ))}
         </div>
       ))}
@@ -73,121 +70,54 @@ export const TableSkeleton = ({ rows = 5, columns = 4 }: { rows?: number; column
   );
 };
 
-// Product Grid Loading
-export const ProductGridSkeleton = ({ count = 6 }: { count?: number }) => {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {[...Array(count)].map((_, i) => (
-        <Card key={i}>
-          <CardContent className="p-4">
-            <Skeleton className="h-40 w-full mb-4" />
-            <Skeleton className="h-6 w-3/4 mb-2" />
-            <Skeleton className="h-4 w-1/2 mb-2" />
-            <Skeleton className="h-8 w-full" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
-  );
-};
-
-// Error Boundary Component
-interface ErrorFallbackProps {
-  error?: Error;
-  resetError?: () => void;
+interface ErrorStateProps {
   title?: string;
   description?: string;
+  onRetry?: () => void;
+  showRetry?: boolean;
 }
 
-export const ErrorFallback = ({ 
-  error, 
-  resetError, 
-  title = "Something went wrong",
-  description = "We encountered an unexpected error. Please try again."
-}: ErrorFallbackProps) => {
+export const ErrorState = ({ 
+  title = "Something went wrong", 
+  description = "We encountered an error while loading your data.", 
+  onRetry,
+  showRetry = true 
+}: ErrorStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 p-8">
-      <div className="flex items-center justify-center w-16 h-16 bg-red-100 rounded-full">
-        <AlertCircle className="w-8 h-8 text-red-600" />
+    <div className="flex flex-col items-center justify-center space-y-4 p-8">
+      <div className="bg-red-100 p-3 rounded-full">
+        <AlertCircle className="h-8 w-8 text-red-600" />
       </div>
-      <div className="text-center space-y-2">
-        <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
-        <p className="text-gray-600 max-w-md">{description}</p>
-        {error && (
-          <details className="mt-4 text-sm text-gray-500">
-            <summary className="cursor-pointer">Technical Details</summary>
-            <pre className="mt-2 p-2 bg-gray-100 rounded text-xs overflow-auto">
-              {error.message}
-            </pre>
-          </details>
-        )}
+      <div className="text-center">
+        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+        <p className="text-gray-600 mt-1">{description}</p>
       </div>
-      <div className="flex space-x-3">
-        {resetError && (
-          <Button onClick={resetError} variant="outline">
-            <RefreshCw className="w-4 h-4 mr-2" />
-            Try Again
-          </Button>
-        )}
-        <Button onClick={() => window.location.reload()}>
-          Reload Page
+      {showRetry && onRetry && (
+        <Button onClick={onRetry} variant="outline">
+          Try Again
         </Button>
-      </div>
+      )}
     </div>
   );
 };
 
-// Network Status Component
-export const NetworkStatus = () => {
-  const [isOnline, setIsOnline] = React.useState(navigator.onLine);
-
-  React.useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  if (isOnline) return null;
-
-  return (
-    <div className="fixed top-0 left-0 right-0 bg-red-600 text-white p-2 z-50">
-      <div className="flex items-center justify-center space-x-2">
-        <WifiOff className="w-4 h-4" />
-        <span className="text-sm">You're currently offline. Some features may not be available.</span>
-      </div>
-    </div>
-  );
-};
-
-// Empty State Component
 interface EmptyStateProps {
-  icon?: React.ReactNode;
   title: string;
   description: string;
   action?: {
     label: string;
     onClick: () => void;
   };
+  icon?: React.ReactNode;
 }
 
-export const EmptyState = ({ icon, title, description, action }: EmptyStateProps) => {
+export const EmptyState = ({ title, description, action, icon }: EmptyStateProps) => {
   return (
-    <div className="flex flex-col items-center justify-center py-12 space-y-4">
-      {icon && (
-        <div className="flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full">
-          {icon}
-        </div>
-      )}
-      <div className="text-center space-y-2">
+    <div className="flex flex-col items-center justify-center space-y-4 p-8">
+      {icon && <div className="text-gray-400">{icon}</div>}
+      <div className="text-center">
         <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-        <p className="text-gray-600 max-w-md">{description}</p>
+        <p className="text-gray-600 mt-1">{description}</p>
       </div>
       {action && (
         <Button onClick={action.onClick}>
@@ -198,35 +128,9 @@ export const EmptyState = ({ icon, title, description, action }: EmptyStateProps
   );
 };
 
-// Search Loading State
-export const SearchLoading = () => {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center space-x-2">
-        <LoadingSpinner size="sm" />
-        <span className="text-sm text-gray-600">Searching...</span>
-      </div>
-      <div className="space-y-3">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="flex items-center space-x-3 p-3 border rounded-lg">
-            <Skeleton className="h-12 w-12 rounded" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-3/4" />
-              <Skeleton className="h-3 w-1/2" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Form Loading State
-export const FormLoading = ({ message = "Submitting..." }: { message?: string }) => {
-  return (
-    <div className="flex items-center justify-center space-x-2 py-4">
-      <LoadingSpinner size="sm" />
-      <span className="text-sm text-gray-600">{message}</span>
-    </div>
-  );
-};
+export const ButtonLoading = ({ children, isLoading, ...props }: any) => (
+  <Button disabled={isLoading} {...props}>
+    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+    {children}
+  </Button>
+);

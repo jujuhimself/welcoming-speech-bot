@@ -15,45 +15,44 @@ export interface AuditLog {
 }
 
 class AuditService {
-  async logAction(params: {
-    action: string;
-    resourceType: string;
-    resourceId?: string;
-    oldValues?: Record<string, any>;
-    newValues?: Record<string, any>;
-    ipAddress?: string;
-    userAgent?: string;
-  }): Promise<void> {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+  async logAction(
+    action: string,
+    resourceType: string,
+    resourceId?: string,
+    oldValues?: Record<string, any>,
+    newValues?: Record<string, any>
+  ): Promise<void> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    const { error } = await supabase
-      .from('audit_logs')
-      .insert({
+      const logEntry = {
         user_id: user.id,
-        action: params.action,
-        resource_type: params.resourceType,
-        resource_id: params.resourceId,
-        old_values: params.oldValues,
-        new_values: params.newValues,
-        ip_address: params.ipAddress,
-        user_agent: params.userAgent,
-      });
+        action,
+        resource_type: resourceType,
+        resource_id: resourceId,
+        old_values: oldValues,
+        new_values: newValues,
+        ip_address: await this.getClientIP(),
+        user_agent: navigator.userAgent,
+      };
 
-    if (error) {
-      console.error('Error logging audit action:', error);
+      const { error } = await supabase
+        .from('audit_logs')
+        .insert(logEntry);
+
+      if (error) {
+        console.error('Error logging audit action:', error);
+      }
+    } catch (error) {
+      console.error('Error in audit logging:', error);
     }
   }
 
   async getAuditLogs(
-    filters?: {
-      userId?: string;
-      resourceType?: string;
-      action?: string;
-      startDate?: string;
-      endDate?: string;
-    },
-    limit = 100
+    resourceType?: string,
+    resourceId?: string,
+    limit: number = 50
   ): Promise<AuditLog[]> {
     let query = supabase
       .from('audit_logs')
@@ -61,20 +60,12 @@ class AuditService {
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (filters?.userId) {
-      query = query.eq('user_id', filters.userId);
+    if (resourceType) {
+      query = query.eq('resource_type', resourceType);
     }
-    if (filters?.resourceType) {
-      query = query.eq('resource_type', filters.resourceType);
-    }
-    if (filters?.action) {
-      query = query.eq('action', filters.action);
-    }
-    if (filters?.startDate) {
-      query = query.gte('created_at', filters.startDate);
-    }
-    if (filters?.endDate) {
-      query = query.lte('created_at', filters.endDate);
+
+    if (resourceId) {
+      query = query.eq('resource_id', resourceId);
     }
 
     const { data, error } = await query;
@@ -84,11 +75,71 @@ class AuditService {
       throw error;
     }
 
-    return (data || []).map(item => ({
-      ...item,
-      old_values: item.old_values as Record<string, any> | undefined,
-      new_values: item.new_values as Record<string, any> | undefined,
-    }));
+    return data || [];
+  }
+
+  async getUserActivity(userId: string, limit: number = 50): Promise<AuditLog[]> {
+    const { data, error } = await supabase
+      .from('audit_logs')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching user activity:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  private async getClientIP(): Promise<string | undefined> {
+    try {
+      const response = await fetch('https://api.ipify.org?format=json');
+      const data = await response.json();
+      return data.ip;
+    } catch (error) {
+      console.error('Error getting client IP:', error);
+      return undefined;
+    }
+  }
+
+  // Convenience methods for common actions
+  async logLogin(): Promise<void> {
+    await this.logAction('login', 'auth');
+  }
+
+  async logLogout(): Promise<void> {
+    await this.logAction('logout', 'auth');
+  }
+
+  async logProductCreate(productId: string, productData: any): Promise<void> {
+    await this.logAction('create', 'product', productId, undefined, productData);
+  }
+
+  async logProductUpdate(productId: string, oldData: any, newData: any): Promise<void> {
+    await this.logAction('update', 'product', productId, oldData, newData);
+  }
+
+  async logProductDelete(productId: string, productData: any): Promise<void> {
+    await this.logAction('delete', 'product', productId, productData);
+  }
+
+  async logOrderCreate(orderId: string, orderData: any): Promise<void> {
+    await this.logAction('create', 'order', orderId, undefined, orderData);
+  }
+
+  async logOrderUpdate(orderId: string, oldData: any, newData: any): Promise<void> {
+    await this.logAction('update', 'order', orderId, oldData, newData);
+  }
+
+  async logInventoryMovement(productId: string, movementData: any): Promise<void> {
+    await this.logAction('inventory_movement', 'product', productId, undefined, movementData);
+  }
+
+  async logSettingsUpdate(oldSettings: any, newSettings: any): Promise<void> {
+    await this.logAction('update', 'settings', undefined, oldSettings, newSettings);
   }
 }
 

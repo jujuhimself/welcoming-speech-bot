@@ -10,20 +10,20 @@ export interface UserSettings {
   currency: string;
   notifications: {
     email: boolean;
-    push: boolean;
     sms: boolean;
+    push: boolean;
     marketing: boolean;
   };
   privacy: {
-    profile_visibility: 'public' | 'private' | 'business_only';
+    profile_visibility: 'public' | 'business_only' | 'private';
     data_sharing: boolean;
     analytics_tracking: boolean;
   };
   business_settings?: {
-    tax_rate: number;
-    default_payment_terms: string;
-    low_stock_threshold: number;
     auto_reorder: boolean;
+    low_stock_threshold: number;
+    default_markup_percentage: number;
+    tax_rate: number;
   };
   created_at: string;
   updated_at: string;
@@ -40,60 +40,32 @@ class SettingsService {
       .eq('user_id', user.id)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No settings found, create default settings
+        return this.createDefaultSettings();
+      }
       console.error('Error fetching user settings:', error);
       throw error;
     }
 
-    if (!data) return null;
-
-    return {
-      ...data,
-      theme: data.theme as UserSettings['theme'],
-      notifications: data.notifications as UserSettings['notifications'],
-      privacy: data.privacy as UserSettings['privacy'],
-      business_settings: data.business_settings as UserSettings['business_settings'],
-    };
+    return data;
   }
 
-  async updateUserSettings(settings: Partial<Omit<UserSettings, 'id' | 'user_id' | 'created_at' | 'updated_at'>>): Promise<UserSettings> {
+  async createDefaultSettings(): Promise<UserSettings> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
-    const { data, error } = await supabase
-      .from('user_settings')
-      .upsert({
-        user_id: user.id,
-        ...settings,
-        updated_at: new Date().toISOString()
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error updating user settings:', error);
-      throw error;
-    }
-
-    return {
-      ...data,
-      theme: data.theme as UserSettings['theme'],
-      notifications: data.notifications as UserSettings['notifications'],
-      privacy: data.privacy as UserSettings['privacy'],
-      business_settings: data.business_settings as UserSettings['business_settings'],
-    };
-  }
-
-  async resetToDefaults(): Promise<UserSettings> {
     const defaultSettings = {
+      user_id: user.id,
       theme: 'system' as const,
       language: 'en',
       timezone: 'UTC',
       currency: 'TZS',
       notifications: {
         email: true,
-        push: true,
         sms: false,
+        push: true,
         marketing: false,
       },
       privacy: {
@@ -101,15 +73,95 @@ class SettingsService {
         data_sharing: false,
         analytics_tracking: true,
       },
-      business_settings: {
-        tax_rate: 18,
-        default_payment_terms: '30 days',
-        low_stock_threshold: 10,
-        auto_reorder: false,
-      },
     };
 
-    return this.updateUserSettings(defaultSettings);
+    const { data, error } = await supabase
+      .from('user_settings')
+      .insert(defaultSettings)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating default settings:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async updateSettings(updates: Partial<UserSettings>): Promise<UserSettings> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    const { data, error } = await supabase
+      .from('user_settings')
+      .update({
+        ...updates,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('user_id', user.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating settings:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async updateNotificationSettings(notifications: UserSettings['notifications']): Promise<UserSettings> {
+    return this.updateSettings({ notifications });
+  }
+
+  async updatePrivacySettings(privacy: UserSettings['privacy']): Promise<UserSettings> {
+    return this.updateSettings({ privacy });
+  }
+
+  async updateBusinessSettings(business_settings: UserSettings['business_settings']): Promise<UserSettings> {
+    return this.updateSettings({ business_settings });
+  }
+
+  async exportUserData(): Promise<Blob> {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('User not authenticated');
+
+    // Collect all user data
+    const [profile, settings, products, orders] = await Promise.all([
+      supabase.from('profiles').select('*').eq('id', user.id).single(),
+      supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
+      supabase.from('products').select('*').eq('user_id', user.id),
+      supabase.from('orders').select('*').eq('user_id', user.id),
+    ]);
+
+    const userData = {
+      profile: profile.data,
+      settings: settings.data,
+      products: products.data,
+      orders: orders.data,
+      exported_at: new Date().toISOString(),
+    };
+
+    const jsonString = JSON.stringify(userData, null, 2);
+    return new Blob([jsonString], { type: 'application/json' });
+  }
+
+  async deleteAccount(): Promise<{ success: boolean; error?: string }> {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(
+        (await supabase.auth.getUser()).data.user?.id || ''
+      );
+      
+      if (error) {
+        return { success: false, error: error.message };
+      }
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      return { success: false, error: 'Failed to delete account' };
+    }
   }
 }
 
