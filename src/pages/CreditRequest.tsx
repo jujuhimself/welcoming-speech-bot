@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,8 @@ import { CreditCard, FileText, AlertCircle, CheckCircle, Clock } from "lucide-re
 import { useCreateCreditRequest, useCreditRequests, useCreditAccount } from "@/hooks/useCreditRequest";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/PageHeader";
-import { LoadingState, ErrorState } from "@/components/LoadingStates";
+import { LoadingState } from "@/components/LoadingState";
+import { ErrorState } from "@/components/LoadingStates";
 import { useAuth } from "@/contexts/AuthContext";
 import { auditService } from "@/services/auditService";
 
