@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,9 @@ import { Link, useNavigate } from "react-router-dom";
 import { Package, Eye, EyeOff, ArrowLeft } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { sanitizeInput } from "@/utils/security";
+import { VALIDATION_PATTERNS } from "@/utils/security";
+import { logError } from "@/utils/logger";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -20,7 +22,11 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    // Sanitize and validate email/password input
+    const cleanEmail = sanitizeInput(email);
+    const cleanPassword = sanitizeInput(password);
+
+    if (!cleanEmail || !cleanPassword) {
       toast({
         title: "Missing information",
         description: "Please enter both email and password.",
@@ -29,28 +35,43 @@ const Login = () => {
       return;
     }
 
-    setIsLoading(true);
-
-    const result = await login(email, password);
-    
-    if (result.success) {
+    if (!VALIDATION_PATTERNS.email.test(cleanEmail)) {
       toast({
-        title: "Welcome back! 🎉",
-        description: "You've successfully logged into BEPAWA.",
-      });
-      
-      // Navigate to the role-specific dashboard
-      const redirectTo = result.redirectTo || '/';
-      navigate(redirectTo, { replace: true });
-    } else {
-      toast({
-        title: "Login failed",
-        description: result.error || "Please check your credentials and try again.",
+        title: "Invalid email address",
+        description: "Please enter a valid email address.",
         variant: "destructive",
       });
+      return;
     }
 
-    setIsLoading(false);
+    setIsLoading(true);
+
+    try {
+      const result = await login(cleanEmail, cleanPassword);
+      if (result.success) {
+        toast({
+          title: "Welcome back! 🎉",
+          description: "You've successfully logged into BEPAWA.",
+        });
+        const redirectTo = result.redirectTo || "/";
+        navigate(redirectTo, { replace: true });
+      } else {
+        toast({
+          title: "Login failed",
+          description: result.error || "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      }
+    } catch (err) {
+      logError(err, "Login attempt failed");
+      toast({
+        title: "Unexpected error",
+        description: "Something went wrong. Try again later.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -98,7 +119,7 @@ const Login = () => {
                   type="email"
                   placeholder="Enter your email address"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => setEmail(sanitizeInput(e.target.value))}
                   className="h-12 border-gray-200 focus:border-primary-500 focus:ring-primary-500"
                   required
                 />
@@ -112,7 +133,7 @@ const Login = () => {
                     type={showPassword ? "text" : "password"}
                     placeholder="Enter your password"
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => setPassword(sanitizeInput(e.target.value))}
                     className="h-12 border-gray-200 focus:border-primary-500 focus:ring-primary-500 pr-12"
                     required
                   />

@@ -18,6 +18,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { sanitizeInput } from "@/utils/security"; 
+import { logError } from "@/utils/logger";
 
 // Product type matching Supabase schema
 interface Product {
@@ -54,47 +56,57 @@ const Products = () => {
   // Fetch products from Supabase
   useEffect(() => {
     const fetchProducts = async () => {
-      if (!user) {
-        setProducts([]);
-        setFilteredProducts([]);
-        return;
-      }
-      const { data, error } = await supabase
-        .from("products")
-        .select(
-          "id, name, category, stock, description, supplier, buy_price, sell_price, status, dosage, sku"
-        )
-        .eq("user_id", user.id)
-        .order("name");
+      try {
+        if (!user) {
+          setProducts([]);
+          setFilteredProducts([]);
+          return;
+        }
+        const { data, error } = await supabase
+          .from("products")
+          .select(
+            "id, name, category, stock, description, supplier, buy_price, sell_price, status, dosage, sku"
+          )
+          .eq("user_id", user.id)
+          .order("name");
 
-      if (error) {
+        if (error) {
+          logError(error, "Supabase fetch products error");
+          toast({
+            title: "Error loading products",
+            description: error.message,
+            variant: "destructive",
+          });
+          setProducts([]);
+          setFilteredProducts([]);
+          return;
+        }
+
+        // Map data for Product UI
+        const mapped: Product[] = (data || []).map((p: any) => ({
+          id: p.id,
+          name: p.name,
+          category: p.category,
+          price: Number(p.sell_price ?? 0),
+          stock: p.stock,
+          description: p.description ?? "",
+          manufacturer: p.supplier ?? "",
+          dosage: p.dosage ?? "",
+          prescription: false, // Supabase schema does not provide directly; always false unless logic added
+          image:
+            "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400", // Placeholder; enhance after DB schema update
+          status: p.status,
+        }));
+        setProducts(mapped);
+        setFilteredProducts(mapped);
+      } catch (err) {
+        logError(err, "Unexpected error fetching products");
         toast({
-          title: "Error loading products",
-          description: error.message,
+          title: "Unexpected error",
+          description: "Failed to load products.",
           variant: "destructive",
         });
-        setProducts([]);
-        setFilteredProducts([]);
-        return;
       }
-
-      // Map data for Product UI
-      const mapped: Product[] = (data || []).map((p: any) => ({
-        id: p.id,
-        name: p.name,
-        category: p.category,
-        price: Number(p.sell_price ?? 0),
-        stock: p.stock,
-        description: p.description ?? "",
-        manufacturer: p.supplier ?? "",
-        dosage: p.dosage ?? "",
-        prescription: false, // Supabase schema does not provide directly; always false unless logic added
-        image:
-          "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400", // Placeholder; enhance after DB schema update
-        status: p.status,
-      }));
-      setProducts(mapped);
-      setFilteredProducts(mapped);
     };
 
     fetchProducts();
@@ -110,10 +122,11 @@ const Products = () => {
     let filtered = products;
 
     if (filters.searchTerm) {
+      const cleanTerm = sanitizeInput(filters.searchTerm);
       filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(filters.searchTerm.toLowerCase()) ||
-        (product.description?.toLowerCase() ?? "").includes(filters.searchTerm.toLowerCase()) ||
-        (product.manufacturer?.toLowerCase() ?? "").includes(filters.searchTerm.toLowerCase())
+        product.name.toLowerCase().includes(cleanTerm.toLowerCase()) ||
+        (product.description?.toLowerCase() ?? "").includes(cleanTerm.toLowerCase()) ||
+        (product.manufacturer?.toLowerCase() ?? "").includes(cleanTerm.toLowerCase())
       );
     }
 
