@@ -130,31 +130,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-gray-50">
-      {/* Header */}
-      {/* REMOVE the <Navbar /> here if present; header uses its own layout */}
-      <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-3">
-            <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-2 rounded-xl">
-              <Package className="h-8 w-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent">
-                BEPAWA
-              </h1>
-              <p className="text-xs text-gray-500 hidden sm:block">Integrated Healthcare Platform</p>
-            </div>
-          </div>
-          <div className="space-x-3">
-            <Button variant="outline" asChild className="border-primary-200 text-primary-700 hover:bg-primary-50">
-              <Link to="/login">Sign In</Link>
-            </Button>
-            <Button asChild className="bg-gradient-to-r from-primary-600 to-primary-700 hover:from-primary-700 hover:to-primary-800">
-              <Link to="/register">Join Platform</Link>
-            </Button>
-          </div>
-        </div>
-      </header>
+      {/* Header removed and is now handled globally by AppLayout */}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden">

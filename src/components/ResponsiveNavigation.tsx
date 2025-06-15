@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -136,6 +135,18 @@ const ResponsiveNavigation = () => {
               </Button>
             )}
 
+            {/* Unauthenticated Actions - Desktop */}
+            {!user && (
+              <div className="hidden lg:flex items-center space-x-2">
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Sign In</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/register">Join Platform</Link>
+                </Button>
+              </div>
+            )}
+
             {/* Mobile Menu Trigger */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild>
@@ -237,6 +248,30 @@ const ResponsiveNavigation = () => {
                       >
                         <LogOut className="h-4 w-4 mr-2" />
                         Logout
+                      </Button>
+                    </div>
+                  )}
+                  {!user && (
+                    <div className="border-t p-4 space-y-2">
+                      <Button
+                        variant="default"
+                        className="w-full"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          navigate('/login');
+                        }}
+                      >
+                        Sign In
+                      </Button>
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          navigate('/register');
+                        }}
+                      >
+                        Join Platform
                       </Button>
                     </div>
                   )}
