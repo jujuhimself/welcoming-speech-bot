@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Package, DollarSign, Users, TrendingUp, FileText, BarChart3 } from "lucide-react";
@@ -5,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import BackupScheduleManager from "@/components/BackupScheduleManager";
 import { supabase } from "@/integrations/supabase/client";
+
+// Add the missing Button import here
+import { Button } from "@/components/ui/button";
 
 // Define type for orders
 type WholesaleOrder = {
