@@ -10,28 +10,36 @@ import {
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
 import { Link, useLocation } from "react-router-dom";
-import { list, plus, filePlus, fileMinus, users, calculator, folder } from "lucide-react";
+import {
+  List,
+  Plus,
+  FilePlus,
+  FileMinus,
+  Users,
+  Calculator,
+  Folder,
+} from "lucide-react";
 
 const sidenav = [
   {
     title: "POS",
     url: "/business-tools-retail/pos",
-    icon: list,
+    icon: List,
   },
   {
     title: "Inventory Forecast",
     url: "/business-tools-retail/forecast",
-    icon: filePlus,
+    icon: FilePlus,
   },
   {
     title: "Inventory Adjustment",
     url: "/business-tools-retail/adjustment",
-    icon: fileMinus,
+    icon: FileMinus,
   },
   {
     title: "CRM / Credit",
     url: "/business-tools-retail/credit",
-    icon: users,
+    icon: Users,
   },
   // More modules can go here
 ];
@@ -63,3 +71,4 @@ export function RetailSidebar() {
     </Sidebar>
   );
 }
+
