@@ -12,7 +12,7 @@ const IndividualQuickActions = () => (
     <CardContent>
       <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <Button asChild className="h-24 flex-col bg-blue-600 hover:bg-blue-700 text-white">
-          <Link to="/products">
+          <Link to="/browse-products">
             <Search className="h-8 w-8 mb-2" />
             Browse Medicines
           </Link>
@@ -36,7 +36,7 @@ const IndividualQuickActions = () => (
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
-          <Link to="/orders">
+          <Link to="/my-orders">
             <Clock className="h-8 w-8 mb-2" />
             Order History
           </Link>

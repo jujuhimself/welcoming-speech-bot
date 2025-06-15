@@ -16,6 +16,8 @@ import Prescriptions from "@/pages/Prescriptions";
 import PrescriptionManagement from "@/pages/PrescriptionManagement";
 import PharmacyDirectory from "@/pages/PharmacyDirectory";
 import LabDirectory from "@/pages/LabDirectory";
+import BrowseProducts from "@/pages/BrowseProducts";
+import MyOrders from "@/pages/MyOrders";
 
 // Pharmacy/Retail Pages
 import PharmacyDashboard from "@/pages/PharmacyDashboard";
@@ -113,6 +115,16 @@ const AppRoutes = () => {
       <Route path="/lab-directory" element={
         <RouteGuard allowedRoles={['individual']}>
           <LabDirectory />
+        </RouteGuard>
+      } />
+      <Route path="/browse-products" element={
+        <RouteGuard allowedRoles={['individual']}>
+          <BrowseProducts />
+        </RouteGuard>
+      } />
+      <Route path="/my-orders" element={
+        <RouteGuard allowedRoles={['individual']}>
+          <MyOrders />
         </RouteGuard>
       } />
 

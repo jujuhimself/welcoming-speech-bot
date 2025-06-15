@@ -17,7 +17,7 @@ const HealthSummary = ({ totalOrders, recentOrders }: HealthSummaryProps) => {
         <div className="flex justify-between items-center">
           <CardTitle className="text-2xl">Health Summary</CardTitle>
           <Button variant="outline" size="sm" asChild>
-            <Link to="/orders">View All Orders</Link>
+            <Link to="/my-orders">View All Orders</Link>
           </Button>
         </div>
       </CardHeader>
