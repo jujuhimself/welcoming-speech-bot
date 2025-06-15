@@ -16,6 +16,8 @@ export interface AuditLogEntry {
   created_at?: string;
 }
 
+export interface AuditLog extends AuditLogEntry {}
+
 class AuditService {
   private async createAuditLog(entry: Omit<AuditLogEntry, 'id' | 'user_id' | 'created_at'>) {
     try {
@@ -35,6 +37,45 @@ class AuditService {
     } catch (error) {
       console.error('AuditService error:', error);
     }
+  }
+
+  async logAction(action: string, resourceType: string, resourceId?: string, details?: any) {
+    await this.createAuditLog({
+      action,
+      resource_type: resourceType,
+      resource_id: resourceId,
+      details,
+      category: 'general'
+    });
+  }
+
+  async logLogin() {
+    await this.createAuditLog({
+      action: 'LOGIN',
+      resource_type: 'user',
+      category: 'authentication',
+      details: { message: 'User logged in' }
+    });
+  }
+
+  async logLogout() {
+    await this.createAuditLog({
+      action: 'LOGOUT',
+      resource_type: 'user',
+      category: 'authentication',
+      details: { message: 'User logged out' }
+    });
+  }
+
+  async logSettingsUpdate(oldValues: any, newValues: any) {
+    await this.createAuditLog({
+      action: 'UPDATE',
+      resource_type: 'settings',
+      old_values: oldValues,
+      new_values: newValues,
+      category: 'settings',
+      details: { message: 'User settings updated' }
+    });
   }
 
   async logProductCreate(productId: string, productData: any) {
@@ -95,6 +136,26 @@ class AuditService {
         reason: reason || 'Manual adjustment'
       }
     });
+  }
+
+  async getUserActivity(userId?: string) {
+    let query = supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (userId) {
+      query = query.eq('user_id', userId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching user activity:', error);
+      throw error;
+    }
+
+    return data || [];
   }
 
   async getAuditLogs(resourceType?: string, resourceId?: string) {
