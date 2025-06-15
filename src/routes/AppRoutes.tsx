@@ -37,6 +37,10 @@ import InventoryManagement from "@/pages/InventoryManagement";
 import SystemSettings from "@/pages/SystemSettings";
 import AdminAnalytics from "@/pages/AdminAnalytics";
 import RetailBusinessTools from "@/pages/RetailBusinessTools";
+import RetailPos from "@/pages/retail/RetailPos";
+import RetailForecast from "@/pages/retail/RetailForecast";
+import RetailAdjustment from "@/pages/retail/RetailAdjustment";
+import RetailCredit from "@/pages/retail/RetailCredit";
 
 // Separated for clarity, keep the pattern for easy extensions
 const AppRoutes = () => (
@@ -232,7 +236,12 @@ const AppRoutes = () => (
       <RouteGuard allowedRoles={['retail']}>
         <RetailBusinessTools />
       </RouteGuard>
-    } />
+    }>
+      <Route path="pos" element={<RetailPos />} />
+      <Route path="forecast" element={<RetailForecast />} />
+      <Route path="adjustment" element={<RetailAdjustment />} />
+      <Route path="credit" element={<RetailCredit />} />
+    </Route>
 
     {/* Catch-all not found */}
     <Route path="*" element={<NotFound />} />
@@ -240,3 +249,5 @@ const AppRoutes = () => (
 );
 
 export default AppRoutes;
+
+// This file is getting too long (243+ lines)! Please consider letting me refactor it into smaller route files to improve maintainability.
