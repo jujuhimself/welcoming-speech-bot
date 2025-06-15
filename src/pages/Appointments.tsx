@@ -1,65 +1,15 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Calendar, Clock, User, Phone, MapPin, Plus } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 
-interface Appointment {
-  id: string;
-  user_id: string;
-  provider_id?: string;
-  appointment_date: string;
-  appointment_time: string;
-  service_type: string;
-  provider_type: string;
-  status: 'scheduled' | 'confirmed' | 'completed' | 'cancelled';
-  notes?: string;
-  created_at: string;
-}
+import { useState } from "react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, User, Plus } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserAppointments, useUpdateAppointmentStatus } from "@/hooks/useAppointments";
 
 const Appointments = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (user) {
-      fetchAppointments();
-    }
-  }, [user]);
-
-  const fetchAppointments = async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from('appointments')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('appointment_date', { ascending: true });
-
-      if (error) throw error;
-      
-      // Cast the data to match our interface types
-      const typedAppointments: Appointment[] = (data || []).map(apt => ({
-        ...apt,
-        status: apt.status as 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
-      }));
-      
-      setAppointments(typedAppointments);
-    } catch (error) {
-      console.error('Error fetching appointments:', error);
-      toast({
-        title: "Error loading appointments",
-        description: "Could not load your appointments",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { data: appointments, isLoading, error } = useUserAppointments(user?.id || '');
+  const updateAppointmentStatusMutation = useUpdateAppointmentStatus();
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -71,35 +21,22 @@ const Appointments = () => {
     }
   };
 
-  const updateAppointmentStatus = async (appointmentId: string, newStatus: string) => {
-    try {
-      const { error } = await supabase
-        .from('appointments')
-        .update({ status: newStatus })
-        .eq('id', appointmentId);
-
-      if (error) throw error;
-
-      toast({
-        title: "Appointment updated",
-        description: `Appointment status changed to ${newStatus}`,
-      });
-
-      fetchAppointments(); // Refresh the list
-    } catch (error) {
-      console.error('Error updating appointment:', error);
-      toast({
-        title: "Error updating appointment",
-        description: "Could not update appointment status",
-        variant: "destructive",
-      });
-    }
+  const updateAppointmentStatus = (appointmentId: string, newStatus: string) => {
+    updateAppointmentStatusMutation.mutate({ id: appointmentId, status: newStatus });
   };
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
         <div>Loading appointments...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+        <div className="text-red-600">Error loading appointments: {error.message}</div>
       </div>
     );
   }
@@ -119,7 +56,7 @@ const Appointments = () => {
         </div>
 
         <div className="grid gap-6">
-          {appointments.length === 0 ? (
+          {!appointments || appointments.length === 0 ? (
             <Card>
               <CardContent className="text-center py-12">
                 <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
@@ -185,6 +122,7 @@ const Appointments = () => {
                         size="sm" 
                         className="bg-green-600 hover:bg-green-700"
                         onClick={() => updateAppointmentStatus(appointment.id, 'confirmed')}
+                        disabled={updateAppointmentStatusMutation.isPending}
                       >
                         Confirm
                       </Button>
@@ -194,6 +132,7 @@ const Appointments = () => {
                         size="sm" 
                         className="bg-blue-600 hover:bg-blue-700"
                         onClick={() => updateAppointmentStatus(appointment.id, 'completed')}
+                        disabled={updateAppointmentStatusMutation.isPending}
                       >
                         Mark Complete
                       </Button>

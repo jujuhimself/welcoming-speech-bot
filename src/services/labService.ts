@@ -193,6 +193,29 @@ class LabService {
       patient_gender: data.patient_gender as LabOrder['patient_gender']
     };
   }
+
+  async updateLabOrderItemResult(id: string, result: string): Promise<LabOrderItem> {
+    const { data, error } = await supabase
+      .from('lab_order_items')
+      .update({ 
+        result,
+        result_date: new Date().toISOString(),
+        status: 'completed'
+      })
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating lab order item result:', error);
+      throw error;
+    }
+
+    return {
+      ...data,
+      status: data.status as LabOrderItem['status']
+    };
+  }
 }
 
 export const labService = new LabService();
