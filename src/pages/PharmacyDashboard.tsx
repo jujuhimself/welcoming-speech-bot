@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,13 +10,13 @@ import Navbar from "@/components/Navbar";
 import QuickReorder from "@/components/QuickReorder";
 import { BreadcrumbNavigation } from "@/components/BreadcrumbNavigation";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
-import { dataService } from "@/services/dataService";
 import { NotificationService } from "@/components/NotificationSystem";
+import { supabase } from "@/integrations/supabase/client";
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [recentOrders, setRecentOrders] = useState([]);
+  const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -33,20 +34,37 @@ const PharmacyDashboard = () => {
       return;
     }
 
-    // Load pharmacy stats and recent orders using dataService
-    const orders = dataService.getOrders();
-    const userOrders = orders.filter((order: any) => order.pharmacyId === user.id);
-    const cart = JSON.parse(localStorage.getItem(`bepawa_cart_${user.id}`) || '[]');
-    
-    setRecentOrders(userOrders.slice(0, 5));
-    setStats({
-      totalOrders: userOrders.length,
-      pendingOrders: userOrders.filter((order: any) => order.status === 'pending').length,
-      cartItems: cart.length
-    });
+    // Fetch stats and recent orders from Supabase
+    async function fetchOrdersAndStats() {
+      // Fetch orders for current pharmacy
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('pharmacy_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
 
-    // Add welcome notification
-    NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
+      if (error) {
+        setRecentOrders([]);
+        setStats((prev) => ({ ...prev, totalOrders: 0, pendingOrders: 0 }));
+        return;
+      }
+
+      // For cart, still use localStorage (unless we refactor persistence for cart!)
+      const cart = JSON.parse(localStorage.getItem(`bepawa_cart_${user.id}`) || '[]');
+
+      setRecentOrders((orders || []).slice(0, 5));
+      setStats({
+        totalOrders: orders?.length || 0,
+        pendingOrders: (orders || []).filter((o: any) => o.status === 'pending').length,
+        cartItems: cart.length
+      });
+
+      // Add welcome notification
+      NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
+    }
+
+    fetchOrdersAndStats();
   }, [user, navigate]);
 
   if (!user || user.role !== 'retail') {
@@ -227,14 +245,14 @@ const PharmacyDashboard = () => {
                 {recentOrders.map((order: any) => (
                   <div key={order.id} className="flex justify-between items-center p-6 border rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
                     <div>
-                      <p className="font-semibold text-lg">Order #{order.id}</p>
+                      <p className="font-semibold text-lg">Order #{order.order_number || order.id}</p>
                       <p className="text-gray-600">
-                        {new Date(order.createdAt).toLocaleDateString()}
+                        {new Date(order.created_at).toLocaleDateString()}
                       </p>
-                      <p className="font-bold text-blue-600">TZS {order.total.toLocaleString()}</p>
+                      <p className="font-bold text-blue-600">TZS {order.total_amount?.toLocaleString ? order.total_amount.toLocaleString() : order.total_amount}</p>
                     </div>
                     <Badge className={`${getStatusColor(order.status)} text-white px-3 py-1`}>
-                      {order.status.replace('-', ' ').toUpperCase()}
+                      {order.status?.replace('-', ' ').toUpperCase()}
                     </Badge>
                   </div>
                 ))}
@@ -251,3 +269,4 @@ const PharmacyDashboard = () => {
 };
 
 export default PharmacyDashboard;
+
