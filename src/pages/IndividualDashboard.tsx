@@ -1,5 +1,5 @@
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,17 +8,44 @@ import IndividualStatsCards from "@/components/individual/IndividualStatsCards";
 import IndividualQuickActions from "@/components/individual/IndividualQuickActions";
 import NearbyPharmacies from "@/components/individual/NearbyPharmacies";
 import HealthSummary from "@/components/individual/HealthSummary";
+import { supabase } from "@/integrations/supabase/client";
 
 const IndividualDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isLoading, isError, stats, recentOrders } = useIndividualDashboard();
+  const [nearbyPharmacies, setNearbyPharmacies] = useState<any[]>([]);
 
   useEffect(() => {
     if (!user || user.role !== 'individual') {
       navigate('/login');
     }
   }, [user, navigate]);
+
+  useEffect(() => {
+    async function fetchNearbyPharmacies() {
+      // Fetch pharmacies from profiles table (role=retail)
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, business_name, region, city, is_approved')
+        .eq('role', 'retail')
+        .eq('is_approved', true)
+        .limit(10);
+
+      if (!error && Array.isArray(data)) {
+        setNearbyPharmacies(
+          data.map((p: any) => ({
+            id: p.id,
+            name: p.business_name,
+            distance: "N/A",
+            rating: 0,
+            open: true,
+          }))
+        );
+      }
+    }
+    fetchNearbyPharmacies();
+  }, []);
 
   if (!user || user.role !== 'individual' || isLoading) {
     return <div>Loading...</div>;
@@ -31,13 +58,6 @@ const IndividualDashboard = () => {
       </div>
     );
   }
-
-  // Example mock for nearby pharmacies, can be replaced with Supabase in the future
-  const nearbyPharmacies = [
-    { id: 1, name: "City Pharmacy", distance: "0.5 km", rating: 4.8, open: true },
-    { id: 2, name: "HealthCare Plus", distance: "1.2 km", rating: 4.6, open: true },
-    { id: 3, name: "MediPoint", distance: "2.1 km", rating: 4.7, open: false },
-  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -59,5 +79,4 @@ const IndividualDashboard = () => {
     </div>
   );
 };
-
 export default IndividualDashboard;

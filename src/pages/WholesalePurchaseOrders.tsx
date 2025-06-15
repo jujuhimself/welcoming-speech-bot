@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +20,7 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Product {
   id: string;
@@ -63,23 +63,49 @@ const WholesalePurchaseOrders = () => {
       return;
     }
 
-    // Generate PO number
     setPONumber(`PO-${Date.now()}`);
 
-    // Sample data
-    setRetailers([
-      { id: '1', name: 'City Pharmacy', email: 'orders@citypharmacy.co.tz', location: 'Dar es Salaam' },
-      { id: '2', name: 'HealthCare Plus', email: 'procurement@healthcareplus.co.tz', location: 'Arusha' },
-      { id: '3', name: 'MediPoint', email: 'orders@medipoint.co.tz', location: 'Mwanza' }
-    ]);
+    // Load retailers from Supabase (all retail pharmacies in profiles)
+    async function fetchRetailers() {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, business_name, region, city, address, email')
+        .eq('role', 'retail')
+        .eq('is_approved', true);
 
-    setProducts([
-      { id: '1', name: 'Paracetamol 500mg Tablets', sku: 'PAR-500-100', price: 35, category: 'Pain Relief' },
-      { id: '2', name: 'Amoxicillin 250mg Capsules', sku: 'AMX-250-50', price: 60, category: 'Antibiotics' },
-      { id: '3', name: 'Cough Syrup 200ml', sku: 'COU-200-24', price: 40, category: 'Respiratory' },
-      { id: '4', name: 'Vitamin C 1000mg', sku: 'VTC-1000-60', price: 25, category: 'Vitamins' },
-      { id: '5', name: 'Insulin Injection 100IU/ml', sku: 'INS-100-10', price: 150, category: 'Diabetes' }
-    ]);
+      if (!error && data) {
+        setRetailers(
+          data.map((r: any) => ({
+            id: r.id,
+            name: r.business_name,
+            email: r.email || "",
+            location: [r.city, r.region, r.address].filter(Boolean).join(", "),
+          }))
+        );
+      }
+    }
+    fetchRetailers();
+
+    // Load products from Supabase for this wholesaler
+    async function fetchProducts() {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, sku, sell_price, category')
+        .eq('wholesaler_id', user.id);
+
+      if (!error && data) {
+        setProducts(
+          data.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            sku: p.sku,
+            price: Number(p.sell_price ?? 0),
+            category: p.category,
+          }))
+        );
+      }
+    }
+    fetchProducts();
   }, [user, navigate]);
 
   const addProduct = (productId: string) => {
@@ -163,7 +189,6 @@ const WholesalePurchaseOrders = () => {
       description: `PO ${poNumber} has been sent to the selected retailer.`,
     });
 
-    // Reset form
     setSelectedRetailer("");
     setPOItems([]);
     setPONumber(`PO-${Date.now()}`);

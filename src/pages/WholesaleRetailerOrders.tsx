@@ -4,23 +4,21 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useNavigate } from "react-router-dom";
 import { 
   Building, 
   Search, 
   Eye, 
   Package,
-  TrendingUp,
   FileText,
   Phone,
   Mail,
   MapPin,
-  Calendar,
-  DollarSign
+  Calendar
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OrderItem {
   id: string;
@@ -59,6 +57,7 @@ const WholesaleRetailerOrders = () => {
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user || user.role !== 'wholesale') {
@@ -66,77 +65,106 @@ const WholesaleRetailerOrders = () => {
       return;
     }
 
-    // Sample data
-    const samplePharmacies: Pharmacy[] = [
-      {
-        id: '1',
-        name: 'City Pharmacy',
-        contactPerson: 'John Mwangi',
-        email: 'john@citypharmacy.co.tz',
-        phone: '+255 712 345 678',
-        location: 'Dar es Salaam, Kinondoni',
-        totalOrders: 12,
-        totalSpent: 4500000,
-        lastOrderDate: '2024-06-06',
-        orders: [
-          {
-            id: '1',
-            orderNumber: 'WO-2024-001',
-            date: '2024-06-06',
-            items: [
-              { id: '1', productName: 'Paracetamol 500mg', quantity: 100, unitPrice: 35, total: 3500 },
-              { id: '2', productName: 'Amoxicillin 250mg', quantity: 50, unitPrice: 60, total: 3000 }
-            ],
-            total: 6500,
-            status: 'pending',
-            paymentStatus: 'pending'
-          },
-          {
-            id: '2',
-            orderNumber: 'WO-2024-007',
-            date: '2024-06-03',
-            items: [
-              { id: '3', productName: 'Cough Syrup 200ml', quantity: 24, unitPrice: 40, total: 960 }
-            ],
-            total: 960,
-            status: 'delivered',
-            paymentStatus: 'paid'
-          }
-        ]
-      },
-      {
-        id: '2',
-        name: 'HealthCare Plus',
-        contactPerson: 'Sarah Hassan',
-        email: 'sarah@healthcareplus.co.tz',
-        phone: '+255 754 987 654',
-        location: 'Arusha, Central',
-        totalOrders: 8,
-        totalSpent: 2800000,
-        lastOrderDate: '2024-06-05',
-        orders: [
-          {
-            id: '3',
-            orderNumber: 'WO-2024-002',
-            date: '2024-06-05',
-            items: [
-              { id: '4', productName: 'Insulin Injection', quantity: 10, unitPrice: 150, total: 1500 },
-              { id: '5', productName: 'Vitamin C 1000mg', quantity: 60, unitPrice: 25, total: 1500 }
-            ],
-            total: 3000,
-            status: 'shipped',
-            paymentStatus: 'paid'
-          }
-        ]
-      }
-    ];
+    async function fetchRetailersAndOrders() {
+      setLoading(true);
 
-    setPharmacies(samplePharmacies);
+      // 1. Fetch retailer profiles (retail pharmacies) who have ever placed an order with this wholesaler
+      // 2. For each, gather their orders & items
+
+      // Get distinct pharmacy_ids from orders
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('id, order_number, created_at, total_amount, status, payment_status, pharmacy_id')
+        .eq('wholesaler_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (ordersError) {
+        setPharmacies([]);
+        setLoading(false);
+        return;
+      }
+
+      // Collect all unique pharmacy_ids
+      const pharmacyIds = Array.from(new Set((orders ?? []).map((o: any) => o.pharmacy_id).filter(Boolean)));
+      let pharmacyProfiles: any[] = [];
+      if (pharmacyIds.length > 0) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('id, business_name, name, email, phone, address, region, city')
+          .in('id', pharmacyIds);
+
+        pharmacyProfiles = profileData || [];
+      }
+
+      // Map orders to pharmacies
+      const pharmacyMap: Record<string, Pharmacy> = {};
+      pharmacyProfiles.forEach(p => {
+        pharmacyMap[p.id] = {
+          id: p.id,
+          name: p.business_name || p.name || "Retailer",
+          contactPerson: p.name || "",
+          email: p.email || "",
+          phone: p.phone || "",
+          location: [p.city, p.region, p.address].filter(Boolean).join(", "),
+          totalOrders: 0,
+          totalSpent: 0,
+          lastOrderDate: "",
+          orders: []
+        };
+      });
+
+      // Fetch all order items for these orders
+      const orderIds = (orders || []).map(o => o.id);
+      let itemsByOrderId: Record<string, OrderItem[]> = {};
+      if (orderIds.length > 0) {
+        const { data: orderItems } = await supabase
+          .from('order_items')
+          .select('id, order_id, product_name, quantity, unit_price')
+          .in('order_id', orderIds);
+
+        (orderItems || []).forEach(item => {
+          if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
+          itemsByOrderId[item.order_id].push({
+            id: item.id,
+            productName: item.product_name,
+            quantity: item.quantity,
+            unitPrice: item.unit_price,
+            total: item.quantity * item.unit_price,
+          });
+        });
+      }
+
+      // Organize order list per pharmacy
+      (orders || []).forEach(order => {
+        if (!order.pharmacy_id || !pharmacyMap[order.pharmacy_id]) return;
+        const orderObj: Order = {
+          id: order.id,
+          orderNumber: order.order_number,
+          date: order.created_at,
+          items: itemsByOrderId[order.id] || [],
+          total: Number(order.total_amount),
+          status: order.status,
+          paymentStatus: order.payment_status || "pending"
+        };
+        pharmacyMap[order.pharmacy_id].orders.push(orderObj);
+      });
+
+      // Calculate stats
+      Object.values(pharmacyMap).forEach(pharmacy => {
+        pharmacy.totalOrders = pharmacy.orders.length;
+        pharmacy.totalSpent = pharmacy.orders.reduce((sum, o) => sum + o.total, 0);
+        pharmacy.lastOrderDate = pharmacy.orders.length ? pharmacy.orders[0].date : "";
+      });
+
+      setPharmacies(Object.values(pharmacyMap));
+      setLoading(false);
+    }
+    fetchRetailersAndOrders();
   }, [user, navigate]);
 
   const filteredPharmacies = pharmacies.filter(pharmacy =>
     pharmacy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    pharmacy.contactPerson.toLowerCase().includes(searchTerm.toLowerCase())
+    (pharmacy.contactPerson && pharmacy.contactPerson.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const getStatusColor = (status: string) => {
@@ -161,14 +189,11 @@ const WholesaleRetailerOrders = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Retailer Orders</h1>
           <p className="text-gray-600 text-lg">Manage orders from your retail pharmacy partners</p>
         </div>
-
-        {/* Search */}
         <Card className="mb-6">
           <CardContent className="pt-6">
             <div className="relative">
@@ -195,7 +220,11 @@ const WholesaleRetailerOrders = () => {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="space-y-2 p-4">
-                  {filteredPharmacies.map((pharmacy) => (
+                  {loading ? (
+                    <div>Loading...</div>
+                  ) : filteredPharmacies.length === 0 ? (
+                    <div className="text-gray-600">No pharmacies found.</div>
+                  ) : filteredPharmacies.map((pharmacy) => (
                     <div
                       key={pharmacy.id}
                       className={`p-4 border rounded-lg cursor-pointer transition-all ${
@@ -219,7 +248,7 @@ const WholesaleRetailerOrders = () => {
                           TZS {(pharmacy.totalSpent / 1000000).toFixed(1)}M
                         </span>
                         <span className="text-gray-500">
-                          Last: {new Date(pharmacy.lastOrderDate).toLocaleDateString()}
+                          Last: {pharmacy.lastOrderDate ? new Date(pharmacy.lastOrderDate).toLocaleDateString() : "-"}
                         </span>
                       </div>
                     </div>
