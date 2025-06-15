@@ -1,19 +1,63 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Package, Plus, ShoppingCart, Search, Filter, Truck, Calendar, DollarSign } from "lucide-react";
+import { Package, Plus, ShoppingCart, Search, Filter, Truck, Calendar, DollarSign, Loader2 } from "lucide-react";
+
+// Types
+interface Product {
+  id: number;
+  name: string;
+  category: string;
+  supplier: string;
+  unitPrice: number;
+  minQuantity: number;
+  stock: number;
+  description: string;
+  leadTime: string;
+}
+
+interface CartItem extends Product {
+  quantity: number;
+}
+
+interface PurchaseOrder {
+    id: string;
+    supplier: string;
+    items: any[];
+    total: number;
+    date: string;
+    status: string;
+    expectedDelivery: string;
+}
 
 const WholesaleOrdering = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("all");
-  const [cart, setCart] = useState<any[]>([]);
-  const [showCart, setShowCart] = useState(false);
+  const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    if (!user) {
+      navigate('/login');
+    } else if (user.role !== 'wholesale') {
+      toast({ title: "Access Denied", description: "You must be a wholesaler to access this page.", variant: "destructive" });
+      navigate('/');
+    }
+  }, [user, navigate, toast]);
 
   const [wholesaleProducts] = useState([
     {
@@ -73,35 +117,122 @@ const WholesaleOrdering = () => {
     }
   ]);
 
-  const [purchaseOrders] = useState([
-    {
-      id: "PO-001",
-      supplier: "PharmaCorp Ltd",
-      items: 5,
-      total: 875000,
-      date: "2024-06-01",
-      status: "delivered",
-      expectedDelivery: "2024-06-05"
+  const { data: purchaseOrders = [], isLoading: isLoadingPOs } = useQuery<PurchaseOrder[]>({
+    queryKey: ['purchaseOrders', user?.id],
+    queryFn: async () => {
+        if (!user) return [];
+        const { data, error } = await supabase
+            .from('purchase_orders')
+            .select(`
+                id,
+                order_date,
+                status,
+                expected_delivery,
+                total_amount,
+                purchase_order_items(count),
+                suppliers(name)
+            `)
+            .eq('user_id', user.id)
+            .order('order_date', { ascending: false })
+            .limit(5);
+
+        if (error) {
+            console.error("Error fetching POs:", error);
+            throw new Error(error.message);
+        }
+
+        return data.map((po: any) => ({
+            id: po.id,
+            date: po.order_date,
+            status: po.status,
+            expectedDelivery: po.expected_delivery,
+            total: po.total_amount,
+            supplier: po.suppliers?.name || 'Unknown Supplier',
+            items: po.purchase_order_items[0]?.count || 0,
+        }));
     },
-    {
-      id: "PO-002",
-      supplier: "MediSupply Co",
-      items: 3,
-      total: 600000,
-      date: "2024-06-03",
-      status: "in-transit",
-      expectedDelivery: "2024-06-07"
+    enabled: !!user,
+  });
+
+  const placeOrderMutation = useMutation({
+    mutationFn: async (cartItems: CartItem[]) => {
+      if (!user) throw new Error("User not authenticated.");
+
+      const ordersBySupplier = cartItems.reduce((acc, item) => {
+        const supplierName = item.supplier;
+        if (!acc[supplierName]) {
+          acc[supplierName] = [];
+        }
+        acc[supplierName].push(item);
+        return acc;
+      }, {} as Record<string, CartItem[]>);
+
+      for (const supplierName in ordersBySupplier) {
+        const items = ordersBySupplier[supplierName];
+        
+        // 1. Get or create supplier
+        let { data: supplier, error: supplierError } = await supabase
+          .from('suppliers')
+          .select('id')
+          .eq('name', supplierName)
+          .eq('user_id', user.id)
+          .single();
+
+        if (supplierError && supplierError.code !== 'PGRST116') { // PGRST116: no rows found
+          throw new Error(`Error finding supplier ${supplierName}: ${supplierError.message}`);
+        }
+
+        if (!supplier) {
+          const { data: newSupplier, error: newSupplierError } = await supabase
+            .from('suppliers')
+            .insert({ name: supplierName, user_id: user.id })
+            .select('id')
+            .single();
+          if (newSupplierError) throw new Error(`Error creating supplier ${supplierName}: ${newSupplierError.message}`);
+          supplier = newSupplier;
+        }
+
+        // 2. Create Purchase Order
+        const total_amount = items.reduce((sum, item) => sum + item.unitPrice * item.quantity, 0);
+        const { data: po, error: poError } = await supabase
+          .from('purchase_orders')
+          .insert({
+            user_id: user.id,
+            supplier_id: supplier.id,
+            total_amount,
+            status: 'pending',
+            po_number: `PO-${Date.now()}`
+          })
+          .select('id')
+          .single();
+        
+        if (poError) throw poError;
+
+        // 3. Create Purchase Order Items
+        const poItems = items.map(item => ({
+          purchase_order_id: po.id,
+          product_name: item.name,
+          quantity: item.quantity,
+          unit_cost: item.unitPrice,
+          total_cost: item.unitPrice * item.quantity,
+        }));
+
+        const { error: poItemsError } = await supabase
+          .from('purchase_order_items')
+          .insert(poItems);
+
+        if (poItemsError) throw poItemsError;
+      }
     },
-    {
-      id: "PO-003",
-      supplier: "HealthPlus Distributors",
-      items: 8,
-      total: 440000,
-      date: "2024-06-05",
-      status: "pending",
-      expectedDelivery: "2024-06-08"
+    onSuccess: () => {
+      toast({ title: "Purchase Orders placed successfully!" });
+      setCart([]);
+      queryClient.invalidateQueries({ queryKey: ['purchaseOrders'] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Failed to place order", description: error.message, variant: "destructive" });
     }
-  ]);
+  });
 
   const categories = ["all", "Pain Relief", "Antibiotics", "Vitamins", "Diabetes", "Medical Devices"];
 
@@ -112,7 +243,7 @@ const WholesaleOrdering = () => {
     return matchesSearch && matchesCategory;
   });
 
-  const addToCart = (product: any, quantity: number) => {
+  const addToCart = (product: Product, quantity: number) => {
     const existingItem = cart.find(item => item.id === product.id);
     if (existingItem) {
       setCart(cart.map(item => 
@@ -141,6 +272,14 @@ const WholesaleOrdering = () => {
     }
   };
 
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
       <div className="container mx-auto px-4 py-8">
@@ -151,6 +290,7 @@ const WholesaleOrdering = () => {
 
         {/* Quick Stats */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
+          {/* Quick Stats */}
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Available Products</CardTitle>
@@ -253,7 +393,7 @@ const WholesaleOrdering = () => {
                         <span className="text-sm font-medium">{product.minQuantity}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">In Stock:</span>
+                        <span className="text-sm text-gray-600">In Stock (Supplier):</span>
                         <span className="text-sm font-medium">{product.stock}</span>
                       </div>
                     </div>
@@ -262,7 +402,6 @@ const WholesaleOrdering = () => {
                       <Input
                         type="number"
                         min={product.minQuantity}
-                        max={product.stock}
                         defaultValue={product.minQuantity}
                         className="w-20"
                         id={`quantity-${product.id}`}
@@ -334,8 +473,15 @@ const WholesaleOrdering = () => {
                         <span className="font-bold">Total:</span>
                         <span className="text-xl font-bold">TZS {cartTotal.toLocaleString()}</span>
                       </div>
-                      <Button className="w-full" disabled={cart.length === 0}>
-                        Place Order
+                      <Button 
+                        className="w-full" 
+                        disabled={cart.length === 0 || placeOrderMutation.isPending}
+                        onClick={() => placeOrderMutation.mutate(cart)}
+                      >
+                        {placeOrderMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : null}
+                        Place Purchase Order
                       </Button>
                     </div>
                   </div>
@@ -348,27 +494,33 @@ const WholesaleOrdering = () => {
               <CardHeader>
                 <CardTitle className="flex items-center">
                   <Calendar className="h-5 w-5 mr-2" />
-                  Recent Orders
+                  Recent Purchase Orders
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {purchaseOrders.map((order) => (
-                    <div key={order.id} className="border rounded-lg p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <span className="font-medium">{order.id}</span>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status.replace('-', ' ').toUpperCase()}
-                        </Badge>
-                      </div>
-                      <div className="text-xs text-gray-600 space-y-1">
-                        <div>{order.supplier}</div>
-                        <div>{order.items} items • TZS {order.total.toLocaleString()}</div>
-                        <div>Expected: {order.expectedDelivery}</div>
-                      </div>
+                {isLoadingPOs ? (
+                    <div className="text-center text-gray-500">Loading orders...</div>
+                ) : purchaseOrders.length === 0 ? (
+                    <div className="text-center text-gray-500">No recent purchase orders.</div>
+                ) : (
+                    <div className="space-y-3">
+                    {purchaseOrders.map((order) => (
+                        <div key={order.id} className="border rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                            <span className="font-medium">PO-{order.id.substring(0, 6)}</span>
+                            <Badge className={getStatusColor(order.status)}>
+                            {order.status.replace('-', ' ').toUpperCase()}
+                            </Badge>
+                        </div>
+                        <div className="text-xs text-gray-600 space-y-1">
+                            <div>{order.supplier}</div>
+                            <div>{order.items} items • TZS {order.total.toLocaleString()}</div>
+                            <div>Expected: {order.expectedDelivery ? new Date(order.expectedDelivery).toLocaleDateString() : 'N/A'}</div>
+                        </div>
+                        </div>
+                    ))}
                     </div>
-                  ))}
-                </div>
+                )}
               </CardContent>
             </Card>
           </div>
