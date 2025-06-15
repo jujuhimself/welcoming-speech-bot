@@ -12,12 +12,11 @@ import {
 import { Link, useLocation } from "react-router-dom";
 import {
   List,
-  Plus,
   FilePlus,
   FileMinus,
   Users,
-  Calculator,
   Folder,
+  Calculator,
 } from "lucide-react";
 
 const sidenav = [
@@ -41,7 +40,16 @@ const sidenav = [
     url: "/business-tools-retail/credit",
     icon: Users,
   },
-  // More modules can go here
+  {
+    title: "Audit Log",
+    url: "/business-tools-retail/audit-log",
+    icon: Folder,
+  },
+  {
+    title: "Reporting",
+    url: "/business-tools-retail/reporting",
+    icon: Calculator,
+  },
 ];
 
 export function RetailSidebar() {
@@ -71,4 +79,3 @@ export function RetailSidebar() {
     </Sidebar>
   );
 }
-
