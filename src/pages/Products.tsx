@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
 import ProductFilters from "@/components/ProductFilters";
 import ProductDetails from "@/components/ProductDetails";
+import ProductList from "@/components/ProductList";
 import {
   Dialog,
   DialogContent,
@@ -270,125 +270,15 @@ const Products = () => {
             <p className="text-gray-500 text-lg">Try adjusting your search or filter criteria</p>
           </div>
         ) : (
-          <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
-                : "space-y-4"
-            }
-          >
-            {filteredProducts.map(product => (
-              <Card
-                key={product.id}
-                className={`group hover:shadow-xl transition-all duration-300 border-0 shadow-md hover:-translate-y-1 cursor-pointer ${
-                  viewMode === "list" ? "flex flex-row" : ""
-                }`}
-              >
-                <CardHeader className={`p-0 ${viewMode === "list" ? "w-48 flex-shrink-0" : ""}`}>
-                  <div className="relative" onClick={() => openProductDetails(product)}>
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className={`w-full object-cover rounded-t-lg ${
-                        viewMode === "list"
-                          ? "h-32 rounded-l-lg rounded-t-none"
-                          : "h-48"
-                      }`}
-                    />
-                    {product.stock < 10 && product.stock > 0 && (
-                      <Badge variant="destructive" className="absolute top-3 right-3">
-                        Low Stock
-                      </Badge>
-                    )}
-                    {product.stock >= 10 && (
-                      <Badge className="absolute top-3 right-3 bg-green-500">
-                        In Stock
-                      </Badge>
-                    )}
-                    {product.stock === 0 && (
-                      <Badge variant="destructive" className="absolute top-3 right-3">
-                        Out of Stock
-                      </Badge>
-                    )}
-                    {product.prescription && (
-                      <Badge className="absolute top-3 left-3 bg-orange-500">
-                        Rx
-                      </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute bottom-3 right-3 bg-white/80 hover:bg-white"
-                      onClick={e => {
-                        e.stopPropagation();
-                        toggleWishlist(product.id);
-                      }}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          wishlist.includes(product.id)
-                            ? "fill-red-500 text-red-500"
-                            : "text-gray-600"
-                        }`}
-                      />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className={`p-4 md:p-6 ${viewMode === "list" ? "flex-1" : ""}`}>
-                  <CardTitle
-                    className="text-lg md:text-xl font-bold mb-2 group-hover:text-blue-600 transition-colors cursor-pointer"
-                    onClick={() => openProductDetails(product)}
-                  >
-                    {product.name}
-                  </CardTitle>
-
-                  {product.manufacturer && (
-                    <p className="text-sm text-gray-500 mb-1">by {product.manufacturer}</p>
-                  )}
-
-                  {product.dosage && (
-                    <p className="text-sm text-gray-600 mb-2">Dosage: {product.dosage}</p>
-                  )}
-
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-
-                  <div
-                    className={`flex justify-between items-center mb-4 ${
-                      viewMode === "list" ? "flex-col items-start gap-2" : ""
-                    }`}
-                  >
-                    <span className="text-2xl md:text-3xl font-bold text-blue-600">
-                      TZS {product.price.toLocaleString()}
-                    </span>
-                    <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                      Stock: {product.stock}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={e => {
-                        e.stopPropagation();
-                        addToCart(product);
-                      }}
-                      disabled={product.stock === 0 || user?.role !== "retail"}
-                      className="flex-1 h-10 md:h-12 text-sm md:text-lg font-semibold"
-                    >
-                      <ShoppingCart className="h-4 w-4 mr-2" />
-                      Add to Cart
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => openProductDetails(product)}
-                      className="px-3"
-                    >
-                      View Details
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <ProductList
+            products={filteredProducts}
+            viewMode={viewMode}
+            wishlist={wishlist}
+            onAddToCart={(product, e) => addToCart(product)}
+            onToggleWishlist={(id, e) => toggleWishlist(id)}
+            onViewDetails={openProductDetails}
+            userRole={user?.role}
+          />
         )}
 
         {/* Product Details Modal */}
@@ -413,4 +303,3 @@ const Products = () => {
 };
 
 export default Products;
-
