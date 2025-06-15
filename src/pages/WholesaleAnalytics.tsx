@@ -1,15 +1,14 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { BarChart3, TrendingUp, DollarSign, Package, Users, Calendar, FileText, Database, FileSearch } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useReportTemplates, useGenerateReport, useGeneratedReports } from "@/hooks/useReporting";
 import ReportModal from "@/components/ReportModal";
 import { useToast } from "@/hooks/use-toast";
+import Navbar from "@/components/Navbar";
 
 const WholesaleAnalytics = () => {
   const { user } = useAuth();
@@ -365,4 +364,3 @@ const WholesaleAnalytics = () => {
 };
 
 export default WholesaleAnalytics;
-

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +17,6 @@ import {
   MapPin
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
 
 interface Order {
@@ -171,7 +169,6 @@ const WholesaleOrders = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
