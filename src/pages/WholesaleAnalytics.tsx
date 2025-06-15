@@ -8,7 +8,6 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import { useReportTemplates, useGenerateReport, useGeneratedReports } from "@/hooks/useReporting";
 import ReportModal from "@/components/ReportModal";
 import { useToast } from "@/hooks/use-toast";
-import Navbar from "@/components/Navbar";
 
 const WholesaleAnalytics = () => {
   const { user } = useAuth();
@@ -100,8 +99,6 @@ const WholesaleAnalytics = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8 flex gap-4 items-center justify-between flex-wrap">
           <div>

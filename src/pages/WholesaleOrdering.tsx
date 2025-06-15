@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Package, Plus, ShoppingCart, Search, Filter, Truck, Calendar, DollarSign } from "lucide-react";
-import Navbar from "@/components/Navbar";
 
 const WholesaleOrdering = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -144,8 +143,6 @@ const WholesaleOrdering = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Wholesale Ordering</h1>
