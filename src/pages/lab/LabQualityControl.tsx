@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Shield, CheckCircle, AlertTriangle, Search, Plus, Calendar } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
+import QualityControlForm from "@/components/lab/QualityControlForm";
 import { useToast } from "@/hooks/use-toast";
 
 interface QualityControlCheck {
@@ -25,6 +26,7 @@ const LabQualityControl = () => {
   const [checks, setChecks] = useState<QualityControlCheck[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFormOpen, setIsFormOpen] = useState(false);
 
   useEffect(() => {
     // Mock data for quality control checks
@@ -64,6 +66,29 @@ const LabQualityControl = () => {
     setChecks(mockChecks);
     setIsLoading(false);
   }, []);
+
+  const handleCreateCheck = (newCheck: Omit<QualityControlCheck, 'id'>) => {
+    const check: QualityControlCheck = {
+      ...newCheck,
+      id: Date.now().toString()
+    };
+    
+    setChecks([check, ...checks]);
+    toast({
+      title: "Quality control check created",
+      description: `New ${newCheck.check_type} check for ${newCheck.equipment_name} has been recorded.`,
+    });
+  };
+
+  const handleUpdateCheck = (id: string, updates: Partial<QualityControlCheck>) => {
+    setChecks(checks.map(check => 
+      check.id === id ? { ...check, ...updates } : check
+    ));
+    toast({
+      title: "Check updated",
+      description: "Quality control check has been updated successfully.",
+    });
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -120,7 +145,7 @@ const LabQualityControl = () => {
               />
             </div>
           </div>
-          <Button>
+          <Button onClick={() => setIsFormOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New QC Check
           </Button>
@@ -228,7 +253,11 @@ const LabQualityControl = () => {
                     <Button variant="outline" size="sm">
                       View Details
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleUpdateCheck(check.id, { status: 'completed' as any })}
+                    >
                       Update Check
                     </Button>
                     <Button variant="outline" size="sm">
@@ -240,6 +269,12 @@ const LabQualityControl = () => {
             ))}
           </div>
         )}
+
+        <QualityControlForm
+          isOpen={isFormOpen}
+          onClose={() => setIsFormOpen(false)}
+          onSubmit={handleCreateCheck}
+        />
       </div>
     </div>
   );

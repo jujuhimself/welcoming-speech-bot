@@ -1,30 +1,22 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, 
-  ShoppingCart, 
-  Heart, 
   Share2, 
   Star, 
   Package, 
   Shield, 
   Truck, 
   AlertCircle,
-  Plus,
-  Minus,
   MessageSquare
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Navbar from "@/components/Navbar";
+import ProductActionButtons from "@/components/ProductActionButtons";
 
 const ProductDetail = () => {
   const { id } = useParams();
@@ -33,7 +25,6 @@ const ProductDetail = () => {
   const [quantity, setQuantity] = useState(1);
   const [selectedTab, setSelectedTab] = useState("overview");
   const [isWishlisted, setIsWishlisted] = useState(false);
-  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
 
   // Mock product data - in real app, this would come from API
   const product = {
@@ -78,33 +69,13 @@ const ProductDetail = () => {
       comment: "Good product, reliable supplier. Fast delivery and good packaging.",
       date: "2024-05-10",
       verified: true
-    },
-    {
-      id: 3,
-      user: "Patient Review",
-      rating: 5,
-      comment: "Very effective for headaches. No side effects experienced.",
-      date: "2024-05-08",
-      verified: false
     }
   ];
 
   const relatedProducts = [
     { id: "2", name: "Ibuprofen 400mg", price: 1800, image: "/placeholder.svg", rating: 4.3 },
-    { id: "3", name: "Aspirin 300mg", price: 1200, image: "/placeholder.svg", rating: 4.1 },
-    { id: "4", name: "Acetaminophen 650mg", price: 2200, image: "/placeholder.svg", rating: 4.6 }
+    { id: "3", name: "Aspirin 300mg", price: 1200, image: "/placeholder.svg", rating: 4.1 }
   ];
-
-  const handleAddToCart = () => {
-    toast({
-      title: "Added to Cart",
-      description: `${quantity}x ${product.name} added to your cart.`,
-    });
-  };
-
-  const handleQuickOrder = () => {
-    setIsOrderModalOpen(true);
-  };
 
   const handleWishlist = () => {
     setIsWishlisted(!isWishlisted);
@@ -112,6 +83,22 @@ const ProductDetail = () => {
       title: isWishlisted ? "Removed from Wishlist" : "Added to Wishlist",
       description: `${product.name} ${isWishlisted ? 'removed from' : 'added to'} your wishlist.`,
     });
+  };
+
+  const handleShare = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: product.name,
+        text: product.description,
+        url: window.location.href,
+      });
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast({
+        title: "Link copied",
+        description: "Product link copied to clipboard.",
+      });
+    }
   };
 
   return (
@@ -206,100 +193,19 @@ const ProductDetail = () => {
               </div>
             </div>
 
-            {/* Quantity and Actions */}
-            <div className="space-y-4">
-              <div className="flex items-center space-x-4">
-                <Label>Quantity:</Label>
-                <div className="flex items-center space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-4 w-4" />
-                  </Button>
-                  <Input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-20 text-center"
-                    min="1"
-                    max={product.stock}
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    disabled={quantity >= product.stock}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
+            {/* Product Actions */}
+            <ProductActionButtons
+              product={product}
+              quantity={quantity}
+              setQuantity={setQuantity}
+              isWishlisted={isWishlisted}
+              onWishlistToggle={handleWishlist}
+            />
 
-              <div className="flex space-x-3">
-                <Button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  className="flex-1"
-                >
-                  <ShoppingCart className="h-5 w-5 mr-2" />
-                  Add to Cart
-                </Button>
-                <Dialog open={isOrderModalOpen} onOpenChange={setIsOrderModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" className="flex-1">
-                      Quick Order
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Quick Order - {product.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div>
-                        <Label>Quantity</Label>
-                        <Input type="number" value={quantity} readOnly />
-                      </div>
-                      <div>
-                        <Label>Special Instructions</Label>
-                        <Textarea placeholder="Any special delivery or handling instructions..." />
-                      </div>
-                      <div className="flex justify-end space-x-2">
-                        <Button variant="outline" onClick={() => setIsOrderModalOpen(false)}>
-                          Cancel
-                        </Button>
-                        <Button onClick={() => {
-                          toast({
-                            title: "Order Placed",
-                            description: "Your quick order has been submitted successfully.",
-                          });
-                          setIsOrderModalOpen(false);
-                        }}>
-                          Place Order
-                        </Button>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
-
-              <div className="flex space-x-3">
-                <Button
-                  variant="outline"
-                  onClick={handleWishlist}
-                  className="flex-1"
-                >
-                  <Heart className={`h-5 w-5 mr-2 ${isWishlisted ? 'fill-red-500 text-red-500' : ''}`} />
-                  {isWishlisted ? 'Remove from Wishlist' : 'Add to Wishlist'}
-                </Button>
-                <Button variant="outline" className="flex-1">
-                  <Share2 className="h-5 w-5 mr-2" />
-                  Share
-                </Button>
-              </div>
-            </div>
+            <Button variant="outline" className="w-full" onClick={handleShare}>
+              <Share2 className="h-5 w-5 mr-2" />
+              Share Product
+            </Button>
           </div>
         </div>
 
