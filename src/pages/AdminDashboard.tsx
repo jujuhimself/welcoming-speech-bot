@@ -25,6 +25,11 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/utils/logger";
 import { notificationService } from "@/services/notificationService";
+import AdminStatsCards from "@/components/admin/AdminStatsCards";
+import AdminOverviewTab from "@/components/admin/AdminOverviewTab";
+import AdminApprovalsTab from "@/components/admin/AdminApprovalsTab";
+import AdminUsersTab from "@/components/admin/AdminUsersTab";
+import AdminAnalyticsTab from "@/components/admin/AdminAnalyticsTab";
 
 // UI Interface same as before for types
 interface UserAccount {
@@ -246,68 +251,19 @@ const AdminDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
       <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
           <p className="text-gray-600 text-lg">Manage the BEPAWA healthcare platform</p>
         </div>
-        {/* System Stats */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-blue-100">Total Users</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{systemStats.totalUsers}</div>
-              <div className="flex items-center mt-2">
-                <Users className="h-4 w-4 mr-1" />
-                <span className="text-sm text-blue-100">All accounts</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-yellow-100">Pending Approvals</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{systemStats.pendingApprovals}</div>
-              <div className="flex items-center mt-2">
-                <Clock className="h-4 w-4 mr-1" />
-                <span className="text-sm text-yellow-100">Awaiting review</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-green-100">Platform Revenue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">TZS {systemStats.totalRevenue.toLocaleString()}</div>
-              <div className="flex items-center mt-2">
-                <DollarSign className="h-4 w-4 mr-1" />
-                <span className="text-sm text-green-100">This month</span>
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium text-purple-100">Active Orders</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-bold">{systemStats.activeOrders}</div>
-              <div className="flex items-center mt-2">
-                <TrendingUp className="h-4 w-4 mr-1" />
-                <span className="text-sm text-purple-100">In progress</span>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
-        {/* Management Tabs */}
+        <AdminStatsCards stats={{
+          totalUsers: systemStats.totalUsers,
+          pendingApprovals: systemStats.pendingApprovals,
+          totalRevenue: systemStats.totalRevenue,
+          activeOrders: systemStats.activeOrders
+        }} />
+
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="overview">Platform Overview</TabsTrigger>
@@ -317,243 +273,29 @@ const AdminDashboard = () => {
           </TabsList>
 
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Pharmacies</CardTitle>
-                  <Building className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{systemStats.pharmacies}</div>
-                  <p className="text-xs text-muted-foreground">Retail partners</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Wholesalers</CardTitle>
-                  <Package className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{systemStats.wholesalers}</div>
-                  <p className="text-xs text-muted-foreground">Distribution partners</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Labs</CardTitle>
-                  <Settings className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{systemStats.labs}</div>
-                  <p className="text-xs text-muted-foreground">Laboratory partners</p>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">Individuals</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{systemStats.individuals}</div>
-                  <p className="text-xs text-muted-foreground">Individual users</p>
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Platform Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <CheckCircle className="h-5 w-5 text-green-600" />
-                      <div>
-                        <p className="font-medium">New pharmacy approved</p>
-                        <p className="text-sm text-gray-600">City Pharmacy - Dar es Salaam</p>
-                      </div>
-                    </div>
-                    <Badge variant="default">2 hours ago</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <Package className="h-5 w-5 text-blue-600" />
-                      <div>
-                        <p className="font-medium">Large order processed</p>
-                        <p className="text-sm text-gray-600">TZS 2,450,000 - MedSupply to HealthPharm</p>
-                      </div>
-                    </div>
-                    <Badge variant="outline">4 hours ago</Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <AlertCircle className="h-5 w-5 text-yellow-600" />
-                      <div>
-                        <p className="font-medium">System maintenance scheduled</p>
-                        <p className="text-sm text-gray-600">Weekend update - June 8-9</p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">Upcoming</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminOverviewTab systemStats={systemStats} />
           </TabsContent>
 
           <TabsContent value="approvals" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5" />
-                  Pending Account Approvals ({pendingUsers.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {pendingUsers.length === 0 ? (
-                  <div className="text-center py-8">
-                    <CheckCircle className="h-12 w-12 text-green-500 mx-auto mb-4" />
-                    <p className="text-gray-600">No pending approvals</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {pendingUsers.map((user) => (
-                      <div key={user.id} className="border rounded-lg p-4">
-                        <div className="flex justify-between items-start mb-3">
-                          <div className="flex items-center gap-3">
-                            {getRoleIcon(user.role)}
-                            <div>
-                              <h4 className="font-semibold">{user.businessName || user.name}</h4>
-                              <p className="text-sm text-gray-600">{user.email}</p>
-                              <div className="flex items-center gap-2 mt-1">
-                                <Badge variant="outline" className="capitalize">{user.role}</Badge>
-                                {getStatusBadge(user.status)}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-xs text-gray-500">Registered</p>
-                            <p className="text-sm font-medium">{user.registeredAt}</p>
-                          </div>
-                        </div>
-                        <div className="flex gap-2">
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleApproveUser(user.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <UserCheck className="h-4 w-4 mr-1" />
-                            Approve
-                          </Button>
-                          <Button 
-                            size="sm" 
-                            variant="destructive"
-                            onClick={() => handleRejectUser(user.id)}
-                          >
-                            <UserX className="h-4 w-4 mr-1" />
-                            Reject
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Details
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AdminApprovalsTab
+              pendingUsers={pendingUsers}
+              onApprove={handleApproveUser}
+              onReject={handleRejectUser}
+              getRoleIcon={getRoleIcon}
+              getStatusBadge={getStatusBadge}
+            />
           </TabsContent>
 
           <TabsContent value="users" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>All User Accounts</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {allUsers.map((user) => (
-                    <div key={user.id} className="flex justify-between items-center p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {getRoleIcon(user.role)}
-                        <div>
-                          <h4 className="font-semibold">{user.businessName || user.name}</h4>
-                          <p className="text-sm text-gray-600">{user.email}</p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <Badge variant="outline" className="capitalize">{user.role}</Badge>
-                            {getStatusBadge(user.status)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Settings className="h-4 w-4 mr-1" />
-                          Manage
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <AdminUsersTab
+              allUsers={allUsers}
+              getRoleIcon={getRoleIcon}
+              getStatusBadge={getStatusBadge}
+            />
           </TabsContent>
 
           <TabsContent value="analytics" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Platform Growth</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>New registrations this week</span>
-                      <Badge variant="default">+12</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Order volume growth</span>
-                      <Badge variant="default">+18%</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Revenue growth</span>
-                      <Badge variant="default">+25%</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>System Health</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span>Server uptime</span>
-                      <Badge variant="default" className="bg-green-100 text-green-800">99.9%</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Average response time</span>
-                      <Badge variant="outline">120ms</Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span>Active sessions</span>
-                      <Badge variant="outline">247</Badge>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <AdminAnalyticsTab />
           </TabsContent>
         </Tabs>
       </div>
