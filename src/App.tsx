@@ -107,9 +107,7 @@ const App = () => {
               
               <Route path="/wholesale/purchase-orders" element={
                 <RouteGuard allowedRoles={['wholesale']} requireApproval={true}>
-                  <Wholesal
-
-ePurchaseOrders />
+                  <WholesalePurchaseOrders />
                 </RouteGuard>
               } />
               
