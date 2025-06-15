@@ -7,6 +7,18 @@ import { Switch } from "@/components/ui/switch";
 import { useBackupSchedules, useUpsertBackupSchedule, useDeleteBackupSchedule } from "@/hooks/useBackupSchedule";
 import { useState } from "react";
 import { Loader2, Clock } from "lucide-react";
+import type { BackupSchedule } from "@/services/backupScheduleService";
+
+type Frequency = "daily" | "weekly" | "monthly";
+type BackupType = "full" | "incremental" | "data_only";
+
+interface FormState {
+  frequency: Frequency;
+  time: string;
+  backup_type: BackupType;
+  is_active: boolean;
+  id?: string;
+}
 
 function frequencies() {
   return [
@@ -27,16 +39,16 @@ export default function BackupScheduleManager() {
   const { data, isLoading } = useBackupSchedules();
   const upsert = useUpsertBackupSchedule();
   const del = useDeleteBackupSchedule();
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<FormState>({
     frequency: "daily",
     time: "02:00",
     backup_type: "full",
     is_active: true,
-    id: undefined as string | undefined,
+    id: undefined,
   });
 
   // For update mode
-  function handleEdit(schedule: any) {
+  function handleEdit(schedule: BackupSchedule) {
     setForm({
       frequency: schedule.frequency,
       time: schedule.time,
@@ -70,7 +82,7 @@ export default function BackupScheduleManager() {
       </CardHeader>
       <CardContent>
         <form className="flex flex-col sm:flex-row gap-4 items-center mb-4" onSubmit={handleSubmit}>
-          <Select value={form.frequency} onValueChange={v => setForm(f => ({ ...f, frequency: v as any }))}>
+          <Select value={form.frequency} onValueChange={v => setForm(f => ({ ...f, frequency: v as Frequency }))}>
             <SelectTrigger className="w-[110px]">
               <SelectValue>{frequencies().find(f => f.value === form.frequency)?.label}</SelectValue>
             </SelectTrigger>
@@ -84,7 +96,7 @@ export default function BackupScheduleManager() {
             value={form.time}
             onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
           />
-          <Select value={form.backup_type} onValueChange={v => setForm(f => ({ ...f, backup_type: v as any }))}>
+          <Select value={form.backup_type} onValueChange={v => setForm(f => ({ ...f, backup_type: v as BackupType }))}>
             <SelectTrigger className="w-[130px]">
               <SelectValue>{backupTypes().find(b => b.value === form.backup_type)?.label}</SelectValue>
             </SelectTrigger>
