@@ -17,7 +17,7 @@ import PharmacyRecentOrders from "@/components/pharmacy/PharmacyRecentOrders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logError } from "@/utils/logger";
 
-const PharmacyDashboard = () => {
+const SomeDashboard2 = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -179,4 +179,4 @@ const PharmacyDashboard = () => {
   );
 };
 
-export default PharmacyDashboard;
+export default SomeDashboard2;

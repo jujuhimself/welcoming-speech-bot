@@ -1,9 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, User, Loader2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/contexts/AuthContext";
 import QuickReorder from "@/components/QuickReorder";
 import { BreadcrumbNavigation } from "@/components/BreadcrumbNavigation";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
@@ -17,7 +17,7 @@ import PharmacyRecentOrders from "@/components/pharmacy/PharmacyRecentOrders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logError } from "@/utils/logger";
 
-const PharmacyDashboard = () => {
+const SomeDashboard9 = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
@@ -179,4 +179,4 @@ const PharmacyDashboard = () => {
   );
 };
 
-export default PharmacyDashboard;
+export default SomeDashboard9;
