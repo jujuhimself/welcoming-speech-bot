@@ -1,7 +1,6 @@
 
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
 import { RetailSidebar } from "@/components/retail/Sidebar";
 
 const subPages = [
@@ -28,7 +27,7 @@ export default function RetailBusinessTools() {
   // Shell with sidebar and page content
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex flex-col">
-      <Navbar />
+      {/* Removed Navbar here to avoid duplicate navigation */}
       <div className="flex flex-1 w-full">
         <RetailSidebar />
         <main className="flex-1 p-6">

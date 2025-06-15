@@ -1,4 +1,4 @@
-// Basic tool demo UI for POS, Forecast, Adjustments, Credit Management. Adapt as needed.
+
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { posService, PosSale } from "@/services/posService";
@@ -6,6 +6,8 @@ import { inventoryForecastService, InventoryForecast } from "@/services/inventor
 import { inventoryAdjustmentService, InventoryAdjustment } from "@/services/inventoryAdjustmentService";
 import { creditService, WholesaleCreditAccount } from "@/services/creditService";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 const WholesaleBusinessTools = () => {
   const { user } = useAuth();
