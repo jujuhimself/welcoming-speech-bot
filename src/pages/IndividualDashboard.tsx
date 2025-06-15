@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -7,6 +8,7 @@ import IndividualStatsCards from "@/components/individual/IndividualStatsCards";
 import IndividualQuickActions from "@/components/individual/IndividualQuickActions";
 import NearbyPharmacies from "@/components/individual/NearbyPharmacies";
 import HealthSummary from "@/components/individual/HealthSummary";
+import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useNotificationSubscription } from "@/hooks/useNotifications";
 
@@ -33,15 +35,15 @@ const IndividualDashboard = () => {
         .select('id, business_name, region, city, is_approved')
         .eq('role', 'retail')
         .eq('is_approved', true)
-        .limit(10);
+        .limit(5);
 
       if (!error && Array.isArray(data)) {
         setNearbyPharmacies(
           data.map((p: any) => ({
             id: p.id,
-            name: p.business_name,
+            name: p.business_name || "Pharmacy",
             distance: "N/A",
-            rating: 0,
+            rating: 4.5,
             open: true,
           }))
         );
@@ -66,14 +68,15 @@ const IndividualDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.name}
-          </h1>
-          <p className="text-gray-600 text-lg">Find nearby pharmacies and order your medicines</p>
-        </div>
+        <PageHeader
+          title={`Welcome back, ${user?.name}`}
+          description="Find nearby pharmacies and order your medicines"
+          badge={{ text: "Patient Portal", variant: "outline" }}
+        />
+        
         <IndividualStatsCards stats={stats} />
         <IndividualQuickActions />
+        
         <div className="grid lg:grid-cols-2 gap-8">
           <NearbyPharmacies pharmacies={nearbyPharmacies} />
           <HealthSummary totalOrders={stats.totalOrders} recentOrders={recentOrders} />
@@ -82,4 +85,5 @@ const IndividualDashboard = () => {
     </div>
   );
 };
+
 export default IndividualDashboard;

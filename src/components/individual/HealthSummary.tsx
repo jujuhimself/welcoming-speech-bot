@@ -1,8 +1,8 @@
 
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Stethoscope } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Clock, Calendar, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 
 interface HealthSummaryProps {
@@ -10,56 +10,73 @@ interface HealthSummaryProps {
   recentOrders: any[];
 }
 
-const HealthSummary = ({ totalOrders, recentOrders }: HealthSummaryProps) => (
-  <Card className="shadow-lg border-0">
-    <CardHeader>
-      <CardTitle className="text-2xl">Health Summary</CardTitle>
-    </CardHeader>
-    <CardContent>
-      {totalOrders === 0 ? (
-        <div className="space-y-6">
-          <div className="text-center py-8">
-            <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <p className="text-gray-600 text-lg mb-4">No orders yet</p>
-            <Button asChild size="lg">
-              <Link to="/products">Start Shopping</Link>
-            </Button>
-          </div>
-          <div className="border-t pt-6">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Stethoscope className="h-4 w-4" />
-              Health Tips
-            </h3>
-            <div className="space-y-2 text-sm text-gray-600">
-              <p>• Keep a digital copy of your prescriptions</p>
-              <p>• Set medication reminders</p>
-              <p>• Check expiry dates regularly</p>
-              <p>• Consult with pharmacists for advice</p>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-4">
-          <h3 className="font-semibold">Recent Orders</h3>
-          {recentOrders.map((order: any) => (
-            <div key={order.id} className="flex justify-between items-center p-4 border rounded-xl bg-gray-50">
-              <div>
-                <p className="font-semibold">Order #{order.order_number || order.id}</p>
-                <p className="text-gray-600">{order.created_at ? new Date(order.created_at).toLocaleDateString() : "Unknown date"}</p>
-                <p className="font-bold text-blue-600">
-                  TZS {order.total_amount ? Number(order.total_amount).toLocaleString() : "?"}
-                </p>
-              </div>
-              <Badge>{order.status}</Badge>
-            </div>
-          ))}
-          <Button variant="outline" className="w-full" asChild>
+const HealthSummary = ({ totalOrders, recentOrders }: HealthSummaryProps) => {
+  return (
+    <Card className="shadow-lg border-0">
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-2xl">Health Summary</CardTitle>
+          <Button variant="outline" size="sm" asChild>
             <Link to="/orders">View All Orders</Link>
           </Button>
         </div>
-      )}
-    </CardContent>
-  </Card>
-);
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-6">
+          <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl">
+            <div className="flex items-center space-x-3">
+              <Package className="h-8 w-8 text-blue-600" />
+              <div>
+                <p className="font-semibold text-lg">Total Orders</p>
+                <p className="text-gray-600">Lifetime medication orders</p>
+              </div>
+            </div>
+            <span className="text-2xl font-bold text-blue-600">{totalOrders}</span>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Recent Orders</h3>
+            {recentOrders.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No recent orders found</p>
+                <Button asChild className="mt-4">
+                  <Link to="/products">Browse Medicines</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentOrders.slice(0, 3).map((order, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 border rounded-lg bg-gray-50">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-2 bg-green-100 rounded-lg">
+                        <Package className="h-4 w-4 text-green-600" />
+                      </div>
+                      <div>
+                        <p className="font-medium">Order #{order.order_number || order.id?.slice(0, 8)}</p>
+                        <p className="text-sm text-gray-600 flex items-center">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge variant={order.status === 'completed' ? 'default' : 'secondary'}>
+                        {order.status}
+                      </Badge>
+                      <p className="text-sm text-gray-600 mt-1">
+                        TZS {Number(order.total_amount || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
 
 export default HealthSummary;

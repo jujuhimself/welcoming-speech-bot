@@ -30,7 +30,7 @@ const IndividualQuickActions = () => (
           </Link>
         </Button>
         <Button asChild variant="outline" className="h-24 flex-col border-2 hover:bg-gray-50">
-          <Link to="/prescription-management">
+          <Link to="/prescriptions">
             <Upload className="h-8 w-8 mb-2" />
             Upload Prescription
           </Link>

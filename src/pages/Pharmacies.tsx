@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import PharmacyFinder from "@/components/PharmacyFinder";
+import PageHeader from "@/components/PageHeader";
 
 const Pharmacies = () => {
   const { user } = useAuth();
@@ -19,10 +20,11 @@ const Pharmacies = () => {
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Find Pharmacies</h1>
-          <p className="text-gray-600">Locate nearby pharmacies and browse their products</p>
-        </div>
+        <PageHeader
+          title="Find Pharmacies"
+          description="Locate nearby pharmacies and browse their products"
+          badge={{ text: "Healthcare Directory", variant: "outline" }}
+        />
 
         <PharmacyFinder />
       </div>
