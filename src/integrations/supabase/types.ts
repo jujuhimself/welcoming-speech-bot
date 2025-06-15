@@ -165,6 +165,93 @@ export type Database = {
         }
         Relationships: []
       }
+      credit_accounts: {
+        Row: {
+          available_credit: number
+          created_at: string
+          credit_limit: number
+          current_balance: number
+          id: string
+          interest_rate: number
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          available_credit?: number
+          created_at?: string
+          credit_limit?: number
+          current_balance?: number
+          id?: string
+          interest_rate?: number
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          available_credit?: number
+          created_at?: string
+          credit_limit?: number
+          current_balance?: number
+          id?: string
+          interest_rate?: number
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      credit_requests: {
+        Row: {
+          business_name: string
+          business_type: string
+          created_at: string
+          credit_purpose: string
+          documents: string[] | null
+          id: string
+          monthly_revenue: number
+          requested_amount: number
+          review_notes: string | null
+          reviewed_by: string | null
+          status: string
+          updated_at: string
+          user_id: string
+          years_in_business: number
+        }
+        Insert: {
+          business_name: string
+          business_type: string
+          created_at?: string
+          credit_purpose: string
+          documents?: string[] | null
+          id?: string
+          monthly_revenue: number
+          requested_amount: number
+          review_notes?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+          years_in_business: number
+        }
+        Update: {
+          business_name?: string
+          business_type?: string
+          created_at?: string
+          credit_purpose?: string
+          documents?: string[] | null
+          id?: string
+          monthly_revenue?: number
+          requested_amount?: number
+          review_notes?: string | null
+          reviewed_by?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+          years_in_business?: number
+        }
+        Relationships: []
+      }
       customer_analytics: {
         Row: {
           average_order_value: number

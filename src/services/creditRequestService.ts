@@ -36,7 +36,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_requests')
+      .from('credit_requests' as any)
       .insert({
         ...request,
         user_id: user.id,
@@ -58,7 +58,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_requests')
+      .from('credit_requests' as any)
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -76,7 +76,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_accounts')
+      .from('credit_accounts' as any)
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
@@ -94,7 +94,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_requests')
+      .from('credit_requests' as any)
       .update({
         status,
         review_notes: reviewNotes,
