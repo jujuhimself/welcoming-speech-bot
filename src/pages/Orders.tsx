@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -13,20 +12,25 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import OrderLifecycleManager from "@/components/OrderLifecycleManager";
 
-// Minimal Order fallback type (updated to include shippingAddress)
+// Update minimal Order fallback type to match OrderLifecycleManager needs
 type Order = {
   id: string;
   status: string;
   pharmacyName: string;
   createdAt: string;
-  items: Array<{ name: string }>;
+  items: Array<{
+    name: string;
+    sku?: string;
+    quantity: number;
+    price: number;
+  }>; // <-- items must match shape required by OrderLifecycleManager
   total: number;
   paymentStatus: string;
   paymentMethod: string;
   updatedAt: string;
   urgency?: string;
   trackingNumber?: string;
-  shippingAddress: string; // <-- Added for type compatibility with OrderLifecycleManager
+  shippingAddress: string; // <-- Required for type compatibility with OrderLifecycleManager
 };
 
 const Orders = () => {
@@ -372,4 +376,3 @@ const Orders = () => {
 };
 
 export default Orders;
-
