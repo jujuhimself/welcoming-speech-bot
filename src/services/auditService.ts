@@ -14,6 +14,21 @@ export interface AuditLog {
   created_at: string;
 }
 
+// Helper to convert possible stringified JSON to object
+function safeParseJsonField(field: any): Record<string, any> | undefined {
+  if (!field) return undefined;
+  if (typeof field === 'string') {
+    try {
+      return JSON.parse(field);
+    } catch {
+      return undefined;
+    }
+  }
+  // Supabase may already return an object
+  if (typeof field === 'object') return field;
+  return undefined;
+}
+
 class AuditService {
   async logAction(
     action: string,
@@ -75,7 +90,11 @@ class AuditService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map((entry: any) => ({
+      ...entry,
+      old_values: safeParseJsonField(entry.old_values),
+      new_values: safeParseJsonField(entry.new_values)
+    }));
   }
 
   async getUserActivity(userId: string, limit: number = 50): Promise<AuditLog[]> {
@@ -91,7 +110,11 @@ class AuditService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map((entry: any) => ({
+      ...entry,
+      old_values: safeParseJsonField(entry.old_values),
+      new_values: safeParseJsonField(entry.new_values)
+    }));
   }
 
   private async getClientIP(): Promise<string | undefined> {

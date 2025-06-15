@@ -29,6 +29,28 @@ export interface UserSettings {
   updated_at: string;
 }
 
+// Helper to normalize JSON and enum fields
+function normalizeSettings(data: any): UserSettings {
+  return {
+    ...data,
+    theme: 
+      data.theme === 'light' || data.theme === 'dark' || data.theme === 'system'
+        ? data.theme
+        : 'system',
+    notifications: typeof data.notifications === 'string'
+      ? JSON.parse(data.notifications)
+      : data.notifications,
+    privacy: typeof data.privacy === 'string'
+      ? JSON.parse(data.privacy)
+      : data.privacy,
+    business_settings: data.business_settings
+      ? (typeof data.business_settings === 'string'
+        ? JSON.parse(data.business_settings)
+        : data.business_settings)
+      : undefined,
+  };
+}
+
 class SettingsService {
   async getUserSettings(): Promise<UserSettings | null> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -38,7 +60,7 @@ class SettingsService {
       .from('user_settings')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     if (error) {
       if (error.code === 'PGRST116') {
@@ -49,7 +71,11 @@ class SettingsService {
       throw error;
     }
 
-    return data;
+    if (!data) {
+      return this.createDefaultSettings();
+    }
+
+    return normalizeSettings(data);
   }
 
   async createDefaultSettings(): Promise<UserSettings> {
@@ -86,7 +112,7 @@ class SettingsService {
       throw error;
     }
 
-    return data;
+    return normalizeSettings(data);
   }
 
   async updateSettings(updates: Partial<UserSettings>): Promise<UserSettings> {
@@ -108,7 +134,7 @@ class SettingsService {
       throw error;
     }
 
-    return data;
+    return normalizeSettings(data);
   }
 
   async updateNotificationSettings(notifications: UserSettings['notifications']): Promise<UserSettings> {
@@ -129,8 +155,8 @@ class SettingsService {
 
     // Collect all user data
     const [profile, settings, products, orders] = await Promise.all([
-      supabase.from('profiles').select('*').eq('id', user.id).single(),
-      supabase.from('user_settings').select('*').eq('user_id', user.id).single(),
+      supabase.from('profiles').select('*').eq('id', user.id).maybeSingle(),
+      supabase.from('user_settings').select('*').eq('user_id', user.id).maybeSingle(),
       supabase.from('products').select('*').eq('user_id', user.id),
       supabase.from('orders').select('*').eq('user_id', user.id),
     ]);
