@@ -18,6 +18,7 @@ interface PrescriptionFile {
   doctorName: string;
   notes: string;
   filePath: string;
+  viewUrl: string; // <-- add
   status: 'pending' | 'processed' | 'filled';
   pharmacyName?: string;
 }
@@ -35,8 +36,6 @@ const PrescriptionUpload = () => {
   // Load prescription file refs from storage
   useEffect(() => {
     if (!user?.id) return;
-    // This demo lists user files from the prescriptions bucket and rebuilds minimal history.
-    // In production, you'd track metadata separately (e.g., via a table).
     (async () => {
       try {
         const { data, error } = await (window as any).supabase.storage
@@ -50,8 +49,7 @@ const PrescriptionUpload = () => {
           setPrescriptions([]);
           return;
         }
-        // Map files to prescription "history" (name, date)
-        // Because the file name encodes the info (by the upload function).
+        // Map files to prescription "history" (name, date), resolve viewUrl async
         const history: PrescriptionFile[] = await Promise.all(
           data.map(async (file: any) => {
             const url = await getFileUrl("prescriptions", `${user.id}/${file.name}`);
@@ -62,6 +60,7 @@ const PrescriptionUpload = () => {
               doctorName: "",
               notes: "",
               filePath: `${user.id}/${file.name}`,
+              viewUrl: url || "", // <-- inject viewUrl
               status: "pending",
               pharmacyName: "",
             };
@@ -119,7 +118,6 @@ const PrescriptionUpload = () => {
     if (!user?.id) return;
     try {
       await deleteFile("prescriptions", filePath);
-      // Optionally log communication (audit)
       await auditService.logAction(
         "delete-prescription",
         "prescription",
@@ -299,18 +297,23 @@ const PrescriptionUpload = () => {
                   )}
 
                   <div className="flex gap-2">
-                    <a
-                      href={async () =>
-                        await getFileUrl("prescriptions", prescription.filePath)
-                      }
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button size="sm" variant="outline">
+                    {prescription.viewUrl ? (
+                      <a
+                        href={prescription.viewUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <Button size="sm" variant="outline">
+                          <Eye className="h-3 w-3 mr-1" />
+                          View
+                        </Button>
+                      </a>
+                    ) : (
+                      <Button size="sm" variant="outline" disabled>
                         <Eye className="h-3 w-3 mr-1" />
                         View
                       </Button>
-                    </a>
+                    )}
                     <Button
                       size="sm"
                       variant="destructive"
@@ -331,3 +334,4 @@ const PrescriptionUpload = () => {
 };
 
 export default PrescriptionUpload;
+
