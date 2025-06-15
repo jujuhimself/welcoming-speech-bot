@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { DateRange } from "react-day-picker";
 import { 
   BarChart, 
   Bar, 
@@ -33,11 +34,13 @@ import {
 import { useProducts, useSalesAnalytics, useInventoryMovements } from "@/hooks/useInventory";
 
 const InventoryReports = () => {
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date } | undefined>();
+  const [dateRange, setDateRange] = useState<DateRange | undefined>();
   const [reportType, setReportType] = useState("overview");
 
   const { data: products = [] } = useProducts();
-  const { data: salesData = [] } = useSalesAnalytics(dateRange);
+  const { data: salesData = [] } = useSalesAnalytics(
+    dateRange?.from && dateRange?.to ? { from: dateRange.from, to: dateRange.to } : undefined
+  );
   const { data: movements = [] } = useInventoryMovements();
 
   // Sample data for charts

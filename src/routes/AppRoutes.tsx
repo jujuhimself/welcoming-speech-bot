@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
@@ -44,6 +45,7 @@ import RetailCredit from "@/pages/retail/RetailCredit";
 import PurchaseOrdersPage from "@/pages/PurchaseOrders";
 import SuppliersPage from "@/pages/Suppliers";
 import InventoryReportsPage from "@/pages/InventoryReports";
+import InventoryDashboardPage from "@/pages/InventoryDashboard";
 
 export const AppRoutes = () => {
   return (
@@ -187,6 +189,16 @@ export const AppRoutes = () => {
         </RouteGuard>
       } />
 
+      {/* Inventory Dashboard */}
+      <Route 
+        path="/inventory-dashboard" 
+        element={
+          <RouteGuard allowedRoles={['retail', 'wholesale']}>
+            <InventoryDashboardPage />
+          </RouteGuard>
+        } 
+      />
+
       <Route path="/prescriptions" element={
         <RouteGuard>
           <Prescriptions />
@@ -283,5 +295,3 @@ export const AppRoutes = () => {
 };
 
 export default AppRoutes;
-
-// This file is getting too long (243+ lines)! Please consider letting me refactor it into smaller route files to improve maintainability.
