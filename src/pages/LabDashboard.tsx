@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Appointment {
   id: string;
@@ -44,7 +45,8 @@ const LabDashboard = () => {
   const navigate = useNavigate();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [testResults, setTestResults] = useState<TestResult[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user || user.role !== 'lab') {
@@ -52,67 +54,80 @@ const LabDashboard = () => {
       return;
     }
 
-    // Load sample data
-    const sampleAppointments: Appointment[] = [
-      {
-        id: '1',
-        patientName: 'John Mwangi',
-        testType: 'Complete Blood Count',
-        date: '2024-06-06',
-        time: '09:00',
-        status: 'scheduled',
-        priority: 'normal'
-      },
-      {
-        id: '2',
-        patientName: 'Sarah Hassan',
-        testType: 'Diabetes Panel',
-        date: '2024-06-06',
-        time: '10:30',
-        status: 'in-progress',
-        priority: 'urgent'
-      },
-      {
-        id: '3',
-        patientName: 'David Kimani',
-        testType: 'Liver Function Test',
-        date: '2024-06-06',
-        time: '14:00',
-        status: 'completed',
-        priority: 'normal'
-      }
-    ];
+    async function fetchLabData() {
+      setLoading(true);
+      setError(null);
+      try {
+        // Fetch appointments (lab_orders) for this lab
+        const { data: labOrders, error: ordersError } = await supabase
+          .from('lab_orders')
+          .select('*')
+          .or(`lab_id.eq.${user.id},user_id.eq.${user.id}`)
+          .order('created_at', { ascending: false })
+          .limit(20);
 
-    const sampleResults: TestResult[] = [
-      {
-        id: '1',
-        patientName: 'Maria Santos',
-        testType: 'Lipid Profile',
-        completedDate: '2024-06-05',
-        status: 'ready',
-        values: {
-          'Total Cholesterol': '180 mg/dL',
-          'HDL': '45 mg/dL',
-          'LDL': '120 mg/dL',
-          'Triglycerides': '150 mg/dL'
-        }
-      },
-      {
-        id: '2',
-        patientName: 'Peter Mushi',
-        testType: 'Thyroid Function',
-        completedDate: '2024-06-05',
-        status: 'sent',
-        values: {
-          'TSH': '2.5 mIU/L',
-          'T3': '150 ng/dL',
-          'T4': '8.5 μg/dL'
-        }
-      }
-    ];
+        // Fetch lab_order_items for these orders (and join to test/user data)
+        let testResultsArr: TestResult[] = [];
+        if (labOrders && labOrders.length > 0) {
+          const labOrderIds = labOrders.map(lo => lo.id);
+          const { data: items, error: itemsError } = await supabase
+            .from('lab_order_items')
+            .select('*, lab_orders!inner(id, patient_name)')
+            .in('lab_order_id', labOrderIds)
+            .order('created_at', { ascending: false })
+            .limit(15);
 
-    setAppointments(sampleAppointments);
-    setTestResults(sampleResults);
+          if (itemsError) throw itemsError;
+
+          // Map to TestResult type
+          testResultsArr = (items || []).map((item: any) => ({
+            id: item.id,
+            patientName: item.lab_orders?.patient_name ?? "Unknown",
+            testType: item.test_name,
+            completedDate: item.result_date ? new Date(item.result_date).toLocaleDateString() : "",
+            status: item.result ? 'ready' : 'pending',
+            values: item.result
+              ? (() => {
+                  // Try to parse result JSON if possible
+                  try { return typeof item.result === "string" ? JSON.parse(item.result) : item.result; }
+                  catch { return { result: item.result }; }
+                })()
+              : {}
+          }));
+        }
+
+        // Map appointments
+        const appointmentsArr: Appointment[] = (labOrders || []).map((order: any) => ({
+          id: order.id,
+          patientName: order.patient_name,
+          testType: order.special_instructions || "Lab Test",
+          date: order.sample_collection_date
+            ? new Date(order.sample_collection_date).toISOString().split('T')[0]
+            : new Date(order.order_date || order.created_at).toISOString().split('T')[0],
+          time: order.sample_collection_time ?? "",
+          status:
+            order.status === "pending"
+              ? "scheduled"
+              : order.status === "processing"
+              ? "in-progress"
+              : order.status === "completed"
+              ? "completed"
+              : order.status === "cancelled"
+              ? "cancelled"
+              : "scheduled",
+          priority: (order.special_instructions?.toLowerCase().includes("urgent") ? "urgent" : "normal")
+        }));
+
+        setAppointments(appointmentsArr);
+        setTestResults(testResultsArr);
+        setLoading(false);
+      } catch (err: any) {
+        setError('Failed to load lab data. Please try again later.');
+        setLoading(false);
+      }
+    }
+
+    fetchLabData();
   }, [user, navigate]);
 
   const getStatusColor = (status: string) => {
@@ -127,7 +142,9 @@ const LabDashboard = () => {
     }
   };
 
-  const todayAppointments = appointments.filter(apt => apt.date === '2024-06-06');
+  // Today's date in ISO format for filtering
+  const todayDate = new Date().toISOString().split('T')[0];
+  const todayAppointments = appointments.filter(apt => apt.date === todayDate);
   const pendingResults = testResults.filter(result => result.status === 'ready');
   const urgentTests = appointments.filter(apt => apt.priority === 'urgent');
 
@@ -157,6 +174,19 @@ const LabDashboard = () => {
           </div>
         </div>
 
+        {/* Loading/Error State */}
+        {loading ? (
+          <div className="flex justify-center items-center py-20">
+            <Clock className="animate-spin h-8 w-8 text-orange-400 mr-2" />
+            <span className="text-lg text-orange-600">Loading laboratory data...</span>
+          </div>
+        ) : error ? (
+          <div className="flex justify-center items-center py-20">
+            <AlertCircle className="h-8 w-8 text-red-400 mr-2" />
+            <span className="text-lg text-red-600">{error}</span>
+          </div>
+        ) : (
+        <>
         {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
@@ -203,7 +233,10 @@ const LabDashboard = () => {
               <CardTitle className="text-sm font-medium text-green-100">Completed Today</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold">12</div>
+              {/* Count completed appointments for today */}
+              <div className="text-3xl font-bold">
+                {todayAppointments.filter(apt => apt.status === 'completed').length}
+              </div>
               <div className="flex items-center mt-2">
                 <CheckCircle className="h-4 w-4 mr-1" />
                 <span className="text-sm text-green-100">Tests finished</span>
@@ -229,7 +262,11 @@ const LabDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {todayAppointments.map((appointment) => (
+                {todayAppointments.length === 0 ? (
+                  <div className="text-center text-gray-400">
+                    No appointments for today.
+                  </div>
+                ) : todayAppointments.map((appointment) => (
                   <div key={appointment.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex justify-between items-start mb-2">
                       <div>
@@ -273,7 +310,9 @@ const LabDashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {testResults.map((result) => (
+                {testResults.length === 0 ? (
+                  <div className="text-center text-gray-400">No test results available.</div>
+                ) : testResults.map((result) => (
                   <div key={result.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex justify-between items-start mb-3">
                       <div>
@@ -286,10 +325,11 @@ const LabDashboard = () => {
                       </Badge>
                     </div>
                     <div className="space-y-1">
+                      {/* Show up to 2 test result values if available */}
                       {Object.entries(result.values).slice(0, 2).map(([key, value]) => (
                         <div key={key} className="flex justify-between text-sm">
                           <span className="text-gray-600">{key}:</span>
-                          <span className="font-medium">{value}</span>
+                          <span className="font-medium">{String(value)}</span>
                         </div>
                       ))}
                     </div>
@@ -336,9 +376,12 @@ const LabDashboard = () => {
             </div>
           </CardContent>
         </Card>
+        </>
+        )}
       </div>
     </div>
   );
 };
 
 export default LabDashboard;
+
