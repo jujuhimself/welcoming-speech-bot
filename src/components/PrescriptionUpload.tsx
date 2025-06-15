@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,86 +8,156 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Upload, FileText, Camera, X, Eye } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { uploadFile, getFileUrl, deleteFile } from "@/services/storageService";
+import { auditService } from "@/services/auditService";
 
-interface Prescription {
+interface PrescriptionFile {
   id: string;
   fileName: string;
   uploadDate: string;
   doctorName: string;
   notes: string;
+  filePath: string;
   status: 'pending' | 'processed' | 'filled';
   pharmacyName?: string;
 }
 
 const PrescriptionUpload = () => {
   const { user } = useAuth();
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [prescriptions, setPrescriptions] = useState<PrescriptionFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadForm, setUploadForm] = useState({
-    doctorName: '',
-    notes: '',
-    selectedFile: null as File | null
+    doctorName: "",
+    notes: "",
+    selectedFile: null as File | null,
   });
+
+  // Load prescription file refs from storage
+  useEffect(() => {
+    if (!user?.id) return;
+    // This demo lists user files from the prescriptions bucket and rebuilds minimal history.
+    // In production, you'd track metadata separately (e.g., via a table).
+    (async () => {
+      try {
+        const { data, error } = await (window as any).supabase.storage
+          .from("prescriptions")
+          .list(`${user.id}/`);
+        if (error) {
+          setPrescriptions([]);
+          return;
+        }
+        if (!data) {
+          setPrescriptions([]);
+          return;
+        }
+        // Map files to prescription "history" (name, date)
+        // Because the file name encodes the info (by the upload function).
+        const history: PrescriptionFile[] = await Promise.all(
+          data.map(async (file: any) => {
+            const url = await getFileUrl("prescriptions", `${user.id}/${file.name}`);
+            return {
+              id: file.id || file.name,
+              fileName: file.name.split("_").slice(1).join("_"),
+              uploadDate: new Date(file.created_at || Date.now()).toISOString(),
+              doctorName: "",
+              notes: "",
+              filePath: `${user.id}/${file.name}`,
+              status: "pending",
+              pharmacyName: "",
+            };
+          })
+        );
+        setPrescriptions(history.reverse());
+      } catch (err) {
+        setPrescriptions([]);
+      }
+    })();
+  }, [user?.id, isUploading]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setUploadForm(prev => ({ ...prev, selectedFile: file }));
+      setUploadForm((prev) => ({ ...prev, selectedFile: file }));
     }
   };
 
-  const handleUpload = () => {
-    if (!uploadForm.selectedFile || !uploadForm.doctorName) {
-      alert('Please select a file and enter doctor name');
+  const handleUpload = async () => {
+    if (!uploadForm.selectedFile || !uploadForm.doctorName || !user?.id) {
+      alert("Please select a file and enter doctor name");
       return;
     }
-
     setIsUploading(true);
-    
-    // Simulate upload process
-    setTimeout(() => {
-      const newPrescription: Prescription = {
-        id: Date.now().toString(),
-        fileName: uploadForm.selectedFile!.name,
-        uploadDate: new Date().toISOString(),
-        doctorName: uploadForm.doctorName,
-        notes: uploadForm.notes,
-        status: 'pending'
-      };
-
-      setPrescriptions(prev => [newPrescription, ...prev]);
-      
-      // Save to localStorage
-      const userPrescriptions = JSON.parse(localStorage.getItem(`bepawa_prescriptions_${user?.id}`) || '[]');
-      userPrescriptions.unshift(newPrescription);
-      localStorage.setItem(`bepawa_prescriptions_${user?.id}`, JSON.stringify(userPrescriptions));
-      
-      // Reset form
-      setUploadForm({
-        doctorName: '',
-        notes: '',
-        selectedFile: null
+    try {
+      // Upload to bucket
+      const { path } = await uploadFile({
+        file: uploadForm.selectedFile,
+        userId: user.id,
+        bucket: "prescriptions",
+        extraPath: "",
       });
-      
+      setUploadForm({
+        doctorName: "",
+        notes: "",
+        selectedFile: null,
+      });
+      // Optionally log communication (audit)
+      await auditService.logAction(
+        "upload-prescription",
+        "prescription",
+        undefined,
+        undefined,
+        { doctorName: uploadForm.doctorName, filePath: path }
+      );
       setIsUploading(false);
-    }, 2000);
+    } catch (err) {
+      alert("Upload failed");
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (filePath: string) => {
+    if (!user?.id) return;
+    try {
+      await deleteFile("prescriptions", filePath);
+      // Optionally log communication (audit)
+      await auditService.logAction(
+        "delete-prescription",
+        "prescription",
+        undefined,
+        { filePath },
+        undefined
+      );
+      setPrescriptions((prev) =>
+        prev.filter((p) => p.filePath !== filePath)
+      );
+    } catch (err) {
+      alert("Delete failed.");
+    }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-500';
-      case 'processed': return 'bg-blue-500';
-      case 'filled': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case "pending":
+        return "bg-yellow-500";
+      case "processed":
+        return "bg-blue-500";
+      case "filled":
+        return "bg-green-500";
+      default:
+        return "bg-gray-500";
     }
   };
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'pending': return 'Pending Review';
-      case 'processed': return 'Being Processed';
-      case 'filled': return 'Prescription Filled';
-      default: return 'Unknown';
+      case "pending":
+        return "Pending Review";
+      case "processed":
+        return "Being Processed";
+      case "filled":
+        return "Prescription Filled";
+      default:
+        return "Unknown";
     }
   };
 
@@ -120,7 +190,9 @@ const PrescriptionUpload = () => {
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setUploadForm(prev => ({ ...prev, selectedFile: null }))}
+                    onClick={() =>
+                      setUploadForm((prev) => ({ ...prev, selectedFile: null }))
+                    }
                   >
                     <X className="h-3 w-3" />
                   </Button>
@@ -142,7 +214,12 @@ const PrescriptionUpload = () => {
               id="doctor-name"
               placeholder="Enter prescribing doctor's name"
               value={uploadForm.doctorName}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, doctorName: e.target.value }))}
+              onChange={(e) =>
+                setUploadForm((prev) => ({
+                  ...prev,
+                  doctorName: e.target.value,
+                }))
+              }
             />
           </div>
 
@@ -153,18 +230,23 @@ const PrescriptionUpload = () => {
               id="notes"
               placeholder="Any special instructions or notes about this prescription"
               value={uploadForm.notes}
-              onChange={(e) => setUploadForm(prev => ({ ...prev, notes: e.target.value }))}
+              onChange={(e) =>
+                setUploadForm((prev) => ({
+                  ...prev,
+                  notes: e.target.value,
+                }))
+              }
               rows={3}
             />
           </div>
 
           {/* Upload Button */}
-          <Button 
-            onClick={handleUpload} 
+          <Button
+            onClick={handleUpload}
             disabled={!uploadForm.selectedFile || !uploadForm.doctorName || isUploading}
             className="w-full"
           >
-            {isUploading ? 'Uploading...' : 'Upload Prescription'}
+            {isUploading ? "Uploading..." : "Upload Prescription"}
           </Button>
         </CardContent>
       </Card>
@@ -183,13 +265,19 @@ const PrescriptionUpload = () => {
           ) : (
             <div className="space-y-4">
               {prescriptions.map((prescription) => (
-                <div key={prescription.id} className="border rounded-lg p-4 hover:bg-gray-50">
+                <div
+                  key={prescription.filePath}
+                  className="border rounded-lg p-4 hover:bg-gray-50"
+                >
                   <div className="flex justify-between items-start mb-2">
                     <div>
                       <h4 className="font-medium">{prescription.fileName}</h4>
-                      <p className="text-sm text-gray-600">Dr. {prescription.doctorName}</p>
+                      <p className="text-sm text-gray-600">
+                        Dr. {prescription.doctorName || "[unknown]"}
+                      </p>
                       <p className="text-xs text-gray-500">
-                        Uploaded: {new Date(prescription.uploadDate).toLocaleDateString()}
+                        Uploaded:{" "}
+                        {new Date(prescription.uploadDate).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="text-right">
@@ -203,21 +291,34 @@ const PrescriptionUpload = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   {prescription.notes && (
-                    <p className="text-sm text-gray-600 mb-2">{prescription.notes}</p>
+                    <p className="text-sm text-gray-600 mb-2">
+                      {prescription.notes}
+                    </p>
                   )}
-                  
+
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-3 w-3 mr-1" />
-                      View
-                    </Button>
-                    {prescription.status === 'pending' && (
+                    <a
+                      href={async () =>
+                        await getFileUrl("prescriptions", prescription.filePath)
+                      }
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Button size="sm" variant="outline">
-                        Find Pharmacy
+                        <Eye className="h-3 w-3 mr-1" />
+                        View
                       </Button>
-                    )}
+                    </a>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => handleDelete(prescription.filePath)}
+                    >
+                      <X className="h-3 w-3 mr-1" />
+                      Delete
+                    </Button>
                   </div>
                 </div>
               ))}

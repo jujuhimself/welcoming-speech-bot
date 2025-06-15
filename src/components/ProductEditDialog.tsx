@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +17,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import ProductImageManager from "./ProductImageManager";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductEditDialogProps {
   product: Product;
@@ -42,6 +43,7 @@ const ProductEditDialog = ({ product, open, onOpenChange }: ProductEditDialogPro
     expiry_date: "",
     batch_number: ""
   });
+  const { user } = useAuth();
 
   useEffect(() => {
     if (product) {
@@ -99,6 +101,16 @@ const ProductEditDialog = ({ product, open, onOpenChange }: ProductEditDialogPro
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Product image manager (if user) */}
+            {user?.id && (
+              <div className="md:col-span-2">
+                <ProductImageManager
+                  userId={user.id}
+                  productId={product.id}
+                  // no initialImageKey for now; could be product.image_key if added to schema
+                />
+              </div>
+            )}
             <div>
               <Label htmlFor="name">Product Name *</Label>
               <Input
