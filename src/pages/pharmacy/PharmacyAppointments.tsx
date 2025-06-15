@@ -165,7 +165,7 @@ const PharmacyAppointments = () => {
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <h3 className="text-lg font-semibold mb-1">{appointment.service_type}0</h3>
+                      <h3 className="text-lg font-semibold mb-1">{appointment.service_type}</h3>
                       <div className="flex items-center text-gray-600 mb-2">
                         <User className="h-4 w-4 mr-1" />
                         <span>{appointment.patient_name}</span>
