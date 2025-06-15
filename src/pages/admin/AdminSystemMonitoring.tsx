@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Activity, Server, Database, Users, AlertTriangle, CheckCircle, Clock, Refresh } from "lucide-react";
+import { Activity, Server, Database, Users, AlertTriangle, CheckCircle, Clock, RefreshCw } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import Navbar from "@/components/Navbar";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +64,14 @@ const AdminSystemMonitoring = () => {
         .order('session_start', { ascending: false });
 
       if (sessionsError) throw sessionsError;
-      setActiveSessions(sessionsData || []);
+      
+      // Fix the type issue by properly handling the data
+      const typedSessions: UserSession[] = (sessionsData || []).map(session => ({
+        ...session,
+        ip_address: session.ip_address as string || '',
+      }));
+      
+      setActiveSessions(typedSessions);
 
     } catch (error) {
       console.error('Error fetching system data:', error);
@@ -122,7 +129,7 @@ const AdminSystemMonitoring = () => {
             </span>
           </div>
           <Button onClick={fetchSystemData} variant="outline">
-            <Refresh className="h-4 w-4 mr-2" />
+            <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
           </Button>
         </div>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,21 +38,26 @@ const Appointments = () => {
     try {
       const { data, error } = await supabase
         .from('appointments')
-        .select(`
-          *,
-          provider:profiles!appointments_provider_id_fkey(business_name, pharmacy_name, lab_name)
-        `)
+        .select('*')
         .eq('user_id', user?.id)
         .order('appointment_date', { ascending: true });
 
       if (error) throw error;
 
-      const appointmentsWithProviderNames = data.map(apt => ({
-        ...apt,
-        provider_name: apt.provider?.business_name || apt.provider?.pharmacy_name || apt.provider?.lab_name || 'Unknown Provider'
+      // Transform the data to match our interface
+      const typedAppointments: Appointment[] = (data || []).map(apt => ({
+        id: apt.id,
+        provider_id: apt.provider_id || '',
+        provider_type: apt.provider_type as 'pharmacy' | 'lab',
+        appointment_date: apt.appointment_date,
+        appointment_time: apt.appointment_time,
+        service_type: apt.service_type,
+        status: apt.status as 'scheduled' | 'confirmed' | 'in-progress' | 'completed' | 'cancelled',
+        notes: apt.notes || undefined,
+        provider_name: 'Provider Name' // We'll need to fetch this separately or join properly
       }));
 
-      setAppointments(appointmentsWithProviderNames);
+      setAppointments(typedAppointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       toast({

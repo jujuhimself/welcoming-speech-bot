@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -45,7 +44,20 @@ const HealthRecords = () => {
         .order('date_recorded', { ascending: false });
 
       if (error) throw error;
-      setRecords(data || []);
+      
+      // Transform the data to match our interface
+      const typedRecords: HealthRecord[] = (data || []).map(record => ({
+        id: record.id,
+        record_type: record.record_type as 'prescription' | 'lab_result' | 'appointment' | 'vaccination' | 'allergy' | 'condition',
+        title: record.title,
+        description: record.description || undefined,
+        date_recorded: record.date_recorded,
+        provider_name: record.provider_name || undefined,
+        attachments: Array.isArray(record.attachments) ? record.attachments : [],
+        metadata: record.metadata || {}
+      }));
+      
+      setRecords(typedRecords);
     } catch (error) {
       console.error('Error fetching health records:', error);
       toast({
