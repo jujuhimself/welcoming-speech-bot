@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, User } from "lucide-react";
+import { Clock, User, Loader2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
@@ -16,11 +16,15 @@ import PharmacyStatsCards from "@/components/pharmacy/PharmacyStatsCards";
 import PharmacyQuickActions from "@/components/pharmacy/PharmacyQuickActions";
 import PharmacyAdditionalServices from "@/components/pharmacy/PharmacyAdditionalServices";
 import PharmacyRecentOrders from "@/components/pharmacy/PharmacyRecentOrders";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { logError } from "@/utils/logger";
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalOrders: 0,
     pendingOrders: 0,
@@ -41,20 +45,24 @@ const PharmacyDashboard = () => {
       return;
     }
 
-    // Fetch stats and recent orders from Supabase
-    async function fetchOrdersAndStats() {
+    fetchOrdersAndStatsWithErrorHandling();
+  }, [user, navigate]);
+
+  const fetchOrdersAndStatsWithErrorHandling = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
       // Fetch orders for current pharmacy
-      const { data: orders, error } = await supabase
+      const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('*')
         .eq('pharmacy_id', user.id)
         .order('created_at', { ascending: false })
         .limit(20);
 
-      if (error) {
-        setRecentOrders([]);
-        setStats((prev) => ({ ...prev, totalOrders: 0, pendingOrders: 0 }));
-        return;
+      if (ordersError) {
+        throw ordersError;
       }
 
       // For cart, still use localStorage (unless we refactor persistence for cart!)
@@ -69,13 +77,22 @@ const PharmacyDashboard = () => {
 
       // Add welcome notification
       NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
+    } catch (err: any) {
+      logError(err, 'PharmacyDashboard fetch orders and stats');
+      setError(err.message || 'Failed to load dashboard data');
+      setRecentOrders([]);
+      setStats((prev) => ({ ...prev, totalOrders: 0, pendingOrders: 0 }));
+    } finally {
+      setLoading(false);
     }
-
-    fetchOrdersAndStats();
-  }, [user, navigate]);
+  };
 
   if (!user || user.role !== 'retail') {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+      </div>
+    );
   }
 
   if (!user.isApproved) {
@@ -99,38 +116,71 @@ const PharmacyDashboard = () => {
     );
   }
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
-      
-      <div className="container mx-auto px-4 py-8">
-        <BreadcrumbNavigation />
-        
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.pharmacyName}
-          </h1>
-          <p className="text-gray-600 text-lg">Manage your orders and browse our medical product catalog</p>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-96">
+            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+            <span className="ml-2 text-lg">Loading your dashboard...</span>
+          </div>
         </div>
-
-        <PharmacyStatsCards stats={stats} />
-        <QuickReorder />
-
-        {/* Analytics Dashboard */}
-        <Card className="mb-8 shadow-lg border-0">
-          <CardHeader>
-            <CardTitle className="text-2xl">Business Analytics</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <AnalyticsDashboard />
-          </CardContent>
-        </Card>
-
-        <PharmacyQuickActions cartItems={stats.cartItems} />
-        <PharmacyAdditionalServices />
-        <PharmacyRecentOrders recentOrders={recentOrders} />
       </div>
-    </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center min-h-96">
+            <AlertTri triangle className="h-12 w-12 text-red-500 mb-4" />
+            <div className="text-red-600 text-lg mb-4">Error loading dashboard: {error}</div>
+            <Button onClick={fetchOrdersAndStatsWithErrorHandling}>
+              Retry
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <Navbar />
+        
+        <div className="container mx-auto px-4 py-8">
+          <BreadcrumbNavigation />
+          
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Welcome back, {user?.pharmacyName}
+            </h1>
+            <p className="text-gray-600 text-lg">Manage your orders and browse our medical product catalog</p>
+          </div>
+
+          <PharmacyStatsCards stats={stats} />
+          <QuickReorder />
+
+          {/* Analytics Dashboard */}
+          <Card className="mb-8 shadow-lg border-0">
+            <CardHeader>
+              <CardTitle className="text-2xl">Business Analytics</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <AnalyticsDashboard />
+            </CardContent>
+          </Card>
+
+          <PharmacyQuickActions cartItems={stats.cartItems} />
+          <PharmacyAdditionalServices />
+          <PharmacyRecentOrders recentOrders={recentOrders} />
+        </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 

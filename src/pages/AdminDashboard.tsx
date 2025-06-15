@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,33 +12,14 @@ import AuditLogsTab from "@/components/admin/AuditLogsTab";
 import BackupsExportTab from "@/components/admin/BackupsExportTab";
 import ImpersonateUserTab from "@/components/admin/ImpersonateUserTab";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { notificationService } from "@/services/notificationService";
 import { logError } from "@/utils/logger";
 import { Badge } from "@/components/ui/badge";
-import {
-  Users,
-  Building,
-  Package,
-  Settings,
-  Clock,
-  DollarSign,
-  TrendingUp,
-  CheckCircle,
-  AlertCircle,
-  ShieldCheck,
-  Eye,
-  UserCheck,
-  UserX,
-  Bell,
-  AlertTriangle,
-  Download,
-  Repeat2,
-  User as UserIcon,
-  ArrowRightLeft,
-} from "lucide-react";
+import { useAdminPolicyAction } from "@/hooks/useAdminPolicy";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Loader2 } from "lucide-react";
 import { UserAccount } from "@/types/userAccount";
 
 const AdminDashboard = () => {
@@ -49,6 +29,10 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [pendingUsers, setPendingUsers] = useState<UserAccount[]>([]);
   const [allUsers, setAllUsers] = useState<UserAccount[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const adminPolicyAction = useAdminPolicyAction();
+  
   const [systemStats, setSystemStats] = useState({
     totalUsers: 0,
     pendingApprovals: 0,
@@ -65,100 +49,95 @@ const AdminDashboard = () => {
       navigate("/login");
       return;
     }
-    const fetchUsers = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("id, name, email, role, is_approved, business_name, created_at")
-          .order("created_at", { ascending: false });
-        if (error) {
-          logError(error, "AdminDashboard fetch profiles");
-          toast({
-            title: "Error loading users",
-            description: error.message,
-            variant: "destructive",
-          });
-          return;
-        }
-        const users: UserAccount[] = (data || []).map((u: any) => ({
-          id: u.id,
-          name: u.name,
-          email: u.email,
-          role: u.role,
-          status: u.is_approved === null || u.is_approved === false ? "pending" : "approved",
-          businessName: u.business_name || "",
-          registeredAt: u.created_at ? u.created_at.substring(0, 10) : "",
-        }));
+    fetchUsersWithErrorHandling();
+  }, [user, navigate]);
 
-        setAllUsers(users);
-        setPendingUsers(users.filter((u) => u.status === "pending"));
-
-        setSystemStats({
-          totalUsers: users.length,
-          pendingApprovals: users.filter((u) => u.status === "pending").length,
-          totalRevenue: 15750000,
-          activeOrders: 43,
-          pharmacies: users.filter((u) => u.role === "retail").length,
-          wholesalers: users.filter((u) => u.role === "wholesale").length,
-          labs: users.filter((u) => u.role === "lab").length,
-          individuals: users.filter((u) => u.role === "individual").length,
-        });
-      } catch (err) {
-        logError(err, "Unexpected error loading profiles");
-        toast({
-          title: "Load Error",
-          description: "Could not load user accounts.",
-          variant: "destructive",
-        });
+  const fetchUsersWithErrorHandling = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const { data, error: fetchError } = await supabase
+        .from("profiles")
+        .select("id, name, email, role, is_approved, business_name, created_at")
+        .order("created_at", { ascending: false });
+        
+      if (fetchError) {
+        throw fetchError;
       }
-    };
 
-    fetchUsers();
-  }, [user, navigate, toast]);
+      const users: UserAccount[] = (data || []).map((u: any) => ({
+        id: u.id,
+        name: u.name || "Unknown User",
+        email: u.email || "No Email",
+        role: u.role || "individual",
+        status: u.is_approved === null || u.is_approved === false ? "pending" : "approved",
+        businessName: u.business_name || "",
+        registeredAt: u.created_at ? u.created_at.substring(0, 10) : "",
+      }));
+
+      setAllUsers(users);
+      setPendingUsers(users.filter((u) => u.status === "pending"));
+
+      setSystemStats({
+        totalUsers: users.length,
+        pendingApprovals: users.filter((u) => u.status === "pending").length,
+        totalRevenue: 15750000,
+        activeOrders: 43,
+        pharmacies: users.filter((u) => u.role === "retail").length,
+        wholesalers: users.filter((u) => u.role === "wholesale").length,
+        labs: users.filter((u) => u.role === "lab").length,
+        individuals: users.filter((u) => u.role === "individual").length,
+      });
+    } catch (err: any) {
+      logError(err, "AdminDashboard fetch profiles");
+      setError(err.message || "Failed to load user data");
+      toast({
+        title: "Error loading users",
+        description: err.message || "Could not load user accounts.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleApproveUser = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_approved: true })
-        .eq("id", userId);
-      if (error) {
-        logError(error, "Admin approve user");
-        toast({
-          title: "Approval failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-      try {
-        await notificationService.createNotification({
-          user_id: userId,
-          title: "Account Approved",
-          message: "Your account has been approved by the BEPAWA admin. You can now access all features on the platform.",
-          type: "success",
-        });
-      } catch (notifyErr) {
-        logError(notifyErr, "Failed to send approval notification");
-      }
-      toast({
-        title: "User Approved",
-        description: "Account has been approved successfully.",
+      const result = await adminPolicyAction.mutateAsync({
+        action: 'approve_user',
+        targetUserId: userId,
+        reason: 'Admin approval from dashboard'
       });
 
-      setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
-      setAllUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, status: "approved" as const } : u))
-      );
-      setSystemStats((prev) => ({
-        ...prev,
-        pendingApprovals: prev.pendingApprovals - 1,
-      }));
-    } catch (err) {
+      if (result.success) {
+        // Send notification
+        try {
+          await notificationService.createNotification({
+            user_id: userId,
+            title: "Account Approved",
+            message: "Your account has been approved by the BEPAWA admin. You can now access all features on the platform.",
+            type: "success",
+          });
+        } catch (notifyErr) {
+          logError(notifyErr, "Failed to send approval notification");
+        }
+
+        // Update local state
+        setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
+        setAllUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: "approved" as const } : u))
+        );
+        setSystemStats((prev) => ({
+          ...prev,
+          pendingApprovals: prev.pendingApprovals - 1,
+        }));
+      }
+    } catch (err: any) {
       logError(err, "Admin approve user exception");
       toast({
         title: "Approval failed",
-        description: "Could not approve account.",
+        description: err.message || "Could not approve account.",
         variant: "destructive",
       });
     }
@@ -166,47 +145,40 @@ const AdminDashboard = () => {
 
   const handleRejectUser = async (userId: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ is_approved: false })
-        .eq("id", userId);
-      if (error) {
-        logError(error, "Admin reject user");
-        toast({
-          title: "Reject failed",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-      try {
-        await notificationService.createNotification({
-          user_id: userId,
-          title: "Account Rejected",
-          message: "Unfortunately, your BEPAWA account was rejected by the admin. Please contact support@bepawa.com for more info.",
-          type: "error",
-        });
-      } catch (notifyErr) {
-        logError(notifyErr, "Failed to send rejection notification");
-      }
-      toast({
-        title: "User Rejected",
-        description: "Account has been rejected.",
-        variant: "destructive",
+      const result = await adminPolicyAction.mutateAsync({
+        action: 'reject_user',
+        targetUserId: userId,
+        reason: 'Admin rejection from dashboard'
       });
-      setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
-      setAllUsers((prev) =>
-        prev.map((u) => (u.id === userId ? { ...u, status: "rejected" as const } : u))
-      );
-      setSystemStats((prev) => ({
-        ...prev,
-        pendingApprovals: prev.pendingApprovals - 1,
-      }));
-    } catch (err) {
+
+      if (result.success) {
+        // Send notification
+        try {
+          await notificationService.createNotification({
+            user_id: userId,
+            title: "Account Rejected",
+            message: "Unfortunately, your BEPAWA account was rejected by the admin. Please contact support@bepawa.com for more info.",
+            type: "error",
+          });
+        } catch (notifyErr) {
+          logError(notifyErr, "Failed to send rejection notification");
+        }
+
+        // Update local state
+        setPendingUsers((prev) => prev.filter((u) => u.id !== userId));
+        setAllUsers((prev) =>
+          prev.map((u) => (u.id === userId ? { ...u, status: "rejected" as const } : u))
+        );
+        setSystemStats((prev) => ({
+          ...prev,
+          pendingApprovals: prev.pendingApprovals - 1,
+        }));
+      }
+    } catch (err: any) {
       logError(err, "Admin reject user exception");
       toast({
         title: "User Rejection Failed",
-        description: "Could not reject account.",
+        description: err.message || "Could not reject account.",
         variant: "destructive",
       });
     }
@@ -234,83 +206,113 @@ const AdminDashboard = () => {
   };
 
   const getRoleIcon = (role: string) => {
-    switch (role) {
-      case "retail":
-        return <Building className="h-4 w-4" />;
-      case "wholesale":
-        return <Package className="h-4 w-4" />;
-      case "lab":
-        return <Settings className="h-4 w-4" />;
-      case "individual":
-        return <Users className="h-4 w-4" />;
-      default:
-        return <Users className="h-4 w-4" />;
-    }
+    const iconMap: Record<string, React.ReactNode> = {
+      retail: <span className="h-4 w-4" />,
+      wholesale: <span className="h-4 w-4" />,
+      lab: <span className="h-4 w-4" />,
+      individual: <span className="h-4 w-4" />,
+    };
+    return iconMap[role] || <span className="h-4 w-4" />;
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      <Navbar />
-      <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
-          <p className="text-gray-600 text-lg">
-            Manage the BEPAWA healthcare platform
-          </p>
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-96">
+            <Loader2 className="h-8 w-8 animate-spin text-primary-600" />
+            <span className="ml-2 text-lg">Loading admin dashboard...</span>
+          </div>
         </div>
-        <AdminStatsCards
-          stats={{
-            totalUsers: systemStats.totalUsers,
-            pendingApprovals: systemStats.pendingApprovals,
-            totalRevenue: systemStats.totalRevenue,
-            activeOrders: systemStats.activeOrders,
-          }}
-        />
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-7">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="users">Users</TabsTrigger>
-            <TabsTrigger value="approvals">Approvals</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-            <TabsTrigger value="alerts">System Alerts</TabsTrigger>
-            <TabsTrigger value="logs">Audit Logs</TabsTrigger>
-            <TabsTrigger value="tools">Platform Tools</TabsTrigger>
-          </TabsList>
-          <TabsContent value="overview" className="space-y-6">
-            <AdminOverviewTab systemStats={systemStats} />
-          </TabsContent>
-          <TabsContent value="users" className="space-y-6">
-            <AdminUsersTab
-              allUsers={allUsers}
-              getRoleIcon={getRoleIcon}
-              getStatusBadge={getStatusBadge}
-            />
-          </TabsContent>
-          <TabsContent value="approvals" className="space-y-6">
-            <AdminApprovalsTab
-              pendingUsers={pendingUsers}
-              onApprove={handleApproveUser}
-              onReject={handleRejectUser}
-              getRoleIcon={getRoleIcon}
-              getStatusBadge={getStatusBadge}
-            />
-          </TabsContent>
-          <TabsContent value="analytics" className="space-y-6">
-            <AdminAnalyticsTab />
-          </TabsContent>
-          <TabsContent value="alerts" className="space-y-6">
-            <SystemAlertsTab />
-          </TabsContent>
-          <TabsContent value="logs" className="space-y-6">
-            <AuditLogsTab />
-          </TabsContent>
-          <TabsContent value="tools" className="space-y-6">
-            <BackupsExportTab />
-            <ImpersonateUserTab />
-          </TabsContent>
-        </Tabs>
       </div>
-    </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex flex-col items-center justify-center min-h-96">
+            <div className="text-red-600 text-lg mb-4">Error loading dashboard: {error}</div>
+            <button 
+              onClick={fetchUsersWithErrorHandling}
+              className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <ErrorBoundary>
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
+            <p className="text-gray-600 text-lg">
+              Manage the BEPAWA healthcare platform
+            </p>
+          </div>
+          <AdminStatsCards
+            stats={{
+              totalUsers: systemStats.totalUsers,
+              pendingApprovals: systemStats.pendingApprovals,
+              totalRevenue: systemStats.totalRevenue,
+              activeOrders: systemStats.activeOrders,
+            }}
+          />
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-7">
+              <TabsTrigger value="overview">Overview</TabsTrigger>
+              <TabsTrigger value="users">Users</TabsTrigger>
+              <TabsTrigger value="approvals">Approvals</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsTrigger value="alerts">System Alerts</TabsTrigger>
+              <TabsTrigger value="logs">Audit Logs</TabsTrigger>
+              <TabsTrigger value="tools">Platform Tools</TabsTrigger>
+            </TabsList>
+            <TabsContent value="overview" className="space-y-6">
+              <AdminOverviewTab systemStats={systemStats} />
+            </TabsContent>
+            <TabsContent value="users" className="space-y-6">
+              <AdminUsersTab
+                allUsers={allUsers}
+                getRoleIcon={getRoleIcon}
+                getStatusBadge={getStatusBadge}
+              />
+            </TabsContent>
+            <TabsContent value="approvals" className="space-y-6">
+              <AdminApprovalsTab
+                pendingUsers={pendingUsers}
+                onApprove={handleApproveUser}
+                onReject={handleRejectUser}
+                getRoleIcon={getRoleIcon}
+                getStatusBadge={getStatusBadge}
+              />
+            </TabsContent>
+            <TabsContent value="analytics" className="space-y-6">
+              <AdminAnalyticsTab />
+            </TabsContent>
+            <TabsContent value="alerts" className="space-y-6">
+              <SystemAlertsTab />
+            </TabsContent>
+            <TabsContent value="logs" className="space-y-6">
+              <AuditLogsTab />
+            </TabsContent>
+            <TabsContent value="tools" className="space-y-6">
+              <BackupsExportTab />
+              <ImpersonateUserTab />
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </ErrorBoundary>
   );
 };
 
