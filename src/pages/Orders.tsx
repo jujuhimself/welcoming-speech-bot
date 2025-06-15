@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,7 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import OrderLifecycleManager from "@/components/OrderLifecycleManager";
 
-// Minimal Order fallback type
+// Minimal Order fallback type (updated to include shippingAddress)
 type Order = {
   id: string;
   status: string;
@@ -25,6 +26,7 @@ type Order = {
   updatedAt: string;
   urgency?: string;
   trackingNumber?: string;
+  shippingAddress: string; // <-- Added for type compatibility with OrderLifecycleManager
 };
 
 const Orders = () => {
@@ -42,7 +44,7 @@ const Orders = () => {
     }
 
     // Remove MockDataService; leave orders empty
-    setOrders([]);
+    setOrders([]); // If you add any default orders later, be sure they include the shippingAddress property
   }, [user, navigate]);
 
   const handleOrderStatusUpdate = (orderId: string, newStatus: Order['status']) => {
@@ -370,3 +372,4 @@ const Orders = () => {
 };
 
 export default Orders;
+
