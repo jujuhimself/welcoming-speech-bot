@@ -1,389 +1,293 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Package, Plus, Edit, AlertTriangle, TrendingDown, TrendingUp, Search, Filter } from "lucide-react";
-import Navbar from "@/components/Navbar";
+import { 
+  Package, 
+  Search, 
+  Plus, 
+  Edit, 
+  AlertTriangle,
+  TrendingUp,
+  TrendingDown
+} from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+
+interface InventoryItem {
+  id: string;
+  name: string;
+  sku: string;
+  category: string;
+  quantity: number;
+  minStock: number;
+  maxStock: number;
+  unitPrice: number;
+  supplier: string;
+  expiryDate: string;
+  status: 'in-stock' | 'low-stock' | 'out-of-stock' | 'expired';
+}
 
 const InventoryManagement = () => {
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
-  const [filterCategory, setFilterCategory] = useState("all");
-  const [addProductModal, setAddProductModal] = useState(false);
-  const [editProduct, setEditProduct] = useState<any>(null);
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
-  const [inventory, setInventory] = useState([
-    {
-      id: 1,
-      name: "Paracetamol 500mg",
-      category: "Pain Relief",
-      stock: 45,
-      reorderLevel: 50,
-      price: 5000,
-      cost: 3500,
-      supplier: "PharmaCorp Ltd",
-      expiryDate: "2025-06-15",
-      batchNumber: "PC2024001",
-      status: "low"
-    },
-    {
-      id: 2,
-      name: "Amoxicillin 250mg",
-      category: "Antibiotics",
-      stock: 28,
-      reorderLevel: 30,
-      price: 15000,
-      cost: 12000,
-      supplier: "MediSupply Co",
-      expiryDate: "2025-08-20",
-      batchNumber: "AM2024002",
-      status: "low"
-    },
-    {
-      id: 3,
-      name: "Vitamin C 1000mg",
-      category: "Vitamins",
-      stock: 180,
-      reorderLevel: 100,
-      price: 8000,
-      cost: 5500,
-      supplier: "HealthPlus Distributors",
-      expiryDate: "2026-03-10",
-      batchNumber: "VC2024003",
-      status: "good"
-    },
-    {
-      id: 4,
-      name: "Insulin Pen",
-      category: "Diabetes",
-      stock: 12,
-      reorderLevel: 20,
-      price: 45000,
-      cost: 35000,
-      supplier: "DiabetCare Inc",
-      expiryDate: "2025-12-01",
-      batchNumber: "IN2024004",
-      status: "critical"
-    }
-  ]);
+  useEffect(() => {
+    // Sample inventory data
+    const sampleInventory: InventoryItem[] = [
+      {
+        id: '1',
+        name: 'Paracetamol 500mg',
+        sku: 'MED-001',
+        category: 'Pain Relief',
+        quantity: 500,
+        minStock: 100,
+        maxStock: 1000,
+        unitPrice: 50,
+        supplier: 'PharmaCorp Ltd',
+        expiryDate: '2025-12-31',
+        status: 'in-stock'
+      },
+      {
+        id: '2',
+        name: 'Amoxicillin 250mg',
+        sku: 'MED-002',
+        category: 'Antibiotics',
+        quantity: 25,
+        minStock: 50,
+        maxStock: 500,
+        unitPrice: 120,
+        supplier: 'MediSupply Co',
+        expiryDate: '2024-08-15',
+        status: 'low-stock'
+      },
+      {
+        id: '3',
+        name: 'Insulin Injection',
+        sku: 'MED-003',
+        category: 'Diabetes',
+        quantity: 0,
+        minStock: 20,
+        maxStock: 200,
+        unitPrice: 850,
+        supplier: 'DiaCare Ltd',
+        expiryDate: '2024-10-30',
+        status: 'out-of-stock'
+      },
+      {
+        id: '4',
+        name: 'Vitamin C Tablets',
+        sku: 'MED-004',
+        category: 'Vitamins',
+        quantity: 150,
+        minStock: 50,
+        maxStock: 300,
+        unitPrice: 75,
+        supplier: 'HealthSupp Inc',
+        expiryDate: '2024-03-15',
+        status: 'expired'
+      }
+    ];
 
-  const categories = ["all", "Pain Relief", "Antibiotics", "Vitamins", "Diabetes", "Heart", "Blood Pressure"];
+    setInventory(sampleInventory);
+  }, []);
 
-  const filteredInventory = inventory.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         item.supplier.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = filterCategory === "all" || item.category === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
-
-  const getStatusBadge = (status: string) => {
+  const getStatusColor = (status: string) => {
     switch (status) {
-      case "critical":
-        return <Badge variant="destructive">Critical</Badge>;
-      case "low":
-        return <Badge variant="secondary">Low Stock</Badge>;
-      case "good":
-        return <Badge variant="default">Good</Badge>;
-      default:
-        return <Badge variant="outline">Unknown</Badge>;
+      case 'in-stock': return 'bg-green-100 text-green-800';
+      case 'low-stock': return 'bg-yellow-100 text-yellow-800';
+      case 'out-of-stock': return 'bg-red-100 text-red-800';
+      case 'expired': return 'bg-gray-100 text-gray-800';
+      default: return 'bg-gray-100 text-gray-800';
     }
   };
 
-  const lowStockItems = inventory.filter(item => item.stock <= item.reorderLevel);
-  const totalValue = inventory.reduce((sum, item) => sum + (item.stock * item.cost), 0);
-  const totalProfit = inventory.reduce((sum, item) => sum + (item.stock * (item.price - item.cost)), 0);
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'in-stock': return <TrendingUp className="h-4 w-4" />;
+      case 'low-stock': return <AlertTriangle className="h-4 w-4" />;
+      case 'out-of-stock': return <TrendingDown className="h-4 w-4" />;
+      case 'expired': return <AlertTriangle className="h-4 w-4" />;
+      default: return <Package className="h-4 w-4" />;
+    }
+  };
+
+  const filteredInventory = inventory.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ['all', ...Array.from(new Set(inventory.map(item => item.category)))];
+
+  const stats = {
+    totalItems: inventory.length,
+    inStock: inventory.filter(item => item.status === 'in-stock').length,
+    lowStock: inventory.filter(item => item.status === 'low-stock').length,
+    outOfStock: inventory.filter(item => item.status === 'out-of-stock').length,
+    expired: inventory.filter(item => item.status === 'expired').length,
+    totalValue: inventory.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-blue-50">
-      <Navbar />
-      
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Inventory Management</h1>
-          <p className="text-gray-600 text-lg">Manage your pharmacy inventory and stock levels</p>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Inventory Management</h1>
+            <p className="text-gray-600 text-lg">Manage your medical inventory and stock levels</p>
+          </div>
+          <Button>
+            <Plus className="h-5 w-5 mr-2" />
+            Add Item
+          </Button>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid md:grid-cols-6 gap-4 mb-8">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{inventory.length}</div>
+            <CardContent className="p-4 text-center">
+              <Package className="h-6 w-6 text-blue-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{stats.totalItems}</div>
+              <div className="text-sm text-gray-600">Total Items</div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-orange-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-600">{lowStockItems.length}</div>
+            <CardContent className="p-4 text-center">
+              <TrendingUp className="h-6 w-6 text-green-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{stats.inStock}</div>
+              <div className="text-sm text-gray-600">In Stock</div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Inventory Value</CardTitle>
-              <TrendingUp className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">TZS {totalValue.toLocaleString()}</div>
+            <CardContent className="p-4 text-center">
+              <AlertTriangle className="h-6 w-6 text-yellow-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{stats.lowStock}</div>
+              <div className="text-sm text-gray-600">Low Stock</div>
             </CardContent>
           </Card>
           
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Potential Profit</CardTitle>
-              <TrendingUp className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">TZS {totalProfit.toLocaleString()}</div>
+            <CardContent className="p-4 text-center">
+              <TrendingDown className="h-6 w-6 text-red-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{stats.outOfStock}</div>
+              <div className="text-sm text-gray-600">Out of Stock</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 text-center">
+              <AlertTriangle className="h-6 w-6 text-gray-600 mx-auto mb-2" />
+              <div className="text-2xl font-bold">{stats.expired}</div>
+              <div className="text-sm text-gray-600">Expired</div>
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardContent className="p-4 text-center">
+              <div className="text-lg font-bold">TZS {stats.totalValue.toLocaleString()}</div>
+              <div className="text-sm text-gray-600">Total Value</div>
             </CardContent>
           </Card>
         </div>
 
-        <Tabs defaultValue="inventory" className="space-y-6">
-          <TabsList>
-            <TabsTrigger value="inventory">All Inventory</TabsTrigger>
-            <TabsTrigger value="alerts">Low Stock Alerts</TabsTrigger>
-            <TabsTrigger value="analytics">Analytics</TabsTrigger>
-          </TabsList>
+        {/* Filters */}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div className="relative flex-1 max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search inventory..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <select
+                value={selectedCategory}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {category === 'all' ? 'All Categories' : category}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </CardContent>
+        </Card>
 
-          <TabsContent value="inventory" className="space-y-6">
-            {/* Search and Filters */}
-            <Card>
-              <CardContent className="pt-6">
-                <div className="flex flex-col md:flex-row gap-4">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input
-                      placeholder="Search products..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <Select value={filterCategory} onValueChange={setFilterCategory}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="Filter by category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(category => (
-                        <SelectItem key={category} value={category}>
-                          {category === "all" ? "All Categories" : category}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button onClick={() => setAddProductModal(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Product
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Inventory Table */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Product Inventory</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product Name</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Stock</TableHead>
-                      <TableHead>Reorder Level</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Supplier</TableHead>
-                      <TableHead>Expiry</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredInventory.map((item) => (
-                      <TableRow key={item.id}>
-                        <TableCell className="font-medium">{item.name}</TableCell>
-                        <TableCell>{item.category}</TableCell>
-                        <TableCell>{item.stock}</TableCell>
-                        <TableCell>{item.reorderLevel}</TableCell>
-                        <TableCell>TZS {item.price.toLocaleString()}</TableCell>
-                        <TableCell>{item.supplier}</TableCell>
-                        <TableCell>{item.expiryDate}</TableCell>
-                        <TableCell>{getStatusBadge(item.status)}</TableCell>
-                        <TableCell>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => setEditProduct(item)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="alerts" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <AlertTriangle className="h-5 w-5 mr-2 text-orange-500" />
-                  Low Stock Alerts
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {lowStockItems.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg bg-orange-50">
-                      <div>
-                        <h4 className="font-medium">{item.name}</h4>
-                        <p className="text-sm text-gray-600">
-                          Current stock: {item.stock} | Reorder level: {item.reorderLevel}
-                        </p>
-                        <p className="text-sm text-gray-500">Supplier: {item.supplier}</p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {getStatusBadge(item.status)}
-                        <Button size="sm">Reorder Now</Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Categories by Value</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {categories.slice(1).map((category, index) => {
-                      const categoryItems = inventory.filter(item => item.category === category);
-                      const categoryValue = categoryItems.reduce((sum, item) => sum + (item.stock * item.cost), 0);
-                      return (
-                        <div key={category} className="flex justify-between">
-                          <span>{category}</span>
-                          <span className="font-medium">TZS {categoryValue.toLocaleString()}</span>
+        {/* Inventory Table */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Inventory Items ({filteredInventory.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left p-3">Item</th>
+                    <th className="text-left p-3">SKU</th>
+                    <th className="text-left p-3">Category</th>
+                    <th className="text-left p-3">Quantity</th>
+                    <th className="text-left p-3">Min/Max</th>
+                    <th className="text-left p-3">Unit Price</th>
+                    <th className="text-left p-3">Expiry</th>
+                    <th className="text-left p-3">Status</th>
+                    <th className="text-left p-3">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInventory.map((item) => (
+                    <tr key={item.id} className="border-b hover:bg-gray-50">
+                      <td className="p-3">
+                        <div>
+                          <div className="font-medium">{item.name}</div>
+                          <div className="text-sm text-gray-600">{item.supplier}</div>
                         </div>
-                      );
-                    })}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Stock Status Overview</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Critical Stock:</span>
-                      <span className="text-red-600 font-medium">
-                        {inventory.filter(item => item.status === "critical").length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Low Stock:</span>
-                      <span className="text-orange-600 font-medium">
-                        {inventory.filter(item => item.status === "low").length}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Good Stock:</span>
-                      <span className="text-green-600 font-medium">
-                        {inventory.filter(item => item.status === "good").length}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {/* Add Product Modal */}
-        <Dialog open={addProductModal} onOpenChange={setAddProductModal}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Product</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input placeholder="Product Name" />
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Category" />
-                </SelectTrigger>
-                <SelectContent>
-                  {categories.slice(1).map(category => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                      </td>
+                      <td className="p-3 font-mono text-sm">{item.sku}</td>
+                      <td className="p-3">{item.category}</td>
+                      <td className="p-3">
+                        <span className={`font-bold ${item.quantity <= item.minStock ? 'text-red-600' : 'text-green-600'}`}>
+                          {item.quantity}
+                        </span>
+                      </td>
+                      <td className="p-3 text-sm text-gray-600">
+                        {item.minStock} / {item.maxStock}
+                      </td>
+                      <td className="p-3">TZS {item.unitPrice.toLocaleString()}</td>
+                      <td className="p-3 text-sm">
+                        {new Date(item.expiryDate).toLocaleDateString()}
+                      </td>
+                      <td className="p-3">
+                        <Badge className={`${getStatusColor(item.status)} flex items-center gap-1 w-fit`}>
+                          {getStatusIcon(item.status)}
+                          {item.status.replace('-', ' ')}
+                        </Badge>
+                      </td>
+                      <td className="p-3">
+                        <Button variant="outline" size="sm">
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit
+                        </Button>
+                      </td>
+                    </tr>
                   ))}
-                </SelectContent>
-              </Select>
-              <div className="grid grid-cols-2 gap-4">
-                <Input placeholder="Stock Quantity" type="number" />
-                <Input placeholder="Reorder Level" type="number" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input placeholder="Cost Price" type="number" />
-                <Input placeholder="Selling Price" type="number" />
-              </div>
-              <Input placeholder="Supplier" />
-              <Input placeholder="Expiry Date" type="date" />
-              <Input placeholder="Batch Number" />
-              <div className="flex space-x-2">
-                <Button className="flex-1">Add Product</Button>
-                <Button variant="outline" onClick={() => setAddProductModal(false)}>Cancel</Button>
-              </div>
+                </tbody>
+              </table>
             </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Edit Product Modal */}
-        <Dialog open={!!editProduct} onOpenChange={() => setEditProduct(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Product: {editProduct?.name}</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <Input defaultValue={editProduct?.name} placeholder="Product Name" />
-              <div className="grid grid-cols-2 gap-4">
-                <Input defaultValue={editProduct?.stock} placeholder="Stock Quantity" type="number" />
-                <Input defaultValue={editProduct?.reorderLevel} placeholder="Reorder Level" type="number" />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <Input defaultValue={editProduct?.cost} placeholder="Cost Price" type="number" />
-                <Input defaultValue={editProduct?.price} placeholder="Selling Price" type="number" />
-              </div>
-              <div className="flex space-x-2">
-                <Button className="flex-1">Update Product</Button>
-                <Button variant="outline" onClick={() => setEditProduct(null)}>Cancel</Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

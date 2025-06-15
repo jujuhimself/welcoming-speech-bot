@@ -3,53 +3,57 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Trash2, Plus, Minus, ShoppingCart } from "lucide-react";
+import { Minus, Plus, Trash2, ShoppingCart, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
+import { useToast } from "@/hooks/use-toast";
 
 interface CartItem {
   id: string;
   name: string;
   price: number;
   quantity: number;
-  stock: number;
+  image?: string;
+  manufacturer: string;
+  category: string;
 }
 
 const Cart = () => {
   const { user } = useAuth();
-  const { toast } = useToast();
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
-  const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!user || user.role !== 'retail') {
-      navigate('/login');
-      return;
+    if (user) {
+      const savedCart = localStorage.getItem(`bepawa_cart_${user.id}`);
+      if (savedCart) {
+        setCartItems(JSON.parse(savedCart));
+      }
     }
+  }, [user]);
 
-    const cartKey = `bepawa_cart_${user.id}`;
-    const cart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    setCartItems(cart);
-  }, [user, navigate]);
-
-  const updateQuantity = (itemId: string, newQuantity: number) => {
-    if (newQuantity < 1) return;
-    
-    const updatedCart = cartItems.map(item =>
-      item.id === itemId ? { ...item, quantity: newQuantity } : item
-    );
-    setCartItems(updatedCart);
-    localStorage.setItem(`bepawa_cart_${user?.id}`, JSON.stringify(updatedCart));
+  const updateCartInStorage = (items: CartItem[]) => {
+    if (user) {
+      localStorage.setItem(`bepawa_cart_${user.id}`, JSON.stringify(items));
+    }
   };
 
-  const removeItem = (itemId: string) => {
-    const updatedCart = cartItems.filter(item => item.id !== itemId);
-    setCartItems(updatedCart);
-    localStorage.setItem(`bepawa_cart_${user?.id}`, JSON.stringify(updatedCart));
+  const updateQuantity = (id: string, newQuantity: number) => {
+    if (newQuantity < 1) return;
+    
+    const updatedItems = cartItems.map(item =>
+      item.id === id ? { ...item, quantity: newQuantity } : item
+    );
+    setCartItems(updatedItems);
+    updateCartInStorage(updatedItems);
+  };
+
+  const removeItem = (id: string) => {
+    const updatedItems = cartItems.filter(item => item.id !== id);
+    setCartItems(updatedItems);
+    updateCartInStorage(updatedItems);
     
     toast({
       title: "Item removed",
@@ -57,175 +61,201 @@ const Cart = () => {
     });
   };
 
-  const calculateTotal = () => {
+  const clearCart = () => {
+    setCartItems([]);
+    updateCartInStorage([]);
+    
+    toast({
+      title: "Cart cleared",
+      description: "All items have been removed from your cart",
+    });
+  };
+
+  const getTotalPrice = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleCheckout = () => {
-    if (cartItems.length === 0) return;
+  const handleCheckout = async () => {
+    if (cartItems.length === 0) {
+      toast({
+        title: "Cart is empty",
+        description: "Please add items to your cart before checkout",
+        variant: "destructive",
+      });
+      return;
+    }
 
+    setIsLoading(true);
+    
+    // Simulate checkout process
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Create order
     const order = {
       id: Date.now().toString(),
-      pharmacyId: user?.id,
-      pharmacyName: user?.pharmacyName,
+      userId: user?.id,
       items: cartItems,
-      total: calculateTotal(),
-      paymentMethod,
+      total: getTotalPrice(),
       status: 'pending',
       createdAt: new Date().toISOString()
     };
 
-    // Save order
-    const orders = JSON.parse(localStorage.getItem('bepawa_orders') || '[]');
-    orders.push(order);
-    localStorage.setItem('bepawa_orders', JSON.stringify(orders));
+    // Save order to localStorage (in real app, this would be sent to backend)
+    const existingOrders = JSON.parse(localStorage.getItem(`bepawa_orders_${user?.id}`) || '[]');
+    existingOrders.push(order);
+    localStorage.setItem(`bepawa_orders_${user?.id}`, JSON.stringify(existingOrders));
 
     // Clear cart
-    localStorage.removeItem(`bepawa_cart_${user?.id}`);
-    setCartItems([]);
-
+    clearCart();
+    
+    setIsLoading(false);
+    
     toast({
       title: "Order placed successfully!",
-      description: `Order #${order.id} has been submitted for processing`,
+      description: "Your order has been submitted and is being processed.",
     });
-
+    
     navigate('/orders');
   };
 
-  const total = calculateTotal();
+  if (cartItems.length === 0) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-16">
+            <ShoppingCart className="h-24 w-24 text-gray-300 mx-auto mb-6" />
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Your cart is empty</h2>
+            <p className="text-gray-600 mb-8">Add some products to get started</p>
+            <Button onClick={() => navigate('/catalog')} size="lg">
+              Browse Products
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <Navbar />
-      
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
-          <p className="text-gray-600">Review your items before checkout</p>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
+          <p className="text-gray-600 text-lg">{cartItems.length} items in your cart</p>
         </div>
 
-        {cartItems.length === 0 ? (
-          <Card>
-            <CardContent className="text-center py-12">
-              <ShoppingCart className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-gray-600 mb-2">Your cart is empty</h3>
-              <p className="text-gray-500 mb-6">Add some products to get started</p>
-              <Button onClick={() => navigate('/products')}>
-                Browse Products
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid lg:grid-cols-3 gap-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-2">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Cart Items ({cartItems.length})</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {cartItems.map((item) => (
-                    <div key={item.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h3 className="font-medium">{item.name}</h3>
-                        <p className="text-sm text-gray-600">
-                          KSh {item.price.toLocaleString()} each
-                        </p>
-                      </div>
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Cart Items */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Cart Items</CardTitle>
+                <Button variant="outline" size="sm" onClick={clearCart}>
+                  Clear Cart
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {cartItems.map((item) => (
+                  <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <ShoppingCart className="h-6 w-6 text-gray-400" />
+                    </div>
+                    
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-lg">{item.name}</h3>
+                      <p className="text-gray-600 text-sm">{item.manufacturer}</p>
+                      <p className="text-gray-500 text-sm">{item.category}</p>
+                      <p className="font-bold text-lg text-blue-600">TZS {item.price.toLocaleString()}</p>
+                    </div>
+                    
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </Button>
                       
-                      <div className="flex items-center space-x-3">
-                        <div className="flex items-center space-x-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            disabled={item.quantity <= 1}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </Button>
-                          <Input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                            className="w-20 text-center"
-                            min="1"
-                            max={item.stock}
-                          />
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            disabled={item.quantity >= item.stock}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        
-                        <div className="text-right min-w-[100px]">
-                          <p className="font-medium">
-                            KSh {(item.price * item.quantity).toLocaleString()}
-                          </p>
-                        </div>
-                        
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => removeItem(item.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                        className="w-20 text-center"
+                        min="1"
+                      />
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
                     </div>
-                  ))}
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Order Summary */}
-            <div>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Order Summary</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span>Subtotal:</span>
-                      <span>KSh {total.toLocaleString()}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span>Delivery:</span>
-                      <span>Free</span>
-                    </div>
-                    <div className="border-t pt-2">
-                      <div className="flex justify-between font-bold text-lg">
-                        <span>Total:</span>
-                        <span>KSh {total.toLocaleString()}</span>
-                      </div>
+                    
+                    <div className="text-right">
+                      <p className="font-bold text-lg">TZS {(item.price * item.quantity).toLocaleString()}</p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeItem(item.id)}
+                        className="mt-2 text-red-600 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Payment Method</label>
-                    <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white border shadow-lg">
-                        <SelectItem value="cod">Cash on Delivery</SelectItem>
-                        <SelectItem value="mpesa">M-Pesa (Coming Soon)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <Button onClick={handleCheckout} className="w-full" size="lg">
-                    Place Order
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
+                ))}
+              </CardContent>
+            </Card>
           </div>
-        )}
+
+          {/* Order Summary */}
+          <div>
+            <Card className="sticky top-8">
+              <CardHeader>
+                <CardTitle>Order Summary</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>TZS {getTotalPrice().toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Delivery:</span>
+                    <span className="text-green-600">Free</span>
+                  </div>
+                  <div className="border-t pt-2">
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total:</span>
+                      <span>TZS {getTotalPrice().toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full" 
+                  size="lg"
+                  onClick={handleCheckout}
+                  disabled={isLoading}
+                >
+                  <CreditCard className="h-5 w-5 mr-2" />
+                  {isLoading ? "Processing..." : "Proceed to Checkout"}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => navigate('/catalog')}
+                >
+                  Continue Shopping
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
