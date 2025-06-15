@@ -30,17 +30,7 @@ import AdminOverviewTab from "@/components/admin/AdminOverviewTab";
 import AdminApprovalsTab from "@/components/admin/AdminApprovalsTab";
 import AdminUsersTab from "@/components/admin/AdminUsersTab";
 import AdminAnalyticsTab from "@/components/admin/AdminAnalyticsTab";
-
-// UI Interface same as before for types
-interface UserAccount {
-  id: string;
-  name: string;
-  email: string;
-  role: string;
-  status: 'pending' | 'approved' | 'rejected';
-  businessName?: string;
-  registeredAt: string;
-}
+import { UserAccount } from "@/types/userAccount";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
