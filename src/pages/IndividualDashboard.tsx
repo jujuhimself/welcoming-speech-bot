@@ -1,7 +1,5 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIndividualDashboard } from "@/hooks/useIndividualDashboard";
 import IndividualStatsCards from "@/components/individual/IndividualStatsCards";
@@ -66,17 +64,14 @@ const IndividualDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         <PageHeader
           title={`Welcome back, ${user?.name}`}
           description="Find nearby pharmacies and order your medicines"
           badge={{ text: "Patient Portal", variant: "outline" }}
         />
-        
         <IndividualStatsCards stats={stats} />
         <IndividualQuickActions />
-        
         <div className="grid lg:grid-cols-2 gap-8">
           <NearbyPharmacies pharmacies={nearbyPharmacies} />
           <HealthSummary totalOrders={stats.totalOrders} recentOrders={recentOrders} />

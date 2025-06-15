@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +131,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-50 via-white to-gray-50">
       {/* Header */}
+      {/* REMOVE the <Navbar /> here if present; header uses its own layout */}
       <header className="border-b bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center space-x-3">

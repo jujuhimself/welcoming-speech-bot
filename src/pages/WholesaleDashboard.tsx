@@ -1,9 +1,7 @@
-
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Package, DollarSign, Users, TrendingUp, FileText, BarChart3 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
 import BackupScheduleManager from "@/components/BackupScheduleManager";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -134,7 +132,6 @@ const WholesaleDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
       <div className="container mx-auto px-4 py-8">
         {/* Add demo link for the new features */}
         <div className="flex justify-end mb-4">
