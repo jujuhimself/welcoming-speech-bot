@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { inventoryService } from '@/services/inventoryService';
@@ -56,16 +57,20 @@ export const useProductsPage = () => {
           setFilteredProducts([]);
           return;
         }
+        
+        console.log('Fetching products for user:', user.id);
+        
         const { data, error } = await supabase
           .from("products")
           .select(
-            "id, name, category, stock, description, supplier, buy_price, sell_price, status, dosage, sku"
+            "id, name, category, stock, description, supplier, buy_price, sell_price, status, sku"
           )
           .eq("user_id", user.id)
           .order("name");
 
         if (error) {
           logError(error, "Supabase fetch products error");
+          console.error('Products fetch error:', error);
           toast({
             title: "Error loading products",
             description: error.message,
@@ -76,6 +81,8 @@ export const useProductsPage = () => {
           return;
         }
 
+        console.log('Fetched products:', data);
+
         // Map data for Product UI
         const mapped: Product[] = (data || []).map((p: any) => ({
           id: p.id,
@@ -85,16 +92,19 @@ export const useProductsPage = () => {
           stock: p.stock,
           description: p.description ?? "",
           manufacturer: p.supplier ?? "",
-          dosage: p.dosage ?? "",
+          dosage: "", // Default empty since column doesn't exist
           prescription: false, // Supabase schema does not provide directly
           image:
             "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400", // Placeholder
           status: p.status,
         }));
+        
+        console.log('Mapped products:', mapped);
         setProducts(mapped);
         setFilteredProducts(mapped);
       } catch (err) {
         logError(err, "Unexpected error fetching products");
+        console.error('Unexpected error fetching products:', err);
         toast({
           title: "Unexpected error",
           description: "Failed to load products.",
@@ -113,6 +123,7 @@ export const useProductsPage = () => {
 
   // Filtering + sorting logic
   const handleFiltersChange = (filters: any) => {
+    console.log('Applying filters:', filters);
     let filtered = products;
 
     if (filters.searchTerm) {
@@ -166,6 +177,7 @@ export const useProductsPage = () => {
       }
     });
 
+    console.log('Filtered products:', filtered);
     setFilteredProducts(filtered);
   };
 
