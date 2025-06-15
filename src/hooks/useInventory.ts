@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService, Product, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem } from '@/services/inventoryService';
 import { auditService } from '@/services/auditService';
@@ -265,5 +266,20 @@ export const useExpiringProducts = (days: number = 30) => {
   return useQuery({
     queryKey: ['expiring-products', days],
     queryFn: () => inventoryService.getExpiringProducts(days),
+  });
+};
+
+export const useSalesAnalytics = (dateRange?: { from: Date; to: Date }) => {
+  return useQuery({
+    queryKey: ['sales-analytics', dateRange],
+    queryFn: () => inventoryService.getSalesAnalytics(dateRange),
+  });
+};
+
+export const useProductAnalytics = (productId?: string, dateRange?: { from: Date; to: Date }) => {
+  return useQuery({
+    queryKey: ['product-analytics', productId, dateRange],
+    queryFn: () => inventoryService.getProductAnalytics(productId, dateRange),
+    enabled: !!productId,
   });
 };

@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Product {
@@ -72,6 +73,22 @@ export interface PurchaseOrderItem {
   total_cost: number;
   received_quantity?: number;
   created_at: string;
+}
+
+export interface SalesAnalytics {
+  id: string;
+  user_id: string;
+  date: string;
+  total_sales: number;
+  total_orders: number;
+  average_order_value: number;
+  total_items_sold: number;
+  new_customers: number;
+  top_selling_category?: string;
+  prescription_orders: number;
+  lab_orders: number;
+  created_at: string;
+  updated_at: string;
 }
 
 class InventoryService {
@@ -384,6 +401,54 @@ class InventoryService {
       ...product,
       status: product.status as Product['status']
     }));
+  }
+
+  async getSalesAnalytics(dateRange?: { from: Date; to: Date }): Promise<SalesAnalytics[]> {
+    let query = supabase
+      .from('sales_analytics')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (dateRange) {
+      query = query
+        .gte('date', dateRange.from.toISOString().split('T')[0])
+        .lte('date', dateRange.to.toISOString().split('T')[0]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching sales analytics:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async getProductAnalytics(productId?: string, dateRange?: { from: Date; to: Date }): Promise<any[]> {
+    let query = supabase
+      .from('product_analytics')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (productId) {
+      query = query.eq('product_id', productId);
+    }
+
+    if (dateRange) {
+      query = query
+        .gte('date', dateRange.from.toISOString().split('T')[0])
+        .lte('date', dateRange.to.toISOString().split('T')[0]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching product analytics:', error);
+      throw error;
+    }
+
+    return data || [];
   }
 }
 
