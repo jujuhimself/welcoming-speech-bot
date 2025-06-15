@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +11,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
 import OrderLifecycleManager from "@/components/OrderLifecycleManager";
-import { Order, MockDataService } from "@/services/mockDataService";
+
+// Minimal Order fallback type
+type Order = {
+  id: string;
+  status: string;
+  pharmacyName: string;
+  createdAt: string;
+  items: Array<{ name: string }>;
+  total: number;
+  paymentStatus: string;
+  paymentMethod: string;
+  updatedAt: string;
+  urgency?: string;
+  trackingNumber?: string;
+};
 
 const Orders = () => {
   const { user } = useAuth();
@@ -28,10 +41,8 @@ const Orders = () => {
       return;
     }
 
-    // Load orders from mock service and filter by user
-    const allOrders = MockDataService.getOrders();
-    const userOrders = allOrders.filter((order: Order) => order.pharmacyId === user.id);
-    setOrders(userOrders.reverse());
+    // Remove MockDataService; leave orders empty
+    setOrders([]);
   }, [user, navigate]);
 
   const handleOrderStatusUpdate = (orderId: string, newStatus: Order['status']) => {

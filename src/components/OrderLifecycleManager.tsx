@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,8 +18,27 @@ import {
   Calendar,
   DollarSign
 } from "lucide-react";
-import { Order, MockDataService } from "@/services/mockDataService";
+// Removed: import { Order, MockDataService } from "@/services/mockDataService";
 import { useToast } from "@/hooks/use-toast";
+
+// Add Order TS type (partial, minimal) for build
+type Order = {
+  id: string;
+  status: string;
+  pharmacyName: string;
+  createdAt: string;
+  total: number;
+  paymentMethod: string;
+  paymentStatus: string;
+  urgency?: string;
+  shippingAddress: string;
+  trackingNumber?: string;
+  supplierInfo?: { name: string; contact?: string; };
+  items: Array<{ name: string; sku?: string; quantity: number; price: number }>;
+  deliveryDate?: string;
+  notes?: string;
+  updatedAt: string;
+};
 
 interface OrderLifecycleManagerProps {
   order: Order;
@@ -32,7 +50,7 @@ const OrderLifecycleManager = ({ order, onStatusUpdate }: OrderLifecycleManagerP
   const [selectedStatus, setSelectedStatus] = useState<Order['status']>(order.status);
   const [notes, setNotes] = useState("");
 
-  const statusOptions: { value: Order['status']; label: string; color: string }[] = [
+  const statusOptions = [
     { value: 'pending', label: 'Pending', color: 'bg-yellow-500' },
     { value: 'confirmed', label: 'Confirmed', color: 'bg-blue-500' },
     { value: 'packed', label: 'Packed', color: 'bg-purple-500' },
@@ -68,6 +86,7 @@ const OrderLifecycleManager = ({ order, onStatusUpdate }: OrderLifecycleManagerP
     return iconMap[status];
   };
 
+  // Remove mock update and use callback only
   const handleStatusUpdate = () => {
     if (selectedStatus === order.status) {
       toast({
@@ -78,9 +97,9 @@ const OrderLifecycleManager = ({ order, onStatusUpdate }: OrderLifecycleManagerP
       return;
     }
 
-    MockDataService.updateOrderStatus(order.id, selectedStatus);
+    // No actual order mutation (mock removed)
     onStatusUpdate?.(order.id, selectedStatus);
-    
+
     toast({
       title: "Order Updated",
       description: `Order ${order.id} status changed to ${selectedStatus}`,

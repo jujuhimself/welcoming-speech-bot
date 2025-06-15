@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -15,18 +14,52 @@ import {
   Calendar,
   Download
 } from "lucide-react";
-import { FinancialTransaction, MockDataService } from "@/services/mockDataService";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart as RechartsPieChart, Cell } from 'recharts';
 
+// Placeholder default data for production: empty analytics and transactions.
+// TODO: Replace with real API/service data retrieval
+const placeholderAnalytics = {
+  sales: {
+    growth: 0,
+    daily: [],
+    totalOrders: 0,
+    averageOrderValue: 0,
+    monthly: 0,
+  },
+  customers: {
+    total: 0,
+    active: 0,
+    retention: 0,
+  },
+  inventory: {
+    totalProducts: 0,
+    totalValue: 0,
+    lowStock: 0,
+  },
+  topProducts: [],
+};
+type FinancialTransaction = {
+  id: string;
+  type: string;
+  amount: number;
+  status: string;
+  description: string;
+  date: string;
+  paymentMethod: string;
+};
+
 const FinancialDashboard = () => {
+  // Use empty transactions list for now
   const [transactions, setTransactions] = useState<FinancialTransaction[]>([]);
   const [timeFilter, setTimeFilter] = useState("week");
 
   useEffect(() => {
-    setTransactions(MockDataService.getFinancialTransactions());
+    // setTransactions(MockDataService.getFinancialTransactions());
+    setTransactions([]); // No mock data
   }, []);
 
-  const analytics = MockDataService.getAnalyticsData();
+  // Use placeholder analytics for now
+  const analytics = placeholderAnalytics;
 
   // Calculate financial metrics
   const totalRevenue = transactions
