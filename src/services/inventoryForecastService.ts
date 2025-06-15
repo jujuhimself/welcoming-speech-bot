@@ -1,5 +1,5 @@
 
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from '@/integrations/supabase/client';
 
 export interface InventoryForecast {
   id: string;
@@ -13,13 +13,35 @@ export interface InventoryForecast {
 }
 
 class InventoryForecastService {
-  async fetchForecasts() {
-    const { data, error } = await supabase.from("inventory_forecasts").select("*").order("forecast_date", { ascending: false });
+  async addForecast(forecast: Omit<InventoryForecast, 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('inventory_forecasts')
+      .insert(forecast)
+      .select()
+      .single();
+
     if (error) throw error;
-    return data as InventoryForecast[];
+    return data;
   }
-  async addForecast(forecast: Omit<InventoryForecast, "id" | "created_at" | "updated_at">) {
-    const { data, error } = await supabase.from("inventory_forecasts").insert([forecast]).select().single();
+
+  async fetchForecasts() {
+    const { data, error } = await supabase
+      .from('inventory_forecasts')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async updateActual(id: string, actual: number) {
+    const { data, error } = await supabase
+      .from('inventory_forecasts')
+      .update({ actual })
+      .eq('id', id)
+      .select()
+      .single();
+
     if (error) throw error;
     return data;
   }

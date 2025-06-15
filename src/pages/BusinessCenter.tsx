@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { 
@@ -11,61 +12,102 @@ import {
   Calendar,
   Settings
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const BusinessCenter = () => {
-  const businessMetrics = [
-    {
-      title: "Monthly Revenue",
-      value: "TZS 2,450,000",
-      change: "+12.5%",
-      icon: <DollarSign className="h-6 w-6 text-green-600" />
-    },
-    {
-      title: "Active Customers",
-      value: "1,247",
-      change: "+8.2%",
-      icon: <Users className="h-6 w-6 text-blue-600" />
-    },
-    {
-      title: "Orders This Month",
-      value: "342",
-      change: "+15.3%",
-      icon: <ShoppingCart className="h-6 w-6 text-purple-600" />
-    },
-    {
-      title: "Growth Rate",
-      value: "23.4%",
-      change: "+5.1%",
-      icon: <TrendingUp className="h-6 w-6 text-orange-600" />
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [businessMetrics, setBusinessMetrics] = useState({
+    monthlyRevenue: 0,
+    activeCustomers: 0,
+    ordersThisMonth: 0,
+    growthRate: 0
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchBusinessMetrics();
     }
-  ];
+  }, [user]);
+
+  const fetchBusinessMetrics = async () => {
+    try {
+      // Fetch orders for current month
+      const currentMonth = new Date();
+      const firstDayOfMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
+      
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('total_amount, user_id')
+        .eq('user_id', user?.id)
+        .gte('created_at', firstDayOfMonth.toISOString());
+
+      if (ordersError) throw ordersError;
+
+      // Calculate metrics
+      const monthlyRevenue = ordersData?.reduce((sum, order) => sum + Number(order.total_amount || 0), 0) || 0;
+      const ordersThisMonth = ordersData?.length || 0;
+      const activeCustomers = new Set(ordersData?.map(o => o.user_id)).size;
+
+      // Simulate growth rate (in real app, compare with previous month)
+      const growthRate = Math.random() * 30; // Random for demo
+
+      setBusinessMetrics({
+        monthlyRevenue,
+        activeCustomers,
+        ordersThisMonth,
+        growthRate
+      });
+    } catch (error) {
+      console.error('Error fetching business metrics:', error);
+      toast({
+        title: "Error loading metrics",
+        description: "Could not load business metrics",
+        variant: "destructive",
+      });
+    }
+  };
 
   const businessTools = [
     {
       title: "Analytics Dashboard",
       description: "Comprehensive business insights and reporting",
       icon: <BarChart3 className="h-8 w-8 text-blue-600" />,
-      action: "View Analytics"
+      action: "View Analytics",
+      href: "/wholesale/analytics"
     },
     {
       title: "Financial Reports",
       description: "Generate detailed financial statements",
       icon: <FileText className="h-8 w-8 text-green-600" />,
-      action: "Generate Reports"
+      action: "Generate Reports",
+      href: "/business-tools-retail"
     },
     {
       title: "Schedule Management",
       description: "Manage appointments and schedules",
       icon: <Calendar className="h-8 w-8 text-purple-600" />,
-      action: "Manage Schedule"
+      action: "Manage Schedule",
+      href: "/appointments"
     },
     {
       title: "Business Settings",
       description: "Configure business preferences",
       icon: <Settings className="h-8 w-8 text-gray-600" />,
-      action: "Open Settings"
+      action: "Open Settings",
+      href: "/settings"
     }
   ];
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-TZ', {
+      style: 'currency',
+      currency: 'TZS',
+      minimumFractionDigits: 0
+    }).format(amount);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -77,18 +119,51 @@ const BusinessCenter = () => {
 
         {/* Business Metrics */}
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {businessMetrics.map((metric, index) => (
-            <Card key={index} className="bg-white shadow-lg border-0">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  {metric.icon}
-                  <span className="text-sm font-medium text-green-600">{metric.change}</span>
-                </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-1">{metric.value}</h3>
-                <p className="text-gray-600 text-sm">{metric.title}</p>
-              </CardContent>
-            </Card>
-          ))}
+          <Card className="bg-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <DollarSign className="h-6 w-6 text-green-600" />
+                <span className="text-sm font-medium text-green-600">+{businessMetrics.growthRate.toFixed(1)}%</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">
+                {formatCurrency(businessMetrics.monthlyRevenue)}
+              </h3>
+              <p className="text-gray-600 text-sm">Monthly Revenue</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Users className="h-6 w-6 text-blue-600" />
+                <span className="text-sm font-medium text-green-600">+8.2%</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{businessMetrics.activeCustomers}</h3>
+              <p className="text-gray-600 text-sm">Active Customers</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <ShoppingCart className="h-6 w-6 text-purple-600" />
+                <span className="text-sm font-medium text-green-600">+15.3%</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{businessMetrics.ordersThisMonth}</h3>
+              <p className="text-gray-600 text-sm">Orders This Month</p>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-white shadow-lg border-0">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <TrendingUp className="h-6 w-6 text-orange-600" />
+                <span className="text-sm font-medium text-green-600">+5.1%</span>
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-1">{businessMetrics.growthRate.toFixed(1)}%</h3>
+              <p className="text-gray-600 text-sm">Growth Rate</p>
+            </CardContent>
+          </Card>
         </div>
 
         {/* Business Tools */}
@@ -106,8 +181,10 @@ const BusinessCenter = () => {
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold mb-2">{tool.title}</h3>
                     <p className="text-gray-600 mb-4">{tool.description}</p>
-                    <Button variant="outline" size="sm">
-                      {tool.action}
+                    <Button variant="outline" size="sm" asChild>
+                      <a href={tool.href}>
+                        {tool.action}
+                      </a>
                     </Button>
                   </div>
                 </div>
@@ -123,17 +200,25 @@ const BusinessCenter = () => {
           </CardHeader>
           <CardContent>
             <div className="flex flex-wrap gap-4">
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                Create New Order
+              <Button className="bg-blue-600 hover:bg-blue-700" asChild>
+                <a href="/wholesale-ordering">
+                  Create New Order
+                </a>
               </Button>
-              <Button variant="outline">
-                Export Data
+              <Button variant="outline" asChild>
+                <a href="/business-tools-retail">
+                  Export Data
+                </a>
               </Button>
-              <Button variant="outline">
-                Schedule Appointment
+              <Button variant="outline" asChild>
+                <a href="/appointments">
+                  Schedule Appointment
+                </a>
               </Button>
-              <Button variant="outline">
-                Contact Support
+              <Button variant="outline" asChild>
+                <a href="/settings">
+                  Contact Support
+                </a>
               </Button>
             </div>
           </CardContent>

@@ -1,19 +1,26 @@
 
-import React from "react";
+import { User } from '@supabase/supabase-js';
 
-export default function UserSelect({ value, onChange, user }: { value: string, onChange: (v: string) => void, user?: any }) {
-  if (!user) return null;
+interface UserSelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  user: User | null;
+}
+
+const UserSelect = ({ value, onChange, user }: UserSelectProps) => {
   return (
-    <div className="flex gap-2 items-center mb-3">
-      <label className="text-sm font-medium">User:</label>
-      <select
+    <div>
+      <label className="text-sm mr-1">User:</label>
+      <select 
         className="border rounded px-2 py-1 text-sm"
-        value={value}
+        value={value} 
         onChange={e => onChange(e.target.value)}
       >
-        <option value="">All</option>
-        <option value={user.id}>You ({user.id})</option>
+        <option value="">All Users</option>
+        {user && <option value={user.id}>Current User ({user.email})</option>}
       </select>
     </div>
   );
-}
+};
+
+export default UserSelect;

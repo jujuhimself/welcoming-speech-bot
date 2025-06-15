@@ -1,33 +1,32 @@
 
-import React from "react";
+import { Input } from "@/components/ui/input";
 
-export default function DateRangeFilter({
-  from,
-  to,
-  setFrom,
-  setTo,
-}: {
+interface DateRangeFilterProps {
   from: string;
   to: string;
-  setFrom: (d: string) => void;
-  setTo: (d: string) => void;
-}) {
+  setFrom: (date: string) => void;
+  setTo: (date: string) => void;
+}
+
+const DateRangeFilter = ({ from, to, setFrom, setTo }: DateRangeFilterProps) => {
   return (
-    <div className="flex gap-2 items-center mb-3 flex-wrap">
-      <label className="text-sm font-medium">From:</label>
-      <input
+    <div className="flex gap-2 items-center">
+      <label className="text-sm mr-1">From:</label>
+      <Input
         type="date"
         value={from}
-        onChange={e => setFrom(e.target.value)}
-        className="border rounded px-2 py-1 text-sm"
+        onChange={(e) => setFrom(e.target.value)}
+        className="text-sm"
       />
-      <label className="text-sm font-medium ml-2">To:</label>
-      <input
+      <label className="text-sm mr-1">To:</label>
+      <Input
         type="date"
         value={to}
-        onChange={e => setTo(e.target.value)}
-        className="border rounded px-2 py-1 text-sm"
+        onChange={(e) => setTo(e.target.value)}
+        className="text-sm"
       />
     </div>
   );
-}
+};
+
+export default DateRangeFilter;

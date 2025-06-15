@@ -1,37 +1,52 @@
 
-import React from "react";
-import { Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
-function exportCSV(data: any[], filename: string) {
-  if (!data || !data.length) return;
-  const replacer = (_key: string, value: any) => (value === null ? '' : value);
-  const header = Object.keys(data[0]);
-  const csv = [
-    header.join(','),
-    ...data.map(row => header.map(fieldName => JSON.stringify(row[fieldName], replacer)).join(','))
-  ].join('\r\n');
-
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const link = document.createElement('a');
-  link.href = URL.createObjectURL(blob);
-  link.download = filename;
-  link.click();
+interface ExportButtonProps {
+  data: any[];
+  filename: string;
+  disabled?: boolean;
 }
 
-export default function ExportButton({ data, filename, disabled }: { data: any[], filename: string, disabled?: boolean }) {
+const ExportButton = ({ data, filename, disabled = false }: ExportButtonProps) => {
+  const handleExport = () => {
+    if (data.length === 0) return;
+
+    // Convert data to CSV
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          return typeof value === 'string' && value.includes(',') 
+            ? `"${value}"` 
+            : value;
+        }).join(',')
+      )
+    ].join('\n');
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    window.URL.revokeObjectURL(url);
+  };
+
   return (
     <Button
       variant="outline"
-      className="flex gap-2 items-center"
-      onClick={() => exportCSV(data, filename)}
-      disabled={disabled || !data.length}
-      title="Export as CSV"
       size="sm"
-      type="button"
+      onClick={handleExport}
+      disabled={disabled}
     >
-      <Download className="w-4 h-4" />
-      Export
+      <Download className="h-4 w-4 mr-2" />
+      Export CSV
     </Button>
   );
-}
+};
+
+export default ExportButton;
