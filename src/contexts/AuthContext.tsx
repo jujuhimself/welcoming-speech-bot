@@ -170,6 +170,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setIsLoading(false);
+        import("@/hooks/use-toast").then(({ toast }) => {
+          toast({
+            title: "Login error",
+            description: error.message,
+            variant: "destructive",
+          });
+        });
         return { success: false, error: error.message };
       }
       if (data.user) {
@@ -179,20 +186,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (!profile.is_approved && profile.role !== "individual" && profile.role !== "admin") {
             await supabase.auth.signOut();
             setIsLoading(false);
+            import("@/hooks/use-toast").then(({ toast }) => {
+              toast({
+                title: "Pending Approval",
+                description: "Your account is pending approval. Please contact the administrator.",
+                variant: "destructive",
+              });
+            });
             return { success: false, error: "Your account is pending approval. Please contact the administrator." };
           }
           const userData = convertProfileToUser(profile, data.user);
           setUser(userData);
           setSession(data.session);
 
-          // Begin: Robust redirect logic (double-check session before redirect)
+          // Toast on successful login
+          import("@/hooks/use-toast").then(({ toast }) => {
+            toast({
+              title: "Login successful",
+              description: `Welcome back, ${userData.name || userData.email}!`,
+              variant: "default",
+            });
+          });
+
+          // Begin: Robust redirect logic ...
           const redirectTo = getDashboardRoute(userData);
           setTimeout(() => {
-            // Resilient navigation strategy
             if (window?.location?.pathname !== redirectTo) {
               window.location.replace(redirectTo);
             }
-          }, 100); // A tiny delay to ensure in-app state flushes before navigation
+          }, 100);
           setIsLoading(false);
           return { success: true, redirectTo };
         }
@@ -202,6 +224,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error) {
       console.error("Login error:", error);
       setIsLoading(false);
+      import("@/hooks/use-toast").then(({ toast }) => {
+        toast({
+          title: "Login error",
+          description: "An error occurred during login. Please try again.",
+          variant: "destructive",
+        });
+      });
       return { success: false, error: "An error occurred during login. Please try again." };
     }
   };
@@ -260,6 +289,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await supabase.auth.signOut();
     setUser(null);
     setSession(null);
+    // Toast on logout
+    import("@/hooks/use-toast").then(({ toast }) => {
+      toast({
+        title: "Logged out",
+        description: "You have been logged out.",
+        variant: "default",
+      });
+    });
   };
 
   return (

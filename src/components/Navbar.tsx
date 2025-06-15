@@ -136,6 +136,7 @@ const Navbar = () => {
             )}
 
             {/* Notifications */}
+            {/* Always show notifications for logged in users */}
             {user && <NotificationCenter />}
 
             {/* User Info */}
