@@ -12,7 +12,9 @@ export type Database = {
       audit_logs: {
         Row: {
           action: string
+          category: string | null
           created_at: string
+          details: Json | null
           id: string
           ip_address: string | null
           new_values: Json | null
@@ -24,7 +26,9 @@ export type Database = {
         }
         Insert: {
           action: string
+          category?: string | null
           created_at?: string
+          details?: Json | null
           id?: string
           ip_address?: string | null
           new_values?: Json | null
@@ -36,7 +40,9 @@ export type Database = {
         }
         Update: {
           action?: string
+          category?: string | null
           created_at?: string
+          details?: Json | null
           id?: string
           ip_address?: string | null
           new_values?: Json | null

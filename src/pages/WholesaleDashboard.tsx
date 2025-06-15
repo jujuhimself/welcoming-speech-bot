@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { Package, TrendingUp, DollarSign, Users, BarChart3, FileText } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
+import BackupScheduleManager from "@/components/BackupScheduleManager";
 
 const WholesaleDashboard = () => {
   const { user, logout } = useAuth();
@@ -70,7 +70,6 @@ const WholesaleDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
@@ -78,7 +77,8 @@ const WholesaleDashboard = () => {
           </h1>
           <p className="text-gray-600 text-lg">Manage your wholesale business and serve retail pharmacies</p>
         </div>
-
+        {/* Backup Schedule section */}
+        <BackupScheduleManager />
         {/* Stats Cards */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
