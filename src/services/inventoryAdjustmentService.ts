@@ -23,14 +23,19 @@ class InventoryAdjustmentService {
     return data;
   }
 
-  async fetchAdjustments() {
+  async fetchAdjustments(): Promise<InventoryAdjustment[]> {
     const { data, error } = await supabase
       .from('inventory_adjustments')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Cast the data to match our interface types
+    return (data || []).map(item => ({
+      ...item,
+      adjustment_type: item.adjustment_type as 'add' | 'remove'
+    }));
   }
 }
 

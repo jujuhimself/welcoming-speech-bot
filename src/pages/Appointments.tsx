@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,14 @@ const Appointments = () => {
         .order('appointment_date', { ascending: true });
 
       if (error) throw error;
-      setAppointments(data || []);
+      
+      // Cast the data to match our interface types
+      const typedAppointments: Appointment[] = (data || []).map(apt => ({
+        ...apt,
+        status: apt.status as 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
+      }));
+      
+      setAppointments(typedAppointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       toast({

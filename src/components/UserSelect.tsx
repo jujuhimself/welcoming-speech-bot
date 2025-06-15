@@ -1,10 +1,8 @@
 
-import { User } from '@supabase/supabase-js';
-
 interface UserSelectProps {
   value: string;
   onChange: (value: string) => void;
-  user: User | null;
+  user: { id: string; email?: string } | null;
 }
 
 const UserSelect = ({ value, onChange, user }: UserSelectProps) => {

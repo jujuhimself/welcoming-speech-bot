@@ -14,7 +14,7 @@ export default function RetailAdjustment() {
   const { user } = useAuth();
   const [product_id, setProductId] = useState("");
   const [quantity, setQuantity] = useState("");
-  const [type, setType] = useState("add");
+  const [type, setType] = useState<"add" | "remove">("add");
   const [reason, setReason] = useState("");
   const [adjustments, setAdjustments] = useState<InventoryAdjustment[]>([]);
   const [filtered, setFiltered] = useState<InventoryAdjustment[]>([]);
@@ -79,7 +79,7 @@ export default function RetailAdjustment() {
             />
             <select
               value={type}
-              onChange={e => setType(e.target.value)}
+              onChange={e => setType(e.target.value as "add" | "remove")}
               className="border rounded px-2 py-1"
               required
             >

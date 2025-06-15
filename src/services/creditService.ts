@@ -37,14 +37,19 @@ class CreditService {
     return data;
   }
 
-  async fetchAccounts() {
+  async fetchAccounts(): Promise<WholesaleCreditAccount[]> {
     const { data, error } = await supabase
       .from('wholesale_credit_accounts')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    return data || [];
+    
+    // Cast the data to match our interface types
+    return (data || []).map(item => ({
+      ...item,
+      status: item.status as 'active' | 'inactive' | 'suspended'
+    }));
   }
 
   async updateAccountBalance(accountId: string, newBalance: number) {
