@@ -1,7 +1,6 @@
-import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Clock, User, Loader2, AlertTriangle } from "lucide-react";
+import { Clock, Loader2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import QuickReorder from "@/components/QuickReorder";
@@ -16,40 +15,20 @@ import PharmacyAdditionalServices from "@/components/pharmacy/PharmacyAdditional
 import PharmacyRecentOrders from "@/components/pharmacy/PharmacyRecentOrders";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logError } from "@/utils/logger";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
-  const [recentOrders, setRecentOrders] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState({
-    totalOrders: 0,
-    pendingOrders: 0,
-    cartItems: 0
-  });
 
   // Ensure real-time notifications are enabled for pharmacy users
   useNotificationSubscription();
-
-  useEffect(() => {
-    if (!user || user.role !== 'retail') {
-      navigate('/login');
-      return;
-    }
-
-    if (!user.isApproved) {
-      // Show pending approval message
-      return;
-    }
-
-    fetchOrdersAndStatsWithErrorHandling();
-  }, [user, navigate]);
-
-  const fetchOrdersAndStatsWithErrorHandling = async () => {
-    try {
-      setLoading(true);
-      setError(null);
+  
+  const { data, isLoading, isError, error, refetch } = useQuery({
+    queryKey: ['pharmacyDashboardData', user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error("User not authenticated.");
 
       // Fetch orders for current pharmacy
       const { data: orders, error: ordersError } = await supabase
@@ -60,30 +39,39 @@ const PharmacyDashboard = () => {
         .limit(20);
 
       if (ordersError) {
+        logError(ordersError, 'PharmacyDashboard fetch orders');
         throw ordersError;
       }
 
-      // For cart, still use localStorage (unless we refactor persistence for cart!)
+      // For cart, still use localStorage
       const cart = JSON.parse(localStorage.getItem(`bepawa_cart_${user.id}`) || '[]');
 
-      setRecentOrders((orders || []).slice(0, 5));
-      setStats({
+      const stats = {
         totalOrders: orders?.length || 0,
         pendingOrders: (orders || []).filter((o: any) => o.status === 'pending').length,
         cartItems: cart.length
-      });
-
-      // Add welcome notification
-      NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
-    } catch (err: any) {
-      logError(err, 'PharmacyDashboard fetch orders and stats');
-      setError(err.message || 'Failed to load dashboard data');
-      setRecentOrders([]);
-      setStats((prev) => ({ ...prev, totalOrders: 0, pendingOrders: 0 }));
-    } finally {
-      setLoading(false);
+      };
+      
+      const recentOrders = (orders || []).slice(0, 5);
+      
+      return { stats, recentOrders };
+    },
+    enabled: !!user && user.role === 'retail' && !!user.isApproved,
+    onSuccess: () => {
+        if (user?.pharmacyName) {
+            NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
+        }
     }
-  };
+  });
+
+  const stats = data?.stats || { totalOrders: 0, pendingOrders: 0, cartItems: 0 };
+  const recentOrders = data?.recentOrders || [];
+
+  useEffect(() => {
+    if (!user || user.role !== 'retail') {
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   if (!user || user.role !== 'retail') {
     return (
@@ -114,7 +102,7 @@ const PharmacyDashboard = () => {
     );
   }
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
         <div className="container mx-auto px-4 py-8">
@@ -127,14 +115,14 @@ const PharmacyDashboard = () => {
     );
   }
 
-  if (error) {
+  if (isError) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center min-h-96">
             <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
-            <div className="text-red-600 text-lg mb-4">Error loading dashboard: {error}</div>
-            <Button onClick={fetchOrdersAndStatsWithErrorHandling}>
+            <div className="text-red-600 text-lg mb-4">Error loading dashboard: {(error as Error)?.message || "An unknown error occurred."}</div>
+            <Button onClick={() => refetch()}>
               Retry
             </Button>
           </div>
