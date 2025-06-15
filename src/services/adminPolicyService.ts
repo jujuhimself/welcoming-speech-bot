@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { auditService } from './auditService';
 import { logError } from '@/utils/logger';
@@ -37,12 +38,12 @@ class AdminPolicyService {
       const hasAccess = await this.verifyAdminAccess();
       if (!hasAccess) {
         const error = 'Unauthorized: Admin access required';
-        await auditService.logAction('unauthorized_access', 'admin_policy', undefined, undefined, policyAction);
+        await auditService.logAction('unauthorized_access', 'admin_policy', undefined, policyAction);
         return { success: false, error };
       }
 
       // Log the admin action attempt
-      await auditService.logAction('admin_action_attempt', 'admin_policy', policyAction.targetUserId, undefined, policyAction);
+      await auditService.logAction('admin_action_attempt', 'admin_policy', policyAction.targetUserId, policyAction);
 
       let result: { success: boolean; error?: string };
 
@@ -77,14 +78,13 @@ class AdminPolicyService {
         result.success ? 'admin_action_success' : 'admin_action_failure',
         'admin_policy',
         policyAction.targetUserId,
-        undefined,
         { ...policyAction, result }
       );
 
       return result;
     } catch (error) {
       logError(error, 'Admin policy enforcement failed');
-      await auditService.logAction('admin_action_error', 'admin_policy', policyAction.targetUserId, undefined, { ...policyAction, error: error.message });
+      await auditService.logAction('admin_action_error', 'admin_policy', policyAction.targetUserId, { ...policyAction, error: error.message });
       return { success: false, error: 'Internal server error' };
     }
   }
@@ -113,7 +113,7 @@ class AdminPolicyService {
         .eq('id', userId)
         .single();
 
-      await auditService.logAction('approve_user', 'user', userId, beforeData, { ...afterData, reason });
+      await auditService.logAction('approve_user', 'user', userId, { before: beforeData, after: afterData, reason });
 
       return { success: true };
     } catch (error) {
@@ -145,7 +145,7 @@ class AdminPolicyService {
         .eq('id', userId)
         .single();
 
-      await auditService.logAction('reject_user', 'user', userId, beforeData, { ...afterData, reason });
+      await auditService.logAction('reject_user', 'user', userId, { before: beforeData, after: afterData, reason });
 
       return { success: true };
     } catch (error) {
@@ -178,7 +178,7 @@ class AdminPolicyService {
         .eq('id', userId)
         .single();
 
-      await auditService.logAction('suspend_user', 'user', userId, beforeData, { ...afterData, reason });
+      await auditService.logAction('suspend_user', 'user', userId, { before: beforeData, after: afterData, reason });
 
       return { success: true };
     } catch (error) {
@@ -211,7 +211,7 @@ class AdminPolicyService {
         .eq('id', userId)
         .single();
 
-      await auditService.logAction('restore_user', 'user', userId, beforeData, { ...afterData, reason });
+      await auditService.logAction('restore_user', 'user', userId, { before: beforeData, after: afterData, reason });
 
       return { success: true };
     } catch (error) {
@@ -243,7 +243,7 @@ class AdminPolicyService {
         .eq('id', userId)
         .single();
 
-      await auditService.logAction('update_user_role', 'user', userId, beforeData, { ...afterData, reason });
+      await auditService.logAction('update_user_role', 'user', userId, { before: beforeData, after: afterData, reason });
 
       return { success: true };
     } catch (error) {
@@ -253,7 +253,7 @@ class AdminPolicyService {
 
   private async initiateSystemBackup(metadata?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
-      await auditService.logAction('system_backup_initiated', 'system', undefined, undefined, metadata);
+      await auditService.logAction('system_backup_initiated', 'system', undefined, metadata);
       // In a real implementation, this would trigger a backup process
       console.log('System backup initiated with metadata:', metadata);
       return { success: true };
@@ -264,7 +264,7 @@ class AdminPolicyService {
 
   private async initiateDataExport(resource: string, metadata?: Record<string, any>): Promise<{ success: boolean; error?: string }> {
     try {
-      await auditService.logAction('data_export_initiated', resource, undefined, undefined, metadata);
+      await auditService.logAction('data_export_initiated', resource, undefined, metadata);
       // In a real implementation, this would trigger a data export process
       console.log('Data export initiated for resource:', resource, 'with metadata:', metadata);
       return { success: true };
@@ -280,7 +280,7 @@ class AdminPolicyService {
         throw new Error('Unauthorized: Admin access required');
       }
 
-      return await auditService.getAuditLogs('admin_policy', undefined, limit);
+      return await auditService.getAuditLogs('admin_policy');
     } catch (error) {
       logError(error, 'Failed to fetch admin action history');
       return [];

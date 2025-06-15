@@ -1,4 +1,3 @@
-
 import { useAuditLogs } from "@/hooks/useAudit";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Eye, User, Download, Loader2, AlertTriangle, RefreshCw } from "lucide-react";
 
 const AuditLogsTab = () => {
-  const { data, isLoading, error, refetch } = useAuditLogs(undefined, undefined, 30);
+  const { data, isLoading, error, refetch } = useAuditLogs();
 
   const formatDate = (dateString: string) => {
     try {

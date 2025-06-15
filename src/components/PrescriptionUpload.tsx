@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import PrescriptionUploadForm from "./PrescriptionUploadForm";
 import PrescriptionHistoryList from "./PrescriptionHistoryList";
@@ -12,7 +13,7 @@ interface PrescriptionFile {
   doctorName: string;
   notes: string;
   filePath: string;
-  viewUrl: string; // <-- add
+  viewUrl: string;
   status: 'pending' | 'processed' | 'filled';
   pharmacyName?: string;
 }
@@ -65,8 +66,7 @@ const PrescriptionUpload = () => {
         "delete-prescription",
         "prescription",
         undefined,
-        { filePath },
-        undefined
+        { filePath }
       );
       setPrescriptions((prev) =>
         prev.filter((p) => p.filePath !== filePath)

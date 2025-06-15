@@ -9,7 +9,7 @@ import { useState, useMemo } from "react";
 
 export default function RetailAuditLog() {
   const { user } = useAuth();
-  const { data: logs = [], isLoading } = useAuditLogs(undefined, undefined, 100);
+  const { data: logs = [], isLoading } = useAuditLogs();
   // Add local filtering (since API does not expose by date/user)
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");

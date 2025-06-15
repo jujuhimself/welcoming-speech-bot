@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,7 +50,6 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
       await auditService.logAction(
         "upload-prescription",
         "prescription",
-        undefined,
         undefined,
         { doctorName: uploadForm.doctorName, filePath: path }
       );

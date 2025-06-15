@@ -1,16 +1,15 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DateRangePicker } from "@/components/ui/date-range-picker";
+import { DatePickerWithRange } from "@/components/ui/date-range-picker";
 import { Download, FileText, BarChart3, TrendingUp, Package } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { DateRange } from "react-day-picker";
 
 const InventoryReports = () => {
   const [reportType, setReportType] = useState("stock-levels");
-  const [dateRange, setDateRange] = useState<{ from: Date; to: Date }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date()
   });
@@ -33,10 +32,8 @@ const InventoryReports = () => {
   ];
 
   const handleDateRangeChange = (range: DateRange | undefined) => {
-    if (range?.from && range?.to) {
-      setDateRange({ from: range.from, to: range.to });
-    } else if (range?.from) {
-      setDateRange({ from: range.from, to: range.from });
+    if (range) {
+      setDateRange(range);
     }
   };
 
@@ -116,12 +113,9 @@ const InventoryReports = () => {
 
           <div>
             <label className="text-sm font-medium mb-2 block">Date Range</label>
-            <DateRangePicker
-              value={{
-                from: dateRange.from,
-                to: dateRange.to
-              }}
-              onValueChange={handleDateRangeChange}
+            <DatePickerWithRange
+              date={dateRange}
+              onDateChange={handleDateRangeChange}
             />
           </div>
 
