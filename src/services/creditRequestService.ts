@@ -31,7 +31,9 @@ export interface CreditAccount {
 }
 
 class CreditRequestService {
-  async createCreditRequest(request: Omit<CreditRequest, 'id' | 'user_id' | 'status' | 'created_at' | 'updated_at'>): Promise<CreditRequest> {
+  async createCreditRequest(
+    request: Omit<CreditRequest, 'id' | 'user_id' | 'status' | 'created_at' | 'updated_at'>
+  ): Promise<CreditRequest> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -50,7 +52,11 @@ class CreditRequestService {
       throw error;
     }
 
-    return data as CreditRequest;
+    if (!data) {
+      throw new Error('No data returned from createCreditRequest');
+    }
+
+    return data;
   }
 
   async getCreditRequests(): Promise<CreditRequest[]> {
@@ -68,7 +74,7 @@ class CreditRequestService {
       throw error;
     }
 
-    return (data || []) as CreditRequest[];
+    return Array.isArray(data) ? data : [];
   }
 
   async getCreditAccount(): Promise<CreditAccount | null> {
@@ -86,10 +92,18 @@ class CreditRequestService {
       throw error;
     }
 
-    return data as CreditAccount | null;
+    if (!data) {
+      return null;
+    }
+
+    return data;
   }
 
-  async updateCreditRequestStatus(id: string, status: CreditRequest['status'], reviewNotes?: string): Promise<CreditRequest> {
+  async updateCreditRequestStatus(
+    id: string, 
+    status: CreditRequest['status'], 
+    reviewNotes?: string
+  ): Promise<CreditRequest> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
 
@@ -110,8 +124,13 @@ class CreditRequestService {
       throw error;
     }
 
-    return data as CreditRequest;
+    if (!data) {
+      throw new Error('No data returned after status update');
+    }
+
+    return data;
   }
 }
 
 export const creditRequestService = new CreditRequestService();
+
