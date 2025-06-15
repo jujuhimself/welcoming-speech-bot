@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +19,6 @@ import {
   MessageCircle
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
 
 interface Retailer {
@@ -142,6 +140,23 @@ const WholesaleRetailers = () => {
         creditLimit: 1000000,
         creditUsed: 0,
         paymentTerm: '30 days'
+      },
+      {
+        id: '4',
+        pharmacyName: 'Mbeya Meds',
+        contactPerson: 'Asha Juma',
+        email: 'asha@mbeyameds.co.tz',
+        phone: '+255 788 123 456',
+        location: 'Forest Area, Mbeya',
+        region: 'Mbeya',
+        status: 'pending',
+        registrationDate: '2024-05-01',
+        lastOrder: 'N/A',
+        totalOrders: 0,
+        totalSpent: 0,
+        creditLimit: 0,
+        creditUsed: 0,
+        paymentTerm: 'COD'
       }
     ];
 
@@ -196,7 +211,6 @@ const WholesaleRetailers = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
       
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">

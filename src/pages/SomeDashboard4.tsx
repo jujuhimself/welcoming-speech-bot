@@ -5,7 +5,6 @@ import { Clock, User, Loader2, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import QuickReorder from "@/components/QuickReorder";
-import { BreadcrumbNavigation } from "@/components/BreadcrumbNavigation";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { NotificationService } from "@/components/NotificationSystem";
 import { supabase } from "@/integrations/supabase/client";
@@ -148,7 +147,6 @@ const PharmacyDashboard = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
         
         <div className="container mx-auto px-4 py-8">
-          <BreadcrumbNavigation />
           
           <div className="mb-8">
             <h1 className="text-4xl font-bold text-gray-900 mb-2">
