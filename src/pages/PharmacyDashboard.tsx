@@ -136,7 +136,7 @@ const PharmacyDashboard = () => {
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="flex flex-col items-center justify-center min-h-96">
-            <AlertTri triangle className="h-12 w-12 text-red-500 mb-4" />
+            <AlertTriangle className="h-12 w-12 text-red-500 mb-4" />
             <div className="text-red-600 text-lg mb-4">Error loading dashboard: {error}</div>
             <Button onClick={fetchOrdersAndStatsWithErrorHandling}>
               Retry

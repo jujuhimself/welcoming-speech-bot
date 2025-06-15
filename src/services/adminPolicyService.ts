@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { auditService } from './auditService';
 import { logError } from '@/utils/logger';
@@ -10,6 +9,8 @@ export interface AdminPolicyAction {
   reason?: string;
   metadata?: Record<string, any>;
 }
+
+type UserRole = 'admin' | 'individual' | 'retail' | 'wholesale' | 'lab';
 
 class AdminPolicyService {
   private async verifyAdminAccess(): Promise<boolean> {
@@ -59,7 +60,7 @@ class AdminPolicyService {
           result = await this.restoreUser(policyAction.targetUserId!, policyAction.reason);
           break;
         case 'update_user_role':
-          result = await this.updateUserRole(policyAction.targetUserId!, policyAction.metadata?.newRole, policyAction.reason);
+          result = await this.updateUserRole(policyAction.targetUserId!, policyAction.metadata?.newRole as UserRole, policyAction.reason);
           break;
         case 'system_backup':
           result = await this.initiateSystemBackup(policyAction.metadata);
@@ -218,7 +219,7 @@ class AdminPolicyService {
     }
   }
 
-  private async updateUserRole(userId: string, newRole: string, reason?: string): Promise<{ success: boolean; error?: string }> {
+  private async updateUserRole(userId: string, newRole: UserRole, reason?: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { data: beforeData } = await supabase
         .from('profiles')
