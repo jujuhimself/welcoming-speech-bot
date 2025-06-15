@@ -6,6 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "@/hooks/use-toast";
+import ExportButton from "@/components/ExportButton";
+import DateRangeFilter from "@/components/DateRangeFilter";
+import UserSelect from "@/components/UserSelect";
 
 export default function RetailForecast() {
   const { user } = useAuth();
@@ -13,10 +16,27 @@ export default function RetailForecast() {
   const [product_id, setProductId] = useState("");
   const [date, setDate] = useState("");
   const [forecasts, setForecasts] = useState<InventoryForecast[]>([]);
+  const [filtered, setFiltered] = useState<InventoryForecast[]>([]);
+  // filters
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
     inventoryForecastService.fetchForecasts().then(setForecasts);
   }, []);
+
+  useEffect(() => {
+    setFiltered(
+      forecasts.filter(f => {
+        const dt = new Date(f.forecast_date);
+        const fromOk = !from || (dt >= new Date(from));
+        const toOk = !to || (dt <= new Date(to));
+        const userOk = !userId || f.user_id === userId;
+        return fromOk && toOk && userOk;
+      })
+    );
+  }, [forecasts, from, to, userId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -73,19 +93,47 @@ export default function RetailForecast() {
 
       <Card className="mt-6">
         <CardHeader>
-          <CardTitle>Recent Forecasts</CardTitle>
+          <CardTitle>
+            Recent Forecasts
+            <span className="float-right">
+              <ExportButton data={filtered} filename="forecasts.csv" disabled={filtered.length === 0} />
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {forecasts.length === 0 ? (
-            <div>No forecasts yet.</div>
+          <div className="flex flex-wrap gap-2 mb-2 items-center">
+            <DateRangeFilter from={from} to={to} setFrom={setFrom} setTo={setTo} />
+            <UserSelect value={userId} onChange={setUserId} user={user} />
+          </div>
+          {filtered.length === 0 ? (
+            <div>No forecasts found.</div>
           ) : (
-            <ul>
-              {forecasts.slice(0, 5).map(f => (
-                <li key={f.id}>
-                  {f.product_id} | <b>{f.forecast_date}</b> | Demand: {f.forecasted_demand} {f.actual !== undefined && <>| Actual: {f.actual}</>}
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Date</th>
+                    <th>Forecast</th>
+                    <th>Actual</th>
+                    <th>User</th>
+                    <th>ID</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.slice(0, 20).map(f => (
+                    <tr key={f.id}>
+                      <td>{f.product_id}</td>
+                      <td>{f.forecast_date}</td>
+                      <td>{f.forecasted_demand}</td>
+                      <td>{f.actual ?? "-"}</td>
+                      <td className="text-blue-800">{f.user_id}</td>
+                      <td>{f.id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>

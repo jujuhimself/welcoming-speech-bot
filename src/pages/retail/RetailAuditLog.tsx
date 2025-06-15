@@ -2,49 +2,94 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuditLogs } from "@/hooks/useAudit";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import ExportButton from "@/components/ExportButton";
+import DateRangeFilter from "@/components/DateRangeFilter";
+import UserSelect from "@/components/UserSelect";
+import { useState, useMemo } from "react";
 
 export default function RetailAuditLog() {
   const { user } = useAuth();
-  const { data: logs = [], isLoading } = useAuditLogs(undefined, undefined, 20);
+  const { data: logs = [], isLoading } = useAuditLogs(undefined, undefined, 100);
+  // Add local filtering (since API does not expose by date/user)
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [userId, setUserId] = useState("");
+  const [action, setAction] = useState("");
+  const filtered = useMemo(() =>
+    logs.filter(log => {
+      const dateOk = (!from || new Date(log.created_at) >= new Date(from)) &&
+        (!to || new Date(log.created_at) <= new Date(to));
+      const userOk = !userId || log.user_id === userId;
+      const actOk = !action || log.action === action;
+      return dateOk && userOk && actOk;
+    }), [logs, from, to, userId, action]);
+
+  // Find distinct actions for filter
+  const actions = Array.from(new Set(logs.map(log => log.action || ""))).filter(a => a);
 
   return (
     <div>
       <Card>
         <CardHeader>
-          <CardTitle>Audit Log (Preview)</CardTitle>
+          <CardTitle>
+            Audit Log (Preview)
+            <span className="float-right">
+              <ExportButton data={filtered} filename="audit_log.csv" disabled={filtered.length === 0} />
+            </span>
+          </CardTitle>
         </CardHeader>
         <CardContent>
+          <div className="flex flex-wrap gap-2 mb-2 items-center">
+            <DateRangeFilter from={from} to={to} setFrom={setFrom} setTo={setTo} />
+            <UserSelect value={userId} onChange={setUserId} user={user} />
+            {actions.length > 0 && (
+              <div>
+                <label className="text-sm mr-1">Action:</label>
+                <select className="border rounded px-2 py-1 text-sm"
+                  value={action} onChange={e => setAction(e.target.value)}>
+                  <option value="">All</option>
+                  {actions.map(a => <option key={a} value={a}>{a}</option>)}
+                </select>
+              </div>
+            )}
+          </div>
           {isLoading ? (
             <div>Loading…</div>
-          ) : logs.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div>No audit log entries found.</div>
           ) : (
-            <ul className="text-xs">
-              {logs.map(log => (
-                <li key={log.id} className="mb-2">
-                  <div>
-                    <b>{log.action}</b> on <span className="capitalize">{log.resource_type}</span>
-                    {log.resource_id && <> (ID: {log.resource_id})</>}
-                  </div>
-                  <div>
-                    <span className="text-gray-500">{new Date(log.created_at).toLocaleString()}</span>
-                    {" "}by <span className="text-blue-800">{log.user_id}</span>
-                  </div>
-                  {log.old_values && (
-                    <div className="border p-1 mt-1 rounded bg-gray-50">
-                      <b>Old:</b>{" "}
-                      <code>{JSON.stringify(log.old_values)}</code>
-                    </div>
-                  )}
-                  {log.new_values && (
-                    <div className="border p-1 mt-1 rounded bg-gray-50">
-                      <b>New:</b>{" "}
-                      <code>{JSON.stringify(log.new_values)}</code>
-                    </div>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr>
+                    <th>Action</th>
+                    <th>Resource</th>
+                    <th>Resource ID</th>
+                    <th>User</th>
+                    <th>Date</th>
+                    <th>Old</th>
+                    <th>New</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.slice(0, 30).map(log => (
+                    <tr key={log.id}>
+                      <td>{log.action}</td>
+                      <td className="capitalize">{log.resource_type}</td>
+                      <td>{log.resource_id || "-"}</td>
+                      <td className="text-blue-800">{log.user_id}</td>
+                      <td>{new Date(log.created_at).toLocaleString()}</td>
+                      <td className="break-all">
+                        {log.old_values && <code>{JSON.stringify(log.old_values)}</code>}
+                      </td>
+                      <td className="break-all">
+                        {log.new_values && <code>{JSON.stringify(log.new_values)}</code>}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </CardContent>
       </Card>
