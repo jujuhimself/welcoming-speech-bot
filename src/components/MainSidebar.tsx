@@ -13,13 +13,15 @@ import {
   SidebarGroupContent,
   SidebarFooter,
 } from "@/components/ui/sidebar";
-import { Home, Settings, FileText, Package, BarChart3, Truck, Users, Wrench, ShoppingCart, TestTube, Building, CreditCard, Calculator } from "lucide-react";
+import { Home, Settings, FileText, Package, BarChart3, Truck, Users, Wrench, ShoppingCart, TestTube, Building, CreditCard, Calculator, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 const navConfig: Record<string, { label: string; icon: React.ReactNode; href: string; group: string; }[]> = {
   admin: [
     { label: "Dashboard", icon: <Home className="w-4 h-4" />, href: "/admin", group: "General" },
-    { label: "Admin Panel", icon: <Settings className="w-4 h-4" />, href: "/admin", group: "General" },
+    { label: "Analytics", icon: <BarChart3 className="w-4 h-4" />, href: "/admin/analytics", group: "General" },
     { label: "Business Tools", icon: <Wrench className="w-4 h-4" />, href: "/business-tools", group: "Tools" },
     { label: "Settings", icon: <Settings className="w-4 h-4" />, href: "/settings", group: "Account" },
   ],
@@ -74,13 +76,26 @@ export const MainSidebar = ({ open, onOpenChange }: { open: boolean, onOpenChang
 
   return (
     <Sidebar collapsible="offcanvas" className="md:hidden">
-      <SidebarHeader className="py-4 px-4 border-b border-gray-100">
-        <span className="text-lg font-semibold text-gray-900">Navigation</span>
+      <SidebarHeader className="py-4 px-4 border-b border-gray-100 flex flex-row items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-1.5 rounded-md">
+            <Package className="h-4 w-4 text-white" />
+          </div>
+          <span className="text-lg font-semibold text-gray-900">BEPAWA</span>
+        </div>
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={() => onOpenChange(false)}
+          className="h-8 w-8 p-0"
+        >
+          <X className="h-4 w-4" />
+        </Button>
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="px-2">
         {Object.entries(grouped).map(([groupName, items]) => (
           <SidebarGroup key={groupName}>
-            <SidebarGroupLabel className="text-xs text-gray-500 uppercase mt-3 mb-1">
+            <SidebarGroupLabel className="text-xs text-gray-500 uppercase tracking-wider font-medium mt-4 mb-2 px-2">
               {groupName}
             </SidebarGroupLabel>
             <SidebarGroupContent>
@@ -90,7 +105,12 @@ export const MainSidebar = ({ open, onOpenChange }: { open: boolean, onOpenChang
                     <SidebarMenuButton asChild isActive={location.pathname === item.href}>
                       <Link
                         to={item.href}
-                        className="flex items-center gap-2 py-2 px-3 rounded-md hover:bg-blue-50 transition-colors text-base"
+                        className={cn(
+                          "flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-blue-50 transition-colors text-sm font-medium",
+                          location.pathname === item.href 
+                            ? "bg-blue-100 text-blue-900 border border-blue-200" 
+                            : "text-gray-700"
+                        )}
                         onClick={() => onOpenChange(false)}
                       >
                         {item.icon}
@@ -105,7 +125,11 @@ export const MainSidebar = ({ open, onOpenChange }: { open: boolean, onOpenChang
         ))}
       </SidebarContent>
       <SidebarFooter className="border-t p-4 text-center">
-        <span className="text-xs text-gray-400">BEPAWA © {new Date().getFullYear()}</span>
+        <div className="text-xs text-gray-400 space-y-1">
+          <div className="font-medium">Welcome back, {user?.name}</div>
+          <div className="capitalize">{user?.role} Account</div>
+          <div className="pt-2">BEPAWA © {new Date().getFullYear()}</div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   );

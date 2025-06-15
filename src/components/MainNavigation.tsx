@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   NavigationMenu,
   NavigationMenuList,
@@ -9,13 +9,14 @@ import {
   NavigationMenuTrigger,
   NavigationMenuLink,
 } from "@/components/ui/navigation-menu";
-import { User, Settings, Home, FileText, Package, BarChart3, Truck, Users, Wrench, ShoppingCart, TestTube, Building, CreditCard, Calculator } from "lucide-react";
+import { User, Settings, Home, FileText, Package, BarChart3, Truck, Users, Wrench, ShoppingCart, TestTube, Building, CreditCard, Calculator, Bell, Search } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { cn } from "@/lib/utils";
 
 const navConfig: Record<string, { label: string; icon: React.ReactNode; href: string; group: string; }[]> = {
   admin: [
     { label: "Dashboard", icon: <Home className="w-4 h-4" />, href: "/admin", group: "General" },
-    { label: "Admin Panel", icon: <Settings className="w-4 h-4" />, href: "/admin", group: "General" },
+    { label: "Analytics", icon: <BarChart3 className="w-4 h-4" />, href: "/admin/analytics", group: "General" },
     { label: "Business Tools", icon: <Wrench className="w-4 h-4" />, href: "/business-tools", group: "Tools" },
     { label: "Settings", icon: <Settings className="w-4 h-4" />, href: "/settings", group: "Account" },
   ],
@@ -59,6 +60,7 @@ const navConfig: Record<string, { label: string; icon: React.ReactNode; href: st
 
 export const MainNavigation = () => {
   const { user } = useAuth();
+  const location = useLocation();
   const role = user?.role ?? "retail";
   const menuItems = navConfig[role] ?? navConfig["retail"];
 
@@ -75,23 +77,26 @@ export const MainNavigation = () => {
         <NavigationMenuList>
           {Object.entries(groups).map(([groupLabel, items]) => (
             <NavigationMenuItem key={groupLabel}>
-              <NavigationMenuTrigger className="capitalize">{groupLabel}</NavigationMenuTrigger>
-              <NavigationMenuContent className="z-[100] p-2 min-w-[200px] bg-white rounded-md shadow-lg">
-                <ul>
+              <NavigationMenuTrigger className="capitalize text-sm font-medium">
+                {groupLabel}
+              </NavigationMenuTrigger>
+              <NavigationMenuContent className="z-[100] p-3 min-w-[250px] bg-white rounded-lg shadow-lg border">
+                <div className="grid gap-1">
                   {items.map((item) => (
-                    <li key={item.href}>
-                      <NavigationMenuLink asChild>
-                        <Link
-                          to={item.href}
-                          className="flex items-center gap-2 px-2 py-2 rounded-md hover:bg-blue-50 transition-colors text-gray-700"
-                        >
-                          {item.icon}
-                          <span>{item.label}</span>
-                        </Link>
-                      </NavigationMenuLink>
-                    </li>
+                    <NavigationMenuLink asChild key={item.href}>
+                      <Link
+                        to={item.href}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-md hover:bg-blue-50 transition-colors text-gray-700 text-sm",
+                          location.pathname === item.href && "bg-blue-100 text-blue-900 font-medium"
+                        )}
+                      >
+                        {item.icon}
+                        <span>{item.label}</span>
+                      </Link>
+                    </NavigationMenuLink>
                   ))}
-                </ul>
+                </div>
               </NavigationMenuContent>
             </NavigationMenuItem>
           ))}
