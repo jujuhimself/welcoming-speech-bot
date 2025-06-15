@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Grid, List } from "lucide-react";
@@ -43,19 +44,7 @@ const Products = () => {
   } = useProductsPage();
 
   return (
-    <ErrorBoundary
-      fallback={
-        <div className="min-h-[40vh] flex flex-col items-center justify-center text-center p-10">
-          <h2 className="text-2xl font-bold mb-2 text-red-700">Something went wrong</h2>
-          <p className="mb-2 text-gray-600">
-            An unexpected error occurred loading products. Please try refreshing the page or contact support if this continues.
-          </p>
-        </div>
-      }
-      onError={(error, info) => {
-        console.error("[Products Page ErrorBoundary]:", error, info);
-      }}
-    >
+    <ErrorBoundary>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
         <Navbar />
 
