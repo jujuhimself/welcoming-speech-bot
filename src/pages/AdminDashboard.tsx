@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +22,10 @@ import {
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { logError } from "@/utils/logger";
 
+// UI Interface same as before for types
 interface UserAccount {
   id: string;
   name: string;
@@ -52,92 +54,143 @@ const AdminDashboard = () => {
     individuals: 0
   });
 
+  // Fetch users and pending approvals from Supabase
   useEffect(() => {
     if (!user || user.role !== 'admin') {
       navigate('/login');
       return;
     }
 
-    // Load sample data
-    const sampleUsers: UserAccount[] = [
-      {
-        id: '1',
-        name: 'City Pharmacy Ltd',
-        email: 'admin@citypharmacy.co.tz',
-        role: 'retail',
-        status: 'pending',
-        businessName: 'City Pharmacy',
-        registeredAt: '2024-06-05'
-      },
-      {
-        id: '2',
-        name: 'MedSupply Wholesale',
-        email: 'contact@medsupply.co.tz',
-        role: 'wholesale',
-        status: 'pending',
-        businessName: 'MedSupply Distribution',
-        registeredAt: '2024-06-04'
-      },
-      {
-        id: '3',
-        name: 'HealthLab Diagnostics',
-        email: 'info@healthlab.co.tz',
-        role: 'lab',
-        status: 'approved',
-        businessName: 'HealthLab Center',
-        registeredAt: '2024-06-03'
-      },
-      {
-        id: '4',
-        name: 'John Mwangi',
-        email: 'john.mwangi@email.com',
-        role: 'individual',
-        status: 'approved',
-        registeredAt: '2024-06-02'
+    // Fetch users from "profiles"
+    const fetchUsers = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, name, email, role, is_approved, business_name, created_at')
+          .order('created_at', { ascending: false });
+        if (error) {
+          logError(error, "AdminDashboard fetch profiles");
+          toast({
+            title: "Error loading users",
+            description: error.message,
+            variant: "destructive"
+          });
+          return;
+        }
+        const users: UserAccount[] = (data || []).map((u: any) => ({
+          id: u.id,
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          status: u.is_approved === null || u.is_approved === false ? 'pending' : 'approved',
+          businessName: u.business_name || "",
+          registeredAt: u.created_at ? u.created_at.substring(0,10) : "",
+        }));
+
+        setAllUsers(users);
+        setPendingUsers(users.filter(u => u.status === "pending"));
+
+        // Example stats (revenue/orders = 0, you can extend later)
+        setSystemStats({
+          totalUsers: users.length,
+          pendingApprovals: users.filter(u => u.status === "pending").length,
+          totalRevenue: 15750000,
+          activeOrders: 43,
+          pharmacies: users.filter(u => u.role === 'retail').length,
+          wholesalers: users.filter(u => u.role === 'wholesale').length,
+          labs: users.filter(u => u.role === 'lab').length,
+          individuals: users.filter(u => u.role === 'individual').length
+        });
+      } catch (err) {
+        logError(err, "Unexpected error loading profiles");
+        toast({
+          title: "Load Error",
+          description: "Could not load user accounts.",
+          variant: "destructive"
+        });
       }
-    ];
+    };
 
-    const pending = sampleUsers.filter(u => u.status === 'pending');
-    setPendingUsers(pending);
-    setAllUsers(sampleUsers);
+    fetchUsers();
+  }, [user, navigate, toast]);
 
-    setSystemStats({
-      totalUsers: sampleUsers.length,
-      pendingApprovals: pending.length,
-      totalRevenue: 15750000,
-      activeOrders: 43,
-      pharmacies: sampleUsers.filter(u => u.role === 'retail').length,
-      wholesalers: sampleUsers.filter(u => u.role === 'wholesale').length,
-      labs: sampleUsers.filter(u => u.role === 'lab').length,
-      individuals: sampleUsers.filter(u => u.role === 'individual').length
-    });
-  }, [user, navigate]);
-
-  const handleApproveUser = (userId: string) => {
-    setPendingUsers(prev => prev.filter(u => u.id !== userId));
-    setAllUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, status: 'approved' as const } : u
-    ));
-    setSystemStats(prev => ({ ...prev, pendingApprovals: prev.pendingApprovals - 1 }));
-    
-    toast({
-      title: "User Approved",
-      description: "Account has been approved successfully.",
-    });
+  // Approve user handler (update is_approved = true)
+  const handleApproveUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_approved: true })
+        .eq('id', userId);
+      if (error) {
+        logError(error, "Admin approve user");
+        toast({
+          title: "Approval failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      toast({
+        title: "User Approved",
+        description: "Account has been approved successfully.",
+      });
+      // Update lists
+      setPendingUsers(prev => prev.filter(u => u.id !== userId));
+      setAllUsers(prev => prev.map(u =>
+        u.id === userId ? { ...u, status: 'approved' as const } : u
+      ));
+      setSystemStats(prev => ({
+        ...prev,
+        pendingApprovals: prev.pendingApprovals - 1
+      }));
+    } catch (err) {
+      logError(err, "Admin approve user exception");
+      toast({
+        title: "Approval failed",
+        description: "Could not approve account.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleRejectUser = (userId: string) => {
-    setPendingUsers(prev => prev.filter(u => u.id !== userId));
-    setAllUsers(prev => prev.map(u => 
-      u.id === userId ? { ...u, status: 'rejected' as const } : u
-    ));
-    setSystemStats(prev => ({ ...prev, pendingApprovals: prev.pendingApprovals - 1 }));
-    
-    toast({
-      title: "User Rejected",
-      description: "Account has been rejected.",
-      variant: "destructive"
-    });
+  // Reject user handler (update is_approved = false)
+  const handleRejectUser = async (userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ is_approved: false })
+        .eq('id', userId);
+      if (error) {
+        logError(error, "Admin reject user");
+        toast({
+          title: "Reject failed",
+          description: error.message,
+          variant: "destructive"
+        });
+        return;
+      }
+      toast({
+        title: "User Rejected",
+        description: "Account has been rejected.",
+        variant: "destructive"
+      });
+      // Update lists
+      setPendingUsers(prev => prev.filter(u => u.id !== userId));
+      setAllUsers(prev => prev.map(u =>
+        u.id === userId ? { ...u, status: 'rejected' as const } : u
+      ));
+      setSystemStats(prev => ({
+        ...prev,
+        pendingApprovals: prev.pendingApprovals - 1
+      }));
+    } catch (err) {
+      logError(err, "Admin reject user exception");
+      toast({
+        title: "User Rejection Failed",
+        description: "Could not reject account.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -172,7 +225,6 @@ const AdminDashboard = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Admin Dashboard</h1>
           <p className="text-gray-600 text-lg">Manage the BEPAWA healthcare platform</p>
         </div>
-
         {/* System Stats */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white border-0">
