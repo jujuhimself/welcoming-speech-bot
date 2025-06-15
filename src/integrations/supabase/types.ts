@@ -209,6 +209,69 @@ export type Database = {
           },
         ]
       }
+      inventory_adjustments: {
+        Row: {
+          adjustment_type: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+          reason: string | null
+          user_id: string
+        }
+        Insert: {
+          adjustment_type: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity: number
+          reason?: string | null
+          user_id: string
+        }
+        Update: {
+          adjustment_type?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          reason?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      inventory_forecasts: {
+        Row: {
+          actual: number | null
+          created_at: string
+          forecast_date: string
+          forecasted_demand: number
+          id: string
+          product_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          actual?: number | null
+          created_at?: string
+          forecast_date: string
+          forecasted_demand: number
+          id?: string
+          product_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          actual?: number | null
+          created_at?: string
+          forecast_date?: string
+          forecasted_demand?: number
+          id?: string
+          product_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory_movements: {
         Row: {
           cost_per_unit: number | null
@@ -654,6 +717,74 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      pos_sale_items: {
+        Row: {
+          created_at: string
+          id: string
+          pos_sale_id: string
+          product_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pos_sale_id: string
+          product_id: string
+          quantity: number
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pos_sale_id?: string
+          product_id?: string
+          quantity?: number
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pos_sale_items_pos_sale_id_fkey"
+            columns: ["pos_sale_id"]
+            isOneToOne: false
+            referencedRelation: "pos_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pos_sales: {
+        Row: {
+          created_at: string
+          customer_name: string | null
+          id: string
+          payment_method: string
+          sale_date: string
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          payment_method: string
+          sale_date?: string
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          customer_name?: string | null
+          id?: string
+          payment_method?: string
+          sale_date?: string
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: []
       }
       prescription_items: {
         Row: {
@@ -1318,6 +1449,77 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      wholesale_credit_accounts: {
+        Row: {
+          created_at: string
+          credit_limit: number
+          current_balance: number
+          id: string
+          retailer_id: string
+          status: string
+          updated_at: string
+          wholesaler_user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credit_limit?: number
+          current_balance?: number
+          id?: string
+          retailer_id: string
+          status?: string
+          updated_at?: string
+          wholesaler_user_id: string
+        }
+        Update: {
+          created_at?: string
+          credit_limit?: number
+          current_balance?: number
+          id?: string
+          retailer_id?: string
+          status?: string
+          updated_at?: string
+          wholesaler_user_id?: string
+        }
+        Relationships: []
+      }
+      wholesale_credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          credit_account_id: string
+          id: string
+          reference: string | null
+          transaction_date: string
+          transaction_type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          credit_account_id: string
+          id?: string
+          reference?: string | null
+          transaction_date?: string
+          transaction_type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          credit_account_id?: string
+          id?: string
+          reference?: string | null
+          transaction_date?: string
+          transaction_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wholesale_credit_transactions_credit_account_id_fkey"
+            columns: ["credit_account_id"]
+            isOneToOne: false
+            referencedRelation: "wholesale_credit_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -71,6 +71,14 @@ const WholesaleDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
       <div className="container mx-auto px-4 py-8">
+        {/* Add demo link for the new features */}
+        <div className="flex justify-end mb-4">
+          <Button asChild variant="outline">
+            <Link to="/wholesale-business-tools">
+              CRM & Business Tools (New)
+            </Link>
+          </Button>
+        </div>
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome back, {user?.businessName}
