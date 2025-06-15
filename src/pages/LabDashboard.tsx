@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +6,8 @@ import LabStatsCards from "@/components/lab/LabStatsCards";
 import LabAppointmentsList from "@/components/lab/LabAppointmentsList";
 import LabResultsList from "@/components/lab/LabResultsList";
 import LabQuickActions from "@/components/lab/LabQuickActions";
-import type { Appointment, TestResult } from "@/components/lab/LabAppointmentsList";
+import type { Appointment } from "@/components/lab/LabAppointmentsList";
+import type { TestResult } from "@/components/lab/LabResultsList";
 
 const LabDashboard = () => {
   const { user } = useAuth();
