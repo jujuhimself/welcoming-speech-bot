@@ -1,16 +1,13 @@
 
 import { useAuth } from "@/contexts/AuthContext";
-import RetailPos from "./retail/RetailPos";
-import RetailCredit from "./retail/RetailCredit";
-import RetailAdjustment from "./retail/RetailAdjustment";
-import RetailForecast from "./retail/RetailForecast";
-import RetailAuditLog from "./retail/RetailAuditLog";
+import { Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 
 export default function BusinessToolsRetail() {
   const { user } = useAuth();
 
   if (!user) {
+    // Show access denied if not logged in.
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
         <Card className="p-8">
@@ -23,16 +20,6 @@ export default function BusinessToolsRetail() {
     );
   }
 
-  // Render a default tool or provide a placeholder
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
-      <Card className="p-8 w-full max-w-3xl">
-        <CardContent>
-          <h1 className="text-2xl font-bold mb-6">Retail Business Tools</h1>
-          {/* Render one section as default, others are navigated via sidebar */}
-          <RetailPos />
-        </CardContent>
-      </Card>
-    </div>
-  );
+  // If logged in, redirect to the sidebar-based main shell.
+  return <Navigate to="/business-tools-retail/pos" replace />;
 }
