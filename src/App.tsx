@@ -45,6 +45,7 @@ import RouteGuard from "./components/RouteGuard";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { OperationalStatus } from "@/components/OperationalStatus";
 import { FooterVersion } from "@/components/FooterVersion";
+import RetailBusinessTools from "./pages/RetailBusinessTools";
 
 const App = () => {
   // Create QueryClient inside the component to ensure proper React context
@@ -279,6 +280,12 @@ const App = () => {
                     <Route path="/settings" element={
                       <RouteGuard>
                         <SystemSettings />
+                      </RouteGuard>
+                    } />
+                    
+                    <Route path="/business-tools-retail" element={
+                      <RouteGuard allowedRoles={['retail']}>
+                        <RetailBusinessTools />
                       </RouteGuard>
                     } />
                     

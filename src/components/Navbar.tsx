@@ -68,7 +68,7 @@ const Navbar = () => {
           { href: '/orders', label: 'Orders', icon: <FileText className="h-4 w-4" /> },
           { href: '/business-center', label: 'Business Center', icon: <Calculator className="h-4 w-4" /> },
           { href: '/credit-request', label: 'Credit Request', icon: <CreditCard className="h-4 w-4" /> },
-          { href: '/business-tools', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> },
+          { href: '/business-tools-retail', label: 'Business Tools', icon: <Wrench className="h-4 w-4" /> },
           { href: '/settings', label: 'Settings', icon: <Settings className="h-4 w-4" /> }
         ];
       
