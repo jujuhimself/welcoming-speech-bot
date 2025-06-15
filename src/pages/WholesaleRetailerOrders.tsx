@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,14 +27,17 @@ interface OrderItem {
   total: number;
 }
 
+type OrderStatus = 'pending' | 'confirmed' | 'shipped' | 'delivered';
+type PaymentStatus = 'pending' | 'paid' | 'partial';
+
 interface Order {
   id: string;
   orderNumber: string;
   date: string;
   items: OrderItem[];
   total: number;
-  status: 'pending' | 'confirmed' | 'shipped' | 'delivered';
-  paymentStatus: 'pending' | 'paid' | 'partial';
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
 }
 
 interface Pharmacy {
@@ -50,6 +52,9 @@ interface Pharmacy {
   lastOrderDate: string;
   orders: Order[];
 }
+
+const STATUS_VALUES: OrderStatus[] = ['pending', 'confirmed', 'shipped', 'delivered'];
+const PAYMENT_STATUS_VALUES: PaymentStatus[] = ['pending', 'paid', 'partial'];
 
 const WholesaleRetailerOrders = () => {
   const { user } = useAuth();
@@ -137,14 +142,20 @@ const WholesaleRetailerOrders = () => {
       // Organize order list per pharmacy
       (orders || []).forEach(order => {
         if (!order.pharmacy_id || !pharmacyMap[order.pharmacy_id]) return;
+
+        // Fix begins: Map status & paymentStatus to only allowed values
+        const status: OrderStatus = STATUS_VALUES.includes(order.status) ? order.status : 'pending';
+        const paymentStatus: PaymentStatus = PAYMENT_STATUS_VALUES.includes(order.payment_status) ? order.payment_status : 'pending';
+        // Fix ends
+
         const orderObj: Order = {
           id: order.id,
           orderNumber: order.order_number,
           date: order.created_at,
           items: itemsByOrderId[order.id] || [],
           total: Number(order.total_amount),
-          status: order.status,
-          paymentStatus: order.payment_status || "pending"
+          status,          // Now correctly narrowed to enum
+          paymentStatus,   // Now correctly narrowed to enum
         };
         pharmacyMap[order.pharmacy_id].orders.push(orderObj);
       });
