@@ -57,12 +57,13 @@ const PharmacyDashboard = () => {
       return { stats, recentOrders };
     },
     enabled: !!user && user.role === 'retail' && !!user.isApproved,
-    onSuccess: () => {
-        if (user?.pharmacyName) {
-            NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
-        }
-    }
   });
+
+  useEffect(() => {
+    if (data && user?.pharmacyName) {
+        NotificationService.addSystemNotification(`Welcome back, ${user.pharmacyName}! Your dashboard has been updated.`);
+    }
+  }, [data, user?.pharmacyName]);
 
   const stats = data?.stats || { totalOrders: 0, pendingOrders: 0, cartItems: 0 };
   const recentOrders = data?.recentOrders || [];
