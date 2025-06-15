@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { auditService } from '@/services/auditService';
 
@@ -14,8 +15,8 @@ export interface CreditRequest {
   documents: string[];
   created_at: string;
   updated_at: string;
-  reviewed_by?: string;
-  review_notes?: string;
+  reviewed_by: string | null;   // now always present, can be null
+  review_notes: string | null;  // now always present, can be null
 }
 
 export interface CreditAccount {
@@ -30,14 +31,17 @@ export interface CreditAccount {
   updated_at: string;
 }
 
-// Helper type guard to check if input is a record
-function isObject<T>(input: unknown): input is T {
+// Helper type guard to check for any object
+function isRecord(input: unknown): input is Record<string, unknown> {
   return typeof input === 'object' && input !== null;
 }
 
+// Valid request statuses
+const validStatuses = ["pending", "approved", "rejected", "under_review"] as const;
+
 class CreditRequestService {
   async createCreditRequest(
-    request: Omit<CreditRequest, 'id' | 'user_id' | 'status' | 'created_at' | 'updated_at'>
+    request: Omit<CreditRequest, 'id' | 'user_id' | 'status' | 'created_at' | 'updated_at' | 'reviewed_by' | 'review_notes'>
   ): Promise<CreditRequest> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('User not authenticated');
@@ -57,7 +61,7 @@ class CreditRequestService {
       throw error;
     }
 
-    if (!isObject<CreditRequest>(data)) {
+    if (!isRecord(data)) {
       throw new Error('No data returned from createCreditRequest');
     }
 
@@ -74,7 +78,8 @@ class CreditRequestService {
       console.warn('Audit logging failed:', e);
     }
 
-    return data;
+    // Cast here to CreditRequest (assumes Supabase schema is valid)
+    return data as CreditRequest;
   }
 
   async getCreditRequests(): Promise<CreditRequest[]> {
@@ -94,14 +99,29 @@ class CreditRequestService {
 
     if (!Array.isArray(data)) return [];
 
-    // Only return correct types
+    // Only return records with permitted status values and expected properties
     const filtered = data.filter(
       (rec): rec is CreditRequest =>
-        isObject<CreditRequest>(rec) &&
+        isRecord(rec) &&
         typeof rec.status === "string" &&
-        ["pending", "approved", "rejected", "under_review"].includes(rec.status)
+        validStatuses.includes(rec.status as CreditRequest['status']) &&
+        typeof rec.id === "string" &&
+        typeof rec.user_id === "string" &&
+        typeof rec.business_name === "string" &&
+        typeof rec.requested_amount === "number" &&
+        typeof rec.business_type === "string" &&
+        typeof rec.monthly_revenue === "number" &&
+        typeof rec.years_in_business === "number" &&
+        typeof rec.credit_purpose === "string" &&
+        Array.isArray(rec.documents) &&
+        typeof rec.created_at === "string" &&
+        typeof rec.updated_at === "string" &&
+        // reviewed_by and review_notes can be null or string
+        (typeof rec.reviewed_by === "string" || rec.reviewed_by === null) &&
+        (typeof rec.review_notes === "string" || rec.review_notes === null)
     );
-    return filtered;
+
+    return filtered.map(rec => rec as CreditRequest);
   }
 
   async getCreditAccount(): Promise<CreditAccount | null> {
@@ -119,11 +139,12 @@ class CreditRequestService {
       throw error;
     }
 
-    if (!isObject<CreditAccount>(data)) {
+    if (!isRecord(data)) {
       return null;
     }
 
-    return data;
+    // Cast - expects data matches CreditAccount
+    return data as CreditAccount;
   }
 
   async updateCreditRequestStatus(
@@ -151,11 +172,11 @@ class CreditRequestService {
       throw error;
     }
 
-    if (!isObject<CreditRequest>(data)) {
+    if (!isRecord(data)) {
       throw new Error('No data returned after status update');
     }
 
-    return data;
+    return data as CreditRequest;
   }
 }
 
