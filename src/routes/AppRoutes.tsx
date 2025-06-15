@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
@@ -46,6 +45,10 @@ import PurchaseOrdersPage from "@/pages/PurchaseOrders";
 import SuppliersPage from "@/pages/Suppliers";
 import InventoryReportsPage from "@/pages/InventoryReports";
 import InventoryDashboardPage from "@/pages/InventoryDashboard";
+import Navbar from "@/components/Navbar";
+import PageHeader from "@/components/PageHeader";
+import BarcodeManager from "@/components/inventory/BarcodeManager";
+import InventoryWorkflow from "@/components/inventory/InventoryWorkflow";
 
 export const AppRoutes = () => {
   return (

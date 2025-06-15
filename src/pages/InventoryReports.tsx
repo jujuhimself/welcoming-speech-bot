@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import PageHeader from "@/components/PageHeader";
-import InventoryReportsComponent from "@/components/inventory/InventoryReports";
+import InventoryReports from "@/components/inventory/InventoryReports";
 
 const InventoryReportsPage = () => {
   const { user } = useAuth();
@@ -27,11 +27,11 @@ const InventoryReportsPage = () => {
       <div className="container mx-auto px-4 py-8">
         <PageHeader
           title="Inventory Reports"
-          description="Comprehensive inventory analytics and reporting"
+          description="Generate comprehensive reports and analytics for your inventory"
           badge={{ text: "Analytics", variant: "outline" }}
         />
 
-        <InventoryReportsComponent />
+        <InventoryReports />
       </div>
     </div>
   );

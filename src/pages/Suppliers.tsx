@@ -27,8 +27,8 @@ const SuppliersPage = () => {
       <div className="container mx-auto px-4 py-8">
         <PageHeader
           title="Suppliers"
-          description="Manage your suppliers and vendor relationships"
-          badge={{ text: "Vendor Management", variant: "outline" }}
+          description="Manage your supplier relationships and vendor information"
+          badge={{ text: "Procurement", variant: "outline" }}
         />
 
         <SupplierManagement />
