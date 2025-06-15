@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +10,16 @@ import { CreditCard, FileText, AlertCircle, CheckCircle, Clock } from "lucide-re
 import { useCreateCreditRequest, useCreditRequests, useCreditAccount } from "@/hooks/useCreditRequest";
 import { useToast } from "@/hooks/use-toast";
 import PageHeader from "@/components/PageHeader";
+import { LoadingState, ErrorState } from "@/components/LoadingStates";
+import { useAuth } from "@/contexts/AuthContext";
+import { auditService } from "@/services/auditService";
 
 const CreditRequest = () => {
   const { toast } = useToast();
-  const { data: creditRequests, isLoading: requestsLoading } = useCreditRequests();
-  const { data: creditAccount } = useCreditAccount();
+  const { data: creditRequests, isLoading: requestsLoading, error: requestsError, refetch } = useCreditRequests();
+  const { data: creditAccount, isLoading: accountLoading, error: accountError } = useCreditAccount();
   const createCreditRequestMutation = useCreateCreditRequest();
+  const { user } = useAuth();
 
   const [formData, setFormData] = useState({
     business_name: '',
@@ -28,9 +31,12 @@ const CreditRequest = () => {
     documents: [] as string[]
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Only allow businesses to apply (not individuals or suspended/closed accounts)
+  const roleNotAllowed = user && (user.role === "individual" || user.role === "admin");
+  const canApply = !roleNotAllowed && (!creditAccount || creditAccount.status !== "suspended");
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
     if (!formData.business_name || !formData.requested_amount || !formData.business_type) {
       toast({
         title: "Validation Error",
@@ -39,16 +45,42 @@ const CreditRequest = () => {
       });
       return;
     }
-
-    createCreditRequestMutation.mutate({
-      business_name: formData.business_name,
-      requested_amount: parseFloat(formData.requested_amount),
-      business_type: formData.business_type,
-      monthly_revenue: parseFloat(formData.monthly_revenue || '0'),
-      years_in_business: parseInt(formData.years_in_business || '0'),
-      credit_purpose: formData.credit_purpose,
-      documents: formData.documents
-    });
+    try {
+      await createCreditRequestMutation.mutateAsync({
+        business_name: formData.business_name,
+        requested_amount: parseFloat(formData.requested_amount),
+        business_type: formData.business_type,
+        monthly_revenue: parseFloat(formData.monthly_revenue || '0'),
+        years_in_business: parseInt(formData.years_in_business || '0'),
+        credit_purpose: formData.credit_purpose,
+        documents: formData.documents
+      });
+      await auditService.logAction(
+        "CREATE_CREDIT_REQUEST",
+        "credit_request",
+        undefined,
+        { business_name: formData.business_name, requested_amount: formData.requested_amount }
+      );
+      toast({
+        title: "Application Submitted",
+        description: "Your credit request has been submitted for review.",
+      });
+      setFormData({
+        business_name: '',
+        requested_amount: '',
+        business_type: '',
+        monthly_revenue: '',
+        years_in_business: '',
+        credit_purpose: '',
+        documents: []
+      });
+    } catch (error) {
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit your credit request. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -69,11 +101,18 @@ const CreditRequest = () => {
     }
   };
 
-  if (requestsLoading) {
+  if (requestsLoading || accountLoading) {
+    return <LoadingState variant="page" message="Loading credit information..." />;
+  }
+
+  if (requestsError || accountError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
-        <div>Loading credit information...</div>
-      </div>
+      <ErrorState 
+        title="Failed to load credit information" 
+        description="An error occurred. Please check your connection and try again."
+        showRetry={true}
+        onRetry={refetch}
+      />
     );
   }
 
@@ -85,6 +124,19 @@ const CreditRequest = () => {
           description="Apply for business credit to expand your operations"
           badge={{ text: "Financial Services", variant: "outline" }}
         />
+
+        {roleNotAllowed && (
+          <div className="bg-yellow-100 text-yellow-900 px-4 py-3 rounded mb-6 text-center">
+            Only business accounts can apply for credit. If you believe this is an error, please contact support.
+          </div>
+        )}
+
+        {/* SUSPENDED/CLOSED ACCOUNT warning */}
+        {creditAccount && (creditAccount.status === "suspended" || creditAccount.status === "closed") && (
+          <div className="bg-red-100 text-red-800 px-4 py-3 rounded mb-6 text-center">
+            Your credit account is {creditAccount.status}. Please contact support for assistance.
+          </div>
+        )}
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Credit Application Form */}
@@ -110,6 +162,7 @@ const CreditRequest = () => {
                         onChange={(e) => setFormData({ ...formData, business_name: e.target.value })}
                         placeholder="Enter your business name"
                         required
+                        disabled={!canApply || createCreditRequestMutation.isPending}
                       />
                     </div>
                     <div>
@@ -121,6 +174,7 @@ const CreditRequest = () => {
                         onChange={(e) => setFormData({ ...formData, requested_amount: e.target.value })}
                         placeholder="e.g., 5000000"
                         required
+                        disabled={!canApply || createCreditRequestMutation.isPending}
                       />
                     </div>
                   </div>
@@ -131,6 +185,7 @@ const CreditRequest = () => {
                       <Select 
                         value={formData.business_type} 
                         onValueChange={(value) => setFormData({ ...formData, business_type: value })}
+                        disabled={!canApply || createCreditRequestMutation.isPending}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select business type" />
@@ -151,6 +206,7 @@ const CreditRequest = () => {
                         value={formData.monthly_revenue}
                         onChange={(e) => setFormData({ ...formData, monthly_revenue: e.target.value })}
                         placeholder="e.g., 2000000"
+                        disabled={!canApply || createCreditRequestMutation.isPending}
                       />
                     </div>
                   </div>
@@ -164,6 +220,7 @@ const CreditRequest = () => {
                         value={formData.years_in_business}
                         onChange={(e) => setFormData({ ...formData, years_in_business: e.target.value })}
                         placeholder="e.g., 3"
+                        disabled={!canApply || createCreditRequestMutation.isPending}
                       />
                     </div>
                   </div>
@@ -176,13 +233,14 @@ const CreditRequest = () => {
                       onChange={(e) => setFormData({ ...formData, credit_purpose: e.target.value })}
                       placeholder="Describe how you plan to use the credit..."
                       rows={3}
+                      disabled={!canApply || createCreditRequestMutation.isPending}
                     />
                   </div>
 
                   <Button 
                     type="submit" 
                     className="w-full"
-                    disabled={createCreditRequestMutation.isPending}
+                    disabled={!canApply || createCreditRequestMutation.isPending}
                   >
                     {createCreditRequestMutation.isPending ? 'Submitting...' : 'Submit Credit Application'}
                   </Button>

@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { auditService } from '@/services/auditService';
 
 export interface CreditRequest {
   id: string;
@@ -60,6 +61,19 @@ class CreditRequestService {
       throw new Error('No data returned from createCreditRequest');
     }
 
+    // Audit log
+    try {
+      await auditService.logAction(
+        'CREATE_CREDIT_REQUEST',
+        'credit_request',
+        data.id,
+        { business_name: data.business_name, requested_amount: data.requested_amount }
+      );
+    } catch (e) {
+      // Audit errors should not block main action.
+      console.warn('Audit logging failed:', e);
+    }
+
     return data;
   }
 
@@ -78,9 +92,15 @@ class CreditRequestService {
       throw error;
     }
 
-    // Filter array: only keep objects that look like CreditRequest
     if (!Array.isArray(data)) return [];
-    const filtered = data.filter(isObject<CreditRequest>);
+
+    // Only return correct types
+    const filtered = data.filter(
+      (rec): rec is CreditRequest =>
+        isObject<CreditRequest>(rec) &&
+        typeof rec.status === "string" &&
+        ["pending", "approved", "rejected", "under_review"].includes(rec.status)
+    );
     return filtered;
   }
 
