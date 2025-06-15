@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "@/components/Navbar";
@@ -9,12 +8,16 @@ import IndividualQuickActions from "@/components/individual/IndividualQuickActio
 import NearbyPharmacies from "@/components/individual/NearbyPharmacies";
 import HealthSummary from "@/components/individual/HealthSummary";
 import { supabase } from "@/integrations/supabase/client";
+import { useNotificationSubscription } from "@/hooks/useNotifications";
 
 const IndividualDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { isLoading, isError, stats, recentOrders } = useIndividualDashboard();
   const [nearbyPharmacies, setNearbyPharmacies] = useState<any[]>([]);
+
+  // Enable notification subscription for individuals
+  useNotificationSubscription();
 
   useEffect(() => {
     if (!user || user.role !== 'individual') {

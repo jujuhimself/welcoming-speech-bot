@@ -143,10 +143,15 @@ const WholesaleRetailerOrders = () => {
       (orders || []).forEach(order => {
         if (!order.pharmacy_id || !pharmacyMap[order.pharmacy_id]) return;
 
-        // Fix begins: Map status & paymentStatus to only allowed values
-        const status: OrderStatus = STATUS_VALUES.includes(order.status) ? order.status : 'pending';
-        const paymentStatus: PaymentStatus = PAYMENT_STATUS_VALUES.includes(order.payment_status) ? order.payment_status : 'pending';
-        // Fix ends
+        // Strict type handling for status & paymentStatus
+        const status: OrderStatus = 
+          STATUS_VALUES.includes(order.status as OrderStatus) 
+            ? (order.status as OrderStatus) 
+            : 'pending';
+        const paymentStatus: PaymentStatus = 
+          PAYMENT_STATUS_VALUES.includes(order.payment_status as PaymentStatus)
+            ? (order.payment_status as PaymentStatus)
+            : 'pending';
 
         const orderObj: Order = {
           id: order.id,
@@ -154,8 +159,8 @@ const WholesaleRetailerOrders = () => {
           date: order.created_at,
           items: itemsByOrderId[order.id] || [],
           total: Number(order.total_amount),
-          status,          // Now correctly narrowed to enum
-          paymentStatus,   // Now correctly narrowed to enum
+          status,
+          paymentStatus,
         };
         pharmacyMap[order.pharmacy_id].orders.push(orderObj);
       });

@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import { BreadcrumbNavigation } from "@/components/BreadcrumbNavigation";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { NotificationService } from "@/components/NotificationSystem";
 import { supabase } from "@/integrations/supabase/client";
+import { useNotificationSubscription } from "@/hooks/useNotifications";
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
@@ -22,6 +22,9 @@ const PharmacyDashboard = () => {
     pendingOrders: 0,
     cartItems: 0
   });
+
+  // Ensure real-time notifications are enabled for pharmacy users
+  useNotificationSubscription();
 
   useEffect(() => {
     if (!user || user.role !== 'retail') {
@@ -269,4 +272,3 @@ const PharmacyDashboard = () => {
 };
 
 export default PharmacyDashboard;
-
