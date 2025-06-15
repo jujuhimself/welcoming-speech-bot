@@ -1,11 +1,15 @@
 
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { BarChart3, TrendingUp, DollarSign, Package, Users, Calendar } from "lucide-react";
+import { BarChart3, TrendingUp, DollarSign, Package, Users, Calendar, FileText, Database, FileSearch } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import Navbar from "@/components/Navbar";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
+import { useReportTemplates, useGenerateReport, useGeneratedReports } from "@/hooks/useReporting";
+import ReportModal from "@/components/ReportModal";
+import { useToast } from "@/hooks/use-toast";
 
 const WholesaleAnalytics = () => {
   const { user } = useAuth();
@@ -17,13 +21,20 @@ const WholesaleAnalytics = () => {
     retailerDistribution: []
   });
 
+  // Automated Reporting
+  const { data: reportTemplates } = useReportTemplates();
+  const { mutate: generateReport, isPending } = useGenerateReport();
+  const { data: generatedReports, isLoading: loadingReports } = useGeneratedReports();
+  const [reportModalOpen, setReportModalOpen] = useState(false);
+  const { toast } = useToast();
+
   useEffect(() => {
     if (!user || user.role !== 'wholesale') {
       navigate('/login');
       return;
     }
 
-    // Generate sample analytics data
+    // Generate sample analytics data (replace with real queries as appropriate)
     const monthlyRevenue = [
       { month: 'Jan', revenue: 2400000, orders: 45 },
       { month: 'Feb', revenue: 2800000, orders: 52 },
@@ -69,14 +80,43 @@ const WholesaleAnalytics = () => {
   const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
   const totalRetailers = analyticsData.retailerDistribution.reduce((sum, cat) => sum + cat.count, 0);
 
+  // New: Download generated report
+  const handleDownload = async (file_path: string) => {
+    try {
+      const res = await fetch(`https://frgblvloxhcnwrgvjazk.supabase.co/storage/v1/object/public/reports/${file_path}`);
+      if (!res.ok) throw new Error("Failed to fetch report");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file_path.split("/").pop() || "report.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast({ title: "Report download started", description: "Check your downloads." });
+    } catch (e) {
+      toast({ title: "Download failed", description: "Could not download the report.", variant: "destructive" });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <Navbar />
       
       <div className="container mx-auto px-4 py-8">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Business Analytics</h1>
-          <p className="text-gray-600 text-lg">Track performance and business insights</p>
+        <div className="mb-8 flex gap-4 items-center justify-between flex-wrap">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">Business Analytics</h1>
+            <p className="text-gray-600 text-lg">Track performance and business insights</p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setReportModalOpen(true)}>
+              <FileText className="h-5 w-5 mr-2" /> Generate Report
+            </Button>
+            <Button variant="ghost">
+              <Database className="h-5 w-5 mr-2" /> Export Data
+            </Button>
+          </div>
         </div>
 
         {/* Summary Stats */}
@@ -171,7 +211,7 @@ const WholesaleAnalytics = () => {
           </Card>
         </div>
 
-        <div className="grid lg:grid-cols-2 gap-8">
+        <div className="grid lg:grid-cols-2 gap-8 mb-8">
           {/* Top Products */}
           <Card className="shadow-lg border-0">
             <CardHeader>
@@ -245,9 +285,84 @@ const WholesaleAnalytics = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Automated Reports Section */}
+        <div className="mt-12 mb-10">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSearch className="h-5 w-5" />
+                Automated Reports
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loadingReports ? (
+                <div className="text-gray-500">Loading reports...</div>
+              ) : !generatedReports || generatedReports.length === 0 ? (
+                <div className="text-gray-400">No reports generated yet.</div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr>
+                        <th className="px-3 py-2 text-left font-semibold">Name</th>
+                        <th className="px-3 py-2 text-left font-semibold">Created</th>
+                        <th className="px-3 py-2 text-left font-semibold">Status</th>
+                        <th className="px-3 py-2 text-left font-semibold">Download</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {generatedReports.map((report) => (
+                        <tr key={report.id} className="border-t">
+                          <td className="px-3 py-2">{report.file_path.split("/").pop()}</td>
+                          <td className="px-3 py-2">{new Date(report.created_at).toLocaleString()}</td>
+                          <td className="px-3 py-2 capitalize">
+                            <span className={
+                              report.status === "completed"
+                                ? "text-green-700"
+                                : report.status === "failed"
+                                ? "text-red-700"
+                                : "text-blue-700"
+                            }>
+                              {report.status}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2">
+                            {report.status === "completed" ? (
+                              <Button size="sm" onClick={() => handleDownload(report.file_path)}>Download</Button>
+                            ) : (
+                              <span className="text-xs text-gray-500">Not ready</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Report Generation Modal */}
+        <ReportModal
+          open={reportModalOpen}
+          onOpenChange={setReportModalOpen}
+          templates={reportTemplates || []}
+          onGenerateReport={({ templateId, parameters }) => {
+            generateReport(
+              { templateId, parameters },
+              {
+                onSuccess: () => setReportModalOpen(false),
+              }
+            );
+          }}
+          isLoading={isPending}
+        />
       </div>
     </div>
   );
 };
 
 export default WholesaleAnalytics;
+
