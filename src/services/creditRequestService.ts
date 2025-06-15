@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface CreditRequest {
@@ -30,6 +29,11 @@ export interface CreditAccount {
   updated_at: string;
 }
 
+// Helper type guard to check if input is a record
+function isObject<T>(input: unknown): input is T {
+  return typeof input === 'object' && input !== null;
+}
+
 class CreditRequestService {
   async createCreditRequest(
     request: Omit<CreditRequest, 'id' | 'user_id' | 'status' | 'created_at' | 'updated_at'>
@@ -38,7 +42,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_requests' as any)
+      .from('credit_requests')
       .insert({
         ...request,
         user_id: user.id,
@@ -52,7 +56,7 @@ class CreditRequestService {
       throw error;
     }
 
-    if (!data) {
+    if (!isObject<CreditRequest>(data)) {
       throw new Error('No data returned from createCreditRequest');
     }
 
@@ -64,7 +68,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_requests' as any)
+      .from('credit_requests')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
@@ -74,7 +78,10 @@ class CreditRequestService {
       throw error;
     }
 
-    return Array.isArray(data) ? data : [];
+    // Filter array: only keep objects that look like CreditRequest
+    if (!Array.isArray(data)) return [];
+    const filtered = data.filter(isObject<CreditRequest>);
+    return filtered;
   }
 
   async getCreditAccount(): Promise<CreditAccount | null> {
@@ -82,7 +89,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_accounts' as any)
+      .from('credit_accounts')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
@@ -92,7 +99,7 @@ class CreditRequestService {
       throw error;
     }
 
-    if (!data) {
+    if (!isObject<CreditAccount>(data)) {
       return null;
     }
 
@@ -108,7 +115,7 @@ class CreditRequestService {
     if (!user) throw new Error('User not authenticated');
 
     const { data, error } = await supabase
-      .from('credit_requests' as any)
+      .from('credit_requests')
       .update({
         status,
         review_notes: reviewNotes,
@@ -124,7 +131,7 @@ class CreditRequestService {
       throw error;
     }
 
-    if (!data) {
+    if (!isObject<CreditRequest>(data)) {
       throw new Error('No data returned after status update');
     }
 
@@ -133,4 +140,3 @@ class CreditRequestService {
 }
 
 export const creditRequestService = new CreditRequestService();
-
