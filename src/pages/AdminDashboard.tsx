@@ -24,6 +24,7 @@ import Navbar from "@/components/Navbar";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { logError } from "@/utils/logger";
+import { notificationService } from "@/services/notificationService";
 
 // UI Interface same as before for types
 interface UserAccount {
@@ -130,6 +131,19 @@ const AdminDashboard = () => {
         });
         return;
       }
+
+      // Send notification to the user
+      try {
+        await notificationService.createNotification({
+          user_id: userId,
+          title: "Account Approved",
+          message: "Your account has been approved by the BEPAWA admin. You can now access all features on the platform.",
+          type: "success"
+        });
+      } catch (notifyErr) {
+        logError(notifyErr, "Failed to send approval notification");
+      }
+
       toast({
         title: "User Approved",
         description: "Account has been approved successfully.",
@@ -169,6 +183,19 @@ const AdminDashboard = () => {
         });
         return;
       }
+
+      // Send notification to the user
+      try {
+        await notificationService.createNotification({
+          user_id: userId,
+          title: "Account Rejected",
+          message: "Unfortunately, your BEPAWA account was rejected by the admin. Please contact support@bepawa.com for more info.",
+          type: "error"
+        });
+      } catch (notifyErr) {
+        logError(notifyErr, "Failed to send rejection notification");
+      }
+
       toast({
         title: "User Rejected",
         description: "Account has been rejected.",
