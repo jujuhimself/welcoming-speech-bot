@@ -51,6 +51,166 @@ export type Database = {
         }
         Relationships: []
       }
+      assemblies: {
+        Row: {
+          branch_id: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          selling_price: number
+          unit_cost: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          selling_price?: number
+          unit_cost?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          selling_price?: number
+          unit_cost?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assemblies_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assembly_components: {
+        Row: {
+          assembly_id: string
+          created_at: string
+          id: string
+          product_id: string
+          quantity: number
+        }
+        Insert: {
+          assembly_id: string
+          created_at?: string
+          id?: string
+          product_id: string
+          quantity: number
+        }
+        Update: {
+          assembly_id?: string
+          created_at?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assembly_components_assembly_id_fkey"
+            columns: ["assembly_id"]
+            isOneToOne: false
+            referencedRelation: "assemblies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assembly_components_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      assets: {
+        Row: {
+          branch_id: string
+          category: string
+          condition: string | null
+          created_at: string
+          current_value: number | null
+          depreciation_rate: number | null
+          disposal_date: string | null
+          disposal_reason: string | null
+          id: string
+          last_maintenance_date: string | null
+          maintenance_schedule: string | null
+          name: string
+          next_maintenance_date: string | null
+          purchase_cost: number | null
+          purchase_date: string | null
+          serial_number: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          category: string
+          condition?: string | null
+          created_at?: string
+          current_value?: number | null
+          depreciation_rate?: number | null
+          disposal_date?: string | null
+          disposal_reason?: string | null
+          id?: string
+          last_maintenance_date?: string | null
+          maintenance_schedule?: string | null
+          name: string
+          next_maintenance_date?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          category?: string
+          condition?: string | null
+          created_at?: string
+          current_value?: number | null
+          depreciation_rate?: number | null
+          disposal_date?: string | null
+          disposal_reason?: string | null
+          id?: string
+          last_maintenance_date?: string | null
+          maintenance_schedule?: string | null
+          name?: string
+          next_maintenance_date?: string | null
+          purchase_cost?: number | null
+          purchase_date?: string | null
+          serial_number?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "assets_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -162,6 +322,296 @@ export type Database = {
           time?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      bank_accounts: {
+        Row: {
+          account_name: string
+          account_number: string
+          account_type: string
+          balance: number
+          bank_name: string
+          branch_id: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_name: string
+          account_number: string
+          account_type: string
+          balance?: number
+          bank_name: string
+          branch_id: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          account_type?: string
+          balance?: number
+          bank_name?: string
+          branch_id?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_accounts_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bank_transactions: {
+        Row: {
+          amount: number
+          balance_after: number
+          bank_account_id: string
+          created_at: string
+          description: string | null
+          id: string
+          reconciled: boolean
+          reference_number: string | null
+          transaction_date: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          bank_account_id: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          reconciled?: boolean
+          reference_number?: string | null
+          transaction_date: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          bank_account_id?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          reconciled?: boolean
+          reference_number?: string | null
+          transaction_date?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bank_transactions_bank_account_id_fkey"
+            columns: ["bank_account_id"]
+            isOneToOne: false
+            referencedRelation: "bank_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bill_items: {
+        Row: {
+          batch_number: string | null
+          bill_id: string
+          created_at: string
+          expiry_date: string | null
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          received_quantity: number | null
+          total_cost: number
+          unit_cost: number
+        }
+        Insert: {
+          batch_number?: string | null
+          bill_id: string
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          received_quantity?: number | null
+          total_cost: number
+          unit_cost: number
+        }
+        Update: {
+          batch_number?: string | null
+          bill_id?: string
+          created_at?: string
+          expiry_date?: string | null
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          received_quantity?: number | null
+          total_cost?: number
+          unit_cost?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bill_items_bill_id_fkey"
+            columns: ["bill_id"]
+            isOneToOne: false
+            referencedRelation: "bills"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bill_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bills: {
+        Row: {
+          bill_date: string
+          bill_number: string
+          branch_id: string
+          created_at: string
+          due_date: string | null
+          id: string
+          notes: string | null
+          paid_amount: number
+          purchase_order_id: string | null
+          status: string
+          subtotal: number
+          supplier_id: string | null
+          total_amount: number
+          updated_at: string
+          user_id: string
+          vat_amount: number
+          wht_amount: number
+        }
+        Insert: {
+          bill_date: string
+          bill_number: string
+          branch_id: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          purchase_order_id?: string | null
+          status?: string
+          subtotal?: number
+          supplier_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+          vat_amount?: number
+          wht_amount?: number
+        }
+        Update: {
+          bill_date?: string
+          bill_number?: string
+          branch_id?: string
+          created_at?: string
+          due_date?: string | null
+          id?: string
+          notes?: string | null
+          paid_amount?: number
+          purchase_order_id?: string | null
+          status?: string
+          subtotal?: number
+          supplier_id?: string | null
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+          wht_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bills_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_purchase_order_id_fkey"
+            columns: ["purchase_order_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bills_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      branches: {
+        Row: {
+          address: string | null
+          code: string
+          created_at: string
+          email: string | null
+          id: string
+          is_active: boolean
+          manager_name: string | null
+          name: string
+          phone: string | null
+          updated_at: string
+          user_id: string
+          vat_rate: number | null
+          wht_rate: number | null
+        }
+        Insert: {
+          address?: string | null
+          code: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          manager_name?: string | null
+          name: string
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+          vat_rate?: number | null
+          wht_rate?: number | null
+        }
+        Update: {
+          address?: string | null
+          code?: string
+          created_at?: string
+          email?: string | null
+          id?: string
+          is_active?: boolean
+          manager_name?: string | null
+          name?: string
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+          vat_rate?: number | null
+          wht_rate?: number | null
         }
         Relationships: []
       }
@@ -443,52 +893,157 @@ export type Database = {
         }
         Relationships: []
       }
-      inventory_movements: {
+      invoice_items: {
         Row: {
-          cost_per_unit: number | null
           created_at: string
-          created_by: string | null
           id: string
-          movement_type: string
-          product_id: string
+          invoice_id: string
+          product_id: string | null
+          product_name: string
           quantity: number
-          reason: string | null
-          reference_number: string | null
-          user_id: string
+          total_price: number
+          unit_price: number
         }
         Insert: {
-          cost_per_unit?: number | null
           created_at?: string
-          created_by?: string | null
           id?: string
-          movement_type: string
-          product_id: string
+          invoice_id: string
+          product_id?: string | null
+          product_name: string
           quantity: number
-          reason?: string | null
-          reference_number?: string | null
-          user_id: string
+          total_price: number
+          unit_price: number
         }
         Update: {
-          cost_per_unit?: number | null
           created_at?: string
-          created_by?: string | null
           id?: string
-          movement_type?: string
-          product_id?: string
+          invoice_id?: string
+          product_id?: string | null
+          product_name?: string
           quantity?: number
-          reason?: string | null
-          reference_number?: string | null
-          user_id?: string
+          total_price?: number
+          unit_price?: number
         }
         Relationships: [
           {
-            foreignKeyName: "inventory_movements_product_id_fkey"
+            foreignKeyName: "invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoice_items_product_id_fkey"
             columns: ["product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
+      }
+      invoices: {
+        Row: {
+          branch_id: string
+          created_at: string
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          discount_amount: number
+          due_date: string | null
+          id: string
+          invoice_date: string
+          invoice_number: string
+          is_recurring: boolean
+          next_invoice_date: string | null
+          notes: string | null
+          paid_amount: number
+          recurring_frequency: string | null
+          status: string
+          subtotal: number
+          total_amount: number
+          updated_at: string
+          user_id: string
+          vat_amount: number
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          discount_amount?: number
+          due_date?: string | null
+          id?: string
+          invoice_date: string
+          invoice_number: string
+          is_recurring?: boolean
+          next_invoice_date?: string | null
+          notes?: string | null
+          paid_amount?: number
+          recurring_frequency?: string | null
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          user_id: string
+          vat_amount?: number
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          discount_amount?: number
+          due_date?: string | null
+          id?: string
+          invoice_date?: string
+          invoice_number?: string
+          is_recurring?: boolean
+          next_invoice_date?: string | null
+          notes?: string | null
+          paid_amount?: number
+          recurring_frequency?: string | null
+          status?: string
+          subtotal?: number
+          total_amount?: number
+          updated_at?: string
+          user_id?: string
+          vat_amount?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      item_types: {
+        Row: {
+          created_at: string
+          has_cost: boolean
+          id: string
+          is_service: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          has_cost?: boolean
+          id?: string
+          is_service?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          has_cost?: boolean
+          id?: string
+          is_service?: boolean
+          name?: string
+        }
+        Relationships: []
       }
       lab_order_items: {
         Row: {
@@ -739,13 +1294,6 @@ export type Database = {
             referencedRelation: "orders"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
         ]
       }
       order_status_history: {
@@ -940,6 +1488,7 @@ export type Database = {
         Row: {
           created_at: string
           customer_name: string | null
+          customer_phone: string | null
           id: string
           payment_method: string
           sale_date: string
@@ -949,6 +1498,7 @@ export type Database = {
         Insert: {
           created_at?: string
           customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           payment_method: string
           sale_date?: string
@@ -958,6 +1508,7 @@ export type Database = {
         Update: {
           created_at?: string
           customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           payment_method?: string
           sale_date?: string
@@ -1015,13 +1566,6 @@ export type Database = {
             columns: ["prescription_id"]
             isOneToOne: false
             referencedRelation: "prescriptions"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "prescription_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
             referencedColumns: ["id"]
           },
         ]
@@ -1091,6 +1635,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          pharmacy_id: string | null
           product_id: string
           profit_margin: number
           quantity_sold: number
@@ -1102,6 +1647,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          pharmacy_id?: string | null
           product_id: string
           profit_margin?: number
           quantity_sold?: number
@@ -1113,6 +1659,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          pharmacy_id?: string | null
           product_id?: string
           profit_margin?: number
           quantity_sold?: number
@@ -1120,15 +1667,7 @@ export type Database = {
           stock_turnover_rate?: number
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "product_analytics_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       product_categories: {
         Row: {
@@ -1171,71 +1710,119 @@ export type Database = {
       products: {
         Row: {
           batch_number: string | null
+          branch_id: string | null
           buy_price: number
           category: string
-          created_at: string
+          created_at: string | null
           description: string | null
+          dosage_form: string | null
           expiry_date: string | null
           id: string
+          image_url: string | null
+          is_public_product: boolean | null
+          is_retail_product: boolean | null
+          is_wholesale_product: boolean | null
+          item_type_id: string | null
           last_ordered: string | null
+          manufacturer: string | null
           max_stock: number | null
-          min_stock: number
+          min_stock_level: number
           name: string
+          pack_size: string | null
           pharmacy_id: string | null
+          requires_prescription: boolean | null
           sell_price: number
-          sku: string
+          sku: string | null
           status: string
           stock: number
+          strength: string | null
           supplier: string | null
-          updated_at: string
-          user_id: string
+          updated_at: string | null
+          user_id: string | null
           wholesaler_id: string | null
         }
         Insert: {
           batch_number?: string | null
+          branch_id?: string | null
           buy_price: number
           category: string
-          created_at?: string
+          created_at?: string | null
           description?: string | null
+          dosage_form?: string | null
           expiry_date?: string | null
           id?: string
+          image_url?: string | null
+          is_public_product?: boolean | null
+          is_retail_product?: boolean | null
+          is_wholesale_product?: boolean | null
+          item_type_id?: string | null
           last_ordered?: string | null
+          manufacturer?: string | null
           max_stock?: number | null
-          min_stock?: number
+          min_stock_level?: number
           name: string
+          pack_size?: string | null
           pharmacy_id?: string | null
+          requires_prescription?: boolean | null
           sell_price: number
-          sku: string
+          sku?: string | null
           status?: string
           stock?: number
+          strength?: string | null
           supplier?: string | null
-          updated_at?: string
-          user_id: string
+          updated_at?: string | null
+          user_id?: string | null
           wholesaler_id?: string | null
         }
         Update: {
           batch_number?: string | null
+          branch_id?: string | null
           buy_price?: number
           category?: string
-          created_at?: string
+          created_at?: string | null
           description?: string | null
+          dosage_form?: string | null
           expiry_date?: string | null
           id?: string
+          image_url?: string | null
+          is_public_product?: boolean | null
+          is_retail_product?: boolean | null
+          is_wholesale_product?: boolean | null
+          item_type_id?: string | null
           last_ordered?: string | null
+          manufacturer?: string | null
           max_stock?: number | null
-          min_stock?: number
+          min_stock_level?: number
           name?: string
+          pack_size?: string | null
           pharmacy_id?: string | null
+          requires_prescription?: boolean | null
           sell_price?: number
-          sku?: string
+          sku?: string | null
           status?: string
           stock?: number
+          strength?: string | null
           supplier?: string | null
-          updated_at?: string
-          user_id?: string
+          updated_at?: string | null
+          user_id?: string | null
           wholesaler_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "products_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_item_type_id_fkey"
+            columns: ["item_type_id"]
+            isOneToOne: false
+            referencedRelation: "item_types"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -1243,6 +1830,7 @@ export type Database = {
           business_license: string | null
           business_name: string | null
           city: string | null
+          contact_person: string | null
           created_at: string | null
           date_of_birth: string | null
           email: string
@@ -1272,6 +1860,7 @@ export type Database = {
           business_license?: string | null
           business_name?: string | null
           city?: string | null
+          contact_person?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email: string
@@ -1301,6 +1890,7 @@ export type Database = {
           business_license?: string | null
           business_name?: string | null
           city?: string | null
+          contact_person?: string | null
           created_at?: string | null
           date_of_birth?: string | null
           email?: string
@@ -1335,9 +1925,8 @@ export type Database = {
           product_name: string
           purchase_order_id: string
           quantity: number
-          received_quantity: number | null
-          total_cost: number
-          unit_cost: number
+          total_price: number
+          unit_price: number
         }
         Insert: {
           created_at?: string
@@ -1346,9 +1935,8 @@ export type Database = {
           product_name: string
           purchase_order_id: string
           quantity: number
-          received_quantity?: number | null
-          total_cost: number
-          unit_cost: number
+          total_price: number
+          unit_price: number
         }
         Update: {
           created_at?: string
@@ -1357,9 +1945,8 @@ export type Database = {
           product_name?: string
           purchase_order_id?: string
           quantity?: number
-          received_quantity?: number | null
-          total_cost?: number
-          unit_cost?: number
+          total_price?: number
+          unit_price?: number
         }
         Relationships: [
           {
@@ -1380,6 +1967,7 @@ export type Database = {
       }
       purchase_orders: {
         Row: {
+          branch_id: string | null
           created_at: string
           expected_delivery: string | null
           id: string
@@ -1393,11 +1981,12 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          branch_id?: string | null
           created_at?: string
           expected_delivery?: string | null
           id?: string
           notes?: string | null
-          order_date?: string
+          order_date: string
           po_number: string
           status?: string
           supplier_id?: string | null
@@ -1406,6 +1995,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          branch_id?: string | null
           created_at?: string
           expected_delivery?: string | null
           id?: string
@@ -1419,6 +2009,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "purchase_orders_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "purchase_orders_supplier_id_fkey"
             columns: ["supplier_id"]
@@ -1515,6 +2112,79 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_adjustments: {
+        Row: {
+          adjustment_type: string
+          approved_at: string | null
+          approved_by: string | null
+          branch_id: string
+          created_at: string
+          created_by: string
+          id: string
+          product_id: string
+          quantity: number
+          reason: string | null
+          reference_number: string | null
+          status: string
+          transfer_to_branch_id: string | null
+          user_id: string
+        }
+        Insert: {
+          adjustment_type: string
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_id: string
+          created_at?: string
+          created_by: string
+          id?: string
+          product_id: string
+          quantity: number
+          reason?: string | null
+          reference_number?: string | null
+          status?: string
+          transfer_to_branch_id?: string | null
+          user_id: string
+        }
+        Update: {
+          adjustment_type?: string
+          approved_at?: string | null
+          approved_by?: string | null
+          branch_id?: string
+          created_at?: string
+          created_by?: string
+          id?: string
+          product_id?: string
+          quantity?: number
+          reason?: string | null
+          reference_number?: string | null
+          status?: string
+          transfer_to_branch_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_adjustments_branch_id_fkey"
+            columns: ["branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_adjustments_transfer_to_branch_id_fkey"
+            columns: ["transfer_to_branch_id"]
+            isOneToOne: false
+            referencedRelation: "branches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -1522,12 +2192,11 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
-          is_active: boolean | null
+          is_active: boolean
           name: string
           payment_terms: string | null
           phone: string | null
           updated_at: string
-          user_id: string
         }
         Insert: {
           address?: string | null
@@ -1535,12 +2204,11 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           name: string
           payment_terms?: string | null
           phone?: string | null
           updated_at?: string
-          user_id: string
         }
         Update: {
           address?: string | null
@@ -1548,12 +2216,11 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
-          is_active?: boolean | null
+          is_active?: boolean
           name?: string
           payment_terms?: string | null
           phone?: string | null
           updated_at?: string
-          user_id?: string
         }
         Relationships: []
       }
@@ -1839,6 +2506,145 @@ export type Database = {
     Functions: {
       get_current_user_role: {
         Args: Record<PropertyKey, never>
+        Returns: string
+      }
+      get_orders_by_retailer: {
+        Args: { retailer_uuid: string }
+        Returns: {
+          business_id: string | null
+          created_at: string
+          id: string
+          items: Json
+          order_number: string
+          payment_status: string
+          pharmacy_id: string | null
+          profile_id: string | null
+          shipping_address: Json | null
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+          wholesaler_id: string | null
+        }[]
+      }
+      get_orders_by_wholesaler: {
+        Args: { wholesaler_uuid: string }
+        Returns: {
+          business_id: string | null
+          created_at: string
+          id: string
+          items: Json
+          order_number: string
+          payment_status: string
+          pharmacy_id: string | null
+          profile_id: string | null
+          shipping_address: Json | null
+          status: string
+          total_amount: number
+          updated_at: string
+          user_id: string
+          wholesaler_id: string | null
+        }[]
+      }
+      get_product_analytics_by_pharmacy: {
+        Args: { pharmacy_uuid: string }
+        Returns: {
+          created_at: string
+          date: string
+          id: string
+          pharmacy_id: string | null
+          product_id: string
+          profit_margin: number
+          quantity_sold: number
+          revenue: number
+          stock_turnover_rate: number
+          user_id: string
+        }[]
+      }
+      get_products_by_retailer: {
+        Args: { retailer_uuid: string }
+        Returns: {
+          batch_number: string | null
+          branch_id: string | null
+          buy_price: number
+          category: string
+          created_at: string | null
+          description: string | null
+          dosage_form: string | null
+          expiry_date: string | null
+          id: string
+          image_url: string | null
+          is_public_product: boolean | null
+          is_retail_product: boolean | null
+          is_wholesale_product: boolean | null
+          item_type_id: string | null
+          last_ordered: string | null
+          manufacturer: string | null
+          max_stock: number | null
+          min_stock_level: number
+          name: string
+          pack_size: string | null
+          pharmacy_id: string | null
+          requires_prescription: boolean | null
+          sell_price: number
+          sku: string | null
+          status: string
+          stock: number
+          strength: string | null
+          supplier: string | null
+          updated_at: string | null
+          user_id: string | null
+          wholesaler_id: string | null
+        }[]
+      }
+      get_products_by_wholesaler: {
+        Args: { wholesaler_uuid: string }
+        Returns: {
+          batch_number: string | null
+          branch_id: string | null
+          buy_price: number
+          category: string
+          created_at: string | null
+          description: string | null
+          dosage_form: string | null
+          expiry_date: string | null
+          id: string
+          image_url: string | null
+          is_public_product: boolean | null
+          is_retail_product: boolean | null
+          is_wholesale_product: boolean | null
+          item_type_id: string | null
+          last_ordered: string | null
+          manufacturer: string | null
+          max_stock: number | null
+          min_stock_level: number
+          name: string
+          pack_size: string | null
+          pharmacy_id: string | null
+          requires_prescription: boolean | null
+          sell_price: number
+          sku: string | null
+          status: string
+          stock: number
+          strength: string | null
+          supplier: string | null
+          updated_at: string | null
+          user_id: string | null
+          wholesaler_id: string | null
+        }[]
+      }
+      insert_product_with_user: {
+        Args: {
+          p_name: string
+          p_description: string
+          p_price: number
+          p_category: string
+          p_stock: number
+          p_min_stock_level: number
+          p_user_id: string
+          p_wholesaler_id?: string
+          p_pharmacy_id?: string
+        }
         Returns: string
       }
     }
