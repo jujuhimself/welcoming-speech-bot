@@ -1,9 +1,10 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ShoppingCart, Plus, Search, Package, Clock, CheckCircle } from "lucide-react";
+import { ShoppingCart, Plus, Search, Package, Clock, CheckCircle, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -40,7 +41,7 @@ const PublicCatalog = () => {
         .from('products')
         .select(`
           *,
-          profiles(name, pharmacy_name)
+          profiles!products_user_id_fkey(name, pharmacy_name)
         `)
         .eq('is_public_product', true)
         .eq('status', 'in-stock')
@@ -139,8 +140,9 @@ const PublicCatalog = () => {
             items: newCartItems,
             total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
             updated_at: new Date().toISOString(),
+            order_number: `CART-${user.id}-${Date.now()}`,
           },
-          { onConflict: 'user_id, status' }
+          { onConflict: 'user_id,status' }
         )
         .select()
         .single();
@@ -192,8 +194,9 @@ const PublicCatalog = () => {
             items: newCartItems,
             total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
             updated_at: new Date().toISOString(),
+            order_number: `CART-${user.id}-${Date.now()}`,
           },
-          { onConflict: 'user_id, status' }
+          { onConflict: 'user_id,status' }
         )
         .select()
         .single();
@@ -239,7 +242,10 @@ const PublicCatalog = () => {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .update({ status: 'pending' })
+        .update({ 
+          status: 'pending',
+          order_number: `ORDER-${user.id}-${Date.now()}`
+        })
         .eq('user_id', user.id)
         .eq('status', 'cart')
         .select()

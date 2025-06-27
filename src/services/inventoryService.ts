@@ -300,7 +300,10 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      movement_type: item.movement_type as InventoryMovement['movement_type']
+    }));
   }
 
   async createInventoryMovement(movement: Omit<InventoryMovement, 'id' | 'created_at'>): Promise<InventoryMovement> {
@@ -315,7 +318,10 @@ class InventoryService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      movement_type: data.movement_type as InventoryMovement['movement_type']
+    };
   }
 
   async getSuppliers(): Promise<Supplier[]> {
