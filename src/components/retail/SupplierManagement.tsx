@@ -246,7 +246,7 @@ const SupplierManagement = () => {
                   <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     No suppliers found. Add your first supplier to get started.
                   </TableCell>
-                </TableCell>
+                </TableRow>
               ) : (
                 suppliers.map((supplier) => (
                   <TableRow key={supplier.id}>
