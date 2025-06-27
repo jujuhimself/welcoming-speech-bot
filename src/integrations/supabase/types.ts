@@ -2153,6 +2153,42 @@ export type Database = {
         }
         Relationships: []
       }
+      staff_members: {
+        Row: {
+          created_at: string
+          created_by: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          pharmacy_id: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          email: string
+          id?: string
+          is_active?: boolean
+          name: string
+          pharmacy_id: string
+          role: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          pharmacy_id?: string
+          role?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       stock_adjustments: {
         Row: {
           adjustment_type: string
