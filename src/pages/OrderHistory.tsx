@@ -47,7 +47,19 @@ const OrderHistory = () => {
 
       if (error) throw error;
 
-      setOrders(data || []);
+      // Transform the data to match our Order interface
+      const transformedOrders: Order[] = (data || []).map(order => ({
+        id: order.id,
+        order_number: order.order_number,
+        status: order.status,
+        payment_status: order.payment_status,
+        total_amount: order.total_amount,
+        items: Array.isArray(order.items) ? order.items : [],
+        created_at: order.created_at,
+        pharmacy_name: 'Unknown Pharmacy' // You can enhance this by joining with profiles table
+      }));
+
+      setOrders(transformedOrders);
     } catch (error: any) {
       console.error('Error fetching orders:', error);
       toast({

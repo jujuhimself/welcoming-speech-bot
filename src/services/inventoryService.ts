@@ -36,6 +36,44 @@ export interface Product {
   image_url?: string;
 }
 
+export interface Supplier {
+  id: string;
+  name: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  address?: string;
+  payment_terms?: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrder {
+  id: string;
+  po_number: string;
+  supplier_id?: string;
+  order_date: string;
+  expected_delivery?: string;
+  total_amount: number;
+  notes?: string;
+  status: 'pending' | 'approved' | 'received' | 'cancelled';
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PurchaseOrderItem {
+  id: string;
+  purchase_order_id: string;
+  product_id?: string;
+  product_name: string;
+  quantity: number;
+  unit_price: number;
+  total_price: number;
+  created_at: string;
+}
+
 export interface InventoryMovement {
   id: string;
   user_id: string;
@@ -48,11 +86,10 @@ export interface InventoryMovement {
 }
 
 class InventoryService {
-  async getProducts(userId: string): Promise<Product[]> {
+  async getProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('user_id', userId)
       .order('name');
 
     if (error) {
@@ -232,25 +269,145 @@ class InventoryService {
     }
   }
 
-  async adjustStock(productId: string, quantity: number, reason: string, userId: string): Promise<void> {
-    const { error } = await supabase.rpc('adjust_product_stock', {
-      product_id: productId,
-      quantity_change: quantity,
-      adjustment_reason: reason,
-      user_id: userId
-    });
+  async updateStock(productId: string, newStock: number, reason?: string): Promise<void> {
+    const { error } = await supabase
+      .from('products')
+      .update({ stock: newStock })
+      .eq('id', productId);
 
     if (error) {
-      console.error('Error adjusting stock:', error);
+      console.error('Error updating stock:', error);
       throw error;
     }
   }
 
-  async getLowStockProducts(userId: string): Promise<Product[]> {
+  async getInventoryMovements(productId?: string): Promise<InventoryMovement[]> {
+    let query = supabase
+      .from('inventory_movements')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (productId) {
+      query = query.eq('product_id', productId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching inventory movements:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async createInventoryMovement(movement: Omit<InventoryMovement, 'id' | 'created_at'>): Promise<InventoryMovement> {
+    const { data, error } = await supabase
+      .from('inventory_movements')
+      .insert(movement)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating inventory movement:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async getSuppliers(): Promise<Supplier[]> {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .select('*')
+      .order('name');
+
+    if (error) {
+      console.error('Error fetching suppliers:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async createSupplier(supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>): Promise<Supplier> {
+    const { data, error } = await supabase
+      .from('suppliers')
+      .insert(supplier)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating supplier:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async getPurchaseOrders(): Promise<PurchaseOrder[]> {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching purchase orders:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async createPurchaseOrder(purchaseOrder: Omit<PurchaseOrder, 'id' | 'created_at' | 'updated_at'>): Promise<PurchaseOrder> {
+    const { data, error } = await supabase
+      .from('purchase_orders')
+      .insert(purchaseOrder)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating purchase order:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async getPurchaseOrderItems(purchaseOrderId: string): Promise<PurchaseOrderItem[]> {
+    const { data, error } = await supabase
+      .from('purchase_order_items')
+      .select('*')
+      .eq('purchase_order_id', purchaseOrderId)
+      .order('created_at');
+
+    if (error) {
+      console.error('Error fetching purchase order items:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async createPurchaseOrderItem(item: Omit<PurchaseOrderItem, 'id' | 'created_at'>): Promise<PurchaseOrderItem> {
+    const { data, error } = await supabase
+      .from('purchase_order_items')
+      .insert(item)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error creating purchase order item:', error);
+      throw error;
+    }
+
+    return data;
+  }
+
+  async getLowStockProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
       .select('*')
-      .eq('user_id', userId)
       .lte('stock', 'min_stock_level')
       .order('stock');
 
@@ -293,6 +450,105 @@ class InventoryService {
       status: item.status as Product['status'],
       image_url: item.image_url
     }));
+  }
+
+  async getExpiringProducts(days: number = 30): Promise<Product[]> {
+    const futureDate = new Date();
+    futureDate.setDate(futureDate.getDate() + days);
+    
+    const { data, error } = await supabase
+      .from('products')
+      .select('*')
+      .lte('expiry_date', futureDate.toISOString().split('T')[0])
+      .order('expiry_date');
+
+    if (error) {
+      console.error('Error fetching expiring products:', error);
+      throw error;
+    }
+
+    return (data || []).map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description,
+      category: item.category,
+      price: item.sell_price || 0,
+      stock: item.stock,
+      min_stock: item.min_stock_level || 0,
+      max_stock: item.max_stock,
+      buy_price: item.buy_price || 0,
+      sell_price: item.sell_price || 0,
+      requires_prescription: item.requires_prescription,
+      expiry_date: item.expiry_date,
+      last_ordered: item.last_ordered,
+      is_wholesale_product: item.is_wholesale_product,
+      is_retail_product: item.is_retail_product,
+      is_public_product: item.is_public_product,
+      wholesaler_id: item.wholesaler_id,
+      pharmacy_id: item.pharmacy_id,
+      user_id: item.user_id,
+      created_at: item.created_at,
+      updated_at: item.updated_at,
+      branch_id: item.branch_id,
+      item_type_id: item.item_type_id,
+      sku: item.sku,
+      manufacturer: item.manufacturer,
+      dosage_form: item.dosage_form,
+      strength: item.strength,
+      pack_size: item.pack_size,
+      supplier: item.supplier,
+      batch_number: item.batch_number,
+      status: item.status as Product['status'],
+      image_url: item.image_url
+    }));
+  }
+
+  async getSalesAnalytics(dateRange?: { from: Date; to: Date }): Promise<any[]> {
+    let query = supabase
+      .from('sales_analytics')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (dateRange) {
+      query = query
+        .gte('date', dateRange.from.toISOString().split('T')[0])
+        .lte('date', dateRange.to.toISOString().split('T')[0]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching sales analytics:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async getProductAnalytics(productId?: string, dateRange?: { from: Date; to: Date }): Promise<any[]> {
+    let query = supabase
+      .from('product_analytics')
+      .select('*')
+      .order('date', { ascending: false });
+
+    if (productId) {
+      query = query.eq('product_id', productId);
+    }
+
+    if (dateRange) {
+      query = query
+        .gte('date', dateRange.from.toISOString().split('T')[0])
+        .lte('date', dateRange.to.toISOString().split('T')[0]);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching product analytics:', error);
+      throw error;
+    }
+
+    return data || [];
   }
 }
 

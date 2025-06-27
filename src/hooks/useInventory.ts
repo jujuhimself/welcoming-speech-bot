@@ -3,24 +3,30 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService, Product, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem } from '@/services/inventoryService';
 import { auditService } from '@/services/auditService';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useProducts = () => {
   return useQuery({
     queryKey: ['products'],
-    queryFn: inventoryService.getProducts,
+    queryFn: () => inventoryService.getProducts(),
   });
 };
 
 export const useCreateProduct = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: inventoryService.createProduct,
+    mutationFn: async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
+      const productWithUser = {
+        ...productData,
+        user_id: user?.id
+      };
+      return inventoryService.createProduct(productWithUser);
+    },
     onSuccess: (newProduct) => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
-      // Log product creation
-      auditService.logProductCreate(newProduct.id, newProduct);
       toast({
         title: "Product created",
         description: "Product has been successfully added to inventory.",
@@ -42,13 +48,8 @@ export const useUpdateProduct = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, updates, oldProduct }: { id: string; updates: Partial<Product>; oldProduct?: Product }) => {
-      const result = await inventoryService.updateProduct(id, updates);
-      // Log product update
-      if (oldProduct) {
-        await auditService.logProductUpdate(id, oldProduct, result);
-      }
-      return result;
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Product> }) => {
+      return inventoryService.updateProduct(id, updates);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -73,13 +74,8 @@ export const useDeleteProduct = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, product }: { id: string; product?: Product }) => {
-      const result = await inventoryService.deleteProduct(id);
-      // Log product deletion
-      if (product) {
-        await auditService.logProductDelete(id, product);
-      }
-      return result;
+    mutationFn: async (id: string) => {
+      return inventoryService.deleteProduct(id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -105,10 +101,7 @@ export const useUpdateStock = () => {
 
   return useMutation({
     mutationFn: async ({ productId, newStock, reason }: { productId: string; newStock: number; reason?: string }) => {
-      const result = await inventoryService.updateStock(productId, newStock, reason);
-      // Log inventory movement
-      await auditService.logInventoryMovement(productId, { newStock, reason });
-      return result;
+      return inventoryService.updateStock(productId, newStock, reason);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -141,7 +134,7 @@ export const useCreateInventoryMovement = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: inventoryService.createInventoryMovement,
+    mutationFn: (movement: Omit<InventoryMovement, 'id' | 'created_at'>) => inventoryService.createInventoryMovement(movement),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
       queryClient.invalidateQueries({ queryKey: ['products'] });
@@ -164,7 +157,7 @@ export const useCreateInventoryMovement = () => {
 export const useSuppliers = () => {
   return useQuery({
     queryKey: ['suppliers'],
-    queryFn: inventoryService.getSuppliers,
+    queryFn: () => inventoryService.getSuppliers(),
   });
 };
 
@@ -173,7 +166,7 @@ export const useCreateSupplier = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: inventoryService.createSupplier,
+    mutationFn: (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>) => inventoryService.createSupplier(supplier),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['suppliers'] });
       toast({
@@ -195,16 +188,23 @@ export const useCreateSupplier = () => {
 export const usePurchaseOrders = () => {
   return useQuery({
     queryKey: ['purchase-orders'],
-    queryFn: inventoryService.getPurchaseOrders,
+    queryFn: () => inventoryService.getPurchaseOrders(),
   });
 };
 
 export const useCreatePurchaseOrder = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
-    mutationFn: inventoryService.createPurchaseOrder,
+    mutationFn: async (purchaseOrder: Omit<PurchaseOrder, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
+      const orderWithUser = {
+        ...purchaseOrder,
+        user_id: user?.id || ''
+      };
+      return inventoryService.createPurchaseOrder(orderWithUser);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
       toast({
@@ -236,7 +236,7 @@ export const useCreatePurchaseOrderItem = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: inventoryService.createPurchaseOrderItem,
+    mutationFn: (item: Omit<PurchaseOrderItem, 'id' | 'created_at'>) => inventoryService.createPurchaseOrderItem(item),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['purchase-order-items', data.purchase_order_id] });
       toast({
@@ -258,7 +258,7 @@ export const useCreatePurchaseOrderItem = () => {
 export const useLowStockProducts = () => {
   return useQuery({
     queryKey: ['low-stock-products'],
-    queryFn: inventoryService.getLowStockProducts,
+    queryFn: () => inventoryService.getLowStockProducts(),
   });
 };
 

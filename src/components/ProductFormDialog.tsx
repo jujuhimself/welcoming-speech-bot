@@ -35,6 +35,7 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
     try {
       await createProduct.mutateAsync({
         ...formData,
+        price: formData.sell_price, // Add the missing price property
         status: 'in-stock' as const
       });
       
