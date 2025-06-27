@@ -1,102 +1,70 @@
-
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Search, Filter, Heart } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { ShoppingCart, Plus, Search, Package, Clock, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useNavigate } from "react-router-dom";
+import { Badge } from "@/components/ui/badge";
 
-interface PublicProduct {
+interface Product {
   id: string;
   name: string;
-  description: string;
   category: string;
   price: number;
   stock: number;
-  pharmacy_name: string;
-  pharmacy_id: string;
+  description: string;
   manufacturer: string;
-  requires_prescription: boolean;
-  image_url: string;
+  image_url?: string;
+  pharmacy_name?: string;
+  pharmacy_id?: string;
+  min_stock: number;
 }
 
 const PublicCatalog = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
-  const [products, setProducts] = useState<PublicProduct[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<PublicProduct[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [categories, setCategories] = useState<string[]>([]);
   const [cartItems, setCartItems] = useState<any[]>([]);
-  const [wishlist, setWishlist] = useState<string[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  useEffect(() => {
-    fetchPublicProducts();
-    if (user) {
-      loadUserCart();
-      loadUserWishlist();
-    }
-  }, [user]);
-
-  useEffect(() => {
-    filterProducts();
-  }, [products, searchTerm, selectedCategory]);
-
-  const fetchPublicProducts = async () => {
+  const fetchProducts = async () => {
     try {
-      const { data, error } = await supabase
+      setIsLoading(true);
+      
+      const { data: productsData, error } = await supabase
         .from('products')
         .select(`
-          id,
-          name,
-          description,
-          category,
-          sell_price,
-          stock,
-          manufacturer,
-          requires_prescription,
-          image_url,
-          profiles!inner(pharmacy_name, id)
+          *,
+          profiles(name, pharmacy_name)
         `)
         .eq('is_public_product', true)
-        .gt('stock', 0)
+        .eq('status', 'in-stock')
         .order('name');
 
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
 
-      const formattedProducts = (data || []).map(item => ({
-        id: item.id,
-        name: item.name,
-        description: item.description || "",
-        category: item.category,
-        price: item.sell_price || 0,
-        stock: item.stock,
-        pharmacy_name: item.profiles?.pharmacy_name || "Unknown Pharmacy",
-        pharmacy_id: item.profiles?.id || "",
-        manufacturer: item.manufacturer || "",
-        requires_prescription: item.requires_prescription || false,
-        image_url: item.image_url || "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400"
+      const transformedProducts = (productsData || []).map((product: any) => ({
+        ...product,
+        price: product.sell_price || 0,
+        min_stock: product.min_stock_level || 0,
+        pharmacy_name: product.profiles?.pharmacy_name || product.profiles?.name || 'Unknown Pharmacy',
+        pharmacy_id: product.user_id || product.pharmacy_id
       }));
 
-      setProducts(formattedProducts);
-      
-      // Extract unique categories
-      const uniqueCategories = [...new Set(formattedProducts.map(p => p.category))];
-      setCategories(uniqueCategories);
-
+      setProducts(transformedProducts);
+      setFilteredProducts(transformedProducts);
     } catch (error: any) {
       console.error('Error fetching products:', error);
       toast({
         title: "Error",
-        description: "Failed to load products",
+        description: "Failed to load product catalog",
         variant: "destructive",
       });
     } finally {
@@ -104,107 +72,90 @@ const PublicCatalog = () => {
     }
   };
 
-  const filterProducts = () => {
-    let filtered = products;
+  useEffect(() => {
+    fetchProducts();
+  }, []);
 
-    if (searchTerm) {
-      filtered = filtered.filter(product =>
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.manufacturer.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
+  useEffect(() => {
+    const fetchCartItems = async () => {
+      if (!user) return;
 
-    if (selectedCategory !== "all") {
-      filtered = filtered.filter(product => product.category === selectedCategory);
-    }
+      try {
+        const { data, error } = await supabase
+          .from('orders')
+          .select('items')
+          .eq('user_id', user.id)
+          .eq('status', 'cart')
+          .single();
 
-    setFilteredProducts(filtered);
-  };
+        if (error && error.code !== 'PGRST116') {
+          throw error;
+        }
 
-  const loadUserCart = async () => {
-    if (!user) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('items')
-        .eq('user_id', user.id)
-        .eq('status', 'cart')
-        .single();
-
-      if (data && data.items) {
-        setCartItems(data.items);
+        if (data && data.items && Array.isArray(data.items)) {
+          setCartItems(data.items as any[]);
+        } else {
+          setCartItems([]);
+        }
+      } catch (error: any) {
+        console.error('Error fetching cart:', error);
+        setCartItems([]);
       }
-    } catch (error) {
-      console.log('No existing cart found');
-    }
-  };
+    };
 
-  const loadUserWishlist = async () => {
-    if (!user) return;
-    
-    const savedWishlist = localStorage.getItem(`bepawa_wishlist_${user.id}`);
-    if (savedWishlist) {
-      setWishlist(JSON.parse(savedWishlist));
+    if (user) {
+      fetchCartItems();
     }
-  };
+  }, [user]);
 
-  const addToCart = async (product: PublicProduct) => {
+  const addToCart = async (product: Product) => {
     if (!user) {
       toast({
-        title: "Please log in",
-        description: "You need to log in to add items to cart",
+        title: "Not authenticated",
+        description: "Please log in to add items to your cart",
         variant: "destructive",
       });
-      navigate('/login');
       return;
     }
 
-    const existingItem = cartItems.find(item => item.id === product.id);
-    let updatedCart;
+    const existingCartItem = cartItems.find((item) => item.id === product.id);
+    let newCartItems = [...cartItems];
 
-    if (existingItem) {
-      updatedCart = cartItems.map(item =>
-        item.id === product.id
-          ? { ...item, quantity: item.quantity + 1 }
-          : item
+    if (existingCartItem) {
+      newCartItems = newCartItems.map((item) =>
+        item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
       );
     } else {
-      updatedCart = [...cartItems, {
-        id: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        pharmacy_id: product.pharmacy_id,
-        pharmacy_name: product.pharmacy_name,
-        manufacturer: product.manufacturer,
-        category: product.category,
-        image: product.image_url
-      }];
+      newCartItems = [...newCartItems, { ...product, quantity: 1 }];
     }
 
-    setCartItems(updatedCart);
-
-    // Save to Supabase
     try {
-      await supabase
+      const { data, error } = await supabase
         .from('orders')
-        .upsert({
-          user_id: user.id,
-          status: 'cart',
-          items: updatedCart,
-          total_amount: updatedCart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
-          order_number: `CART-${user.id}`,
-          payment_status: 'unpaid'
-        });
+        .upsert(
+          {
+            user_id: user.id,
+            status: 'cart',
+            items: newCartItems,
+            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id, status' }
+        )
+        .select()
+        .single();
 
+      if (error) {
+        throw error;
+      }
+
+      setCartItems(newCartItems);
       toast({
         title: "Added to cart",
-        description: `${product.name} has been added to your cart`,
+        description: `${product.name} added to your cart`,
       });
     } catch (error: any) {
-      console.error('Error saving to cart:', error);
+      console.error('Error adding to cart:', error);
       toast({
         title: "Error",
         description: "Failed to add item to cart",
@@ -213,29 +164,115 @@ const PublicCatalog = () => {
     }
   };
 
-  const toggleWishlist = (productId: string) => {
+  const updateQuantity = async (productId: string, newQuantity: number) => {
     if (!user) {
       toast({
-        title: "Please log in",
-        description: "You need to log in to add items to wishlist",
+        title: "Not authenticated",
+        description: "Please log in to update your cart",
         variant: "destructive",
       });
-      navigate('/login');
       return;
     }
 
-    const newWishlist = wishlist.includes(productId)
-      ? wishlist.filter(id => id !== productId)
-      : [...wishlist, productId];
-    
-    setWishlist(newWishlist);
-    localStorage.setItem(`bepawa_wishlist_${user.id}`, JSON.stringify(newWishlist));
-    
-    toast({
-      title: wishlist.includes(productId) ? "Removed from wishlist" : "Added to wishlist",
-      description: `Product ${wishlist.includes(productId) ? "removed from" : "added to"} your wishlist`,
-    });
+    if (newQuantity < 0) return;
+
+    let newCartItems = cartItems.map((item) =>
+      item.id === productId ? { ...item, quantity: newQuantity } : item
+    );
+
+    newCartItems = newCartItems.filter((item) => item.quantity > 0);
+
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .upsert(
+          {
+            user_id: user.id,
+            status: 'cart',
+            items: newCartItems,
+            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: 'user_id, status' }
+        )
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setCartItems(newCartItems);
+      toast({
+        title: "Cart updated",
+        description: "Your cart has been updated",
+      });
+    } catch (error: any) {
+      console.error('Error updating cart:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update cart",
+        variant: "destructive",
+      });
+    }
   };
+
+  const checkout = async () => {
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in to checkout",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (cartItems.length === 0) {
+      toast({
+        title: "Empty cart",
+        description: "Please add items to your cart before checking out",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .update({ status: 'pending' })
+        .eq('user_id', user.id)
+        .eq('status', 'cart')
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      setCartItems([]);
+      toast({
+        title: "Checkout successful",
+        description: "Your order has been placed",
+      });
+    } catch (error: any) {
+      console.error('Error checking out:', error);
+      toast({
+        title: "Error",
+        description: "Failed to checkout",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    setFilteredProducts(
+      products.filter((product) =>
+        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    );
+  }, [searchTerm, products]);
 
   if (isLoading) {
     return (
@@ -251,117 +288,125 @@ const PublicCatalog = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Medicine Catalog</h1>
-          <p className="text-gray-600 text-lg">Find and order medicines from verified pharmacies</p>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Public Catalog</h1>
+          <p className="text-gray-600 text-lg">Explore our wide range of products</p>
         </div>
 
-        {/* Search and Filters */}
-        <Card className="mb-8">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="flex-1 relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search medicines, manufacturers, or descriptions..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                <SelectTrigger className="w-full md:w-64">
-                  <SelectValue placeholder="All Categories" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Categories</SelectItem>
-                  {categories.map((category) => (
-                    <SelectItem key={category} value={category}>
-                      {category}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              {user && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/cart')}
-                  className="flex items-center gap-2"
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  Cart ({cartItems.length})
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Product Catalog */}
+          <div className="lg:col-span-3 space-y-6">
+            {/* Search */}
+            <Card>
+              <CardContent className="p-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Products Grid */}
-        {filteredProducts.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-gray-500 text-lg">No products found matching your criteria</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
-              <Card key={product.id} className="hover:shadow-lg transition-shadow">
-                <CardHeader className="p-0">
-                  <div className="relative">
-                    <img
-                      src={product.image_url}
-                      alt={product.name}
-                      className="w-full h-48 object-cover rounded-t-lg"
-                    />
-                    {product.requires_prescription && (
-                      <Badge className="absolute top-2 left-2 bg-red-500">
-                        Prescription Required
+            {/* Products Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredProducts.map((product) => (
+                <Card key={product.id} className="hover:shadow-lg transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h3 className="font-semibold text-lg">{product.name}</h3>
+                        <p className="text-gray-600">{product.category}</p>
+                        <p className="text-sm text-gray-500">by {product.manufacturer}</p>
+                        <p className="text-sm text-blue-600">from {product.pharmacy_name}</p>
+                      </div>
+                      <Badge variant={product.stock > 0 ? "default" : "secondary"}>
+                        Stock: {product.stock}
                       </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="absolute top-2 right-2 bg-white/80 hover:bg-white"
-                      onClick={() => toggleWishlist(product.id)}
-                    >
-                      <Heart
-                        className={`h-4 w-4 ${
-                          wishlist.includes(product.id) ? "fill-red-500 text-red-500" : "text-gray-600"
-                        }`}
-                      />
-                    </Button>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-4">
-                  <CardTitle className="text-lg mb-2">{product.name}</CardTitle>
-                  <p className="text-sm text-gray-500 mb-1">by {product.manufacturer}</p>
-                  <p className="text-sm text-blue-600 mb-2">Available at {product.pharmacy_name}</p>
-                  <p className="text-gray-600 text-sm mb-4 line-clamp-2">{product.description}</p>
-                  
-                  <div className="flex justify-between items-center mb-4">
-                    <span className="text-2xl font-bold text-blue-600">
-                      TZS {product.price.toLocaleString()}
-                    </span>
-                    <Badge variant={product.stock > 10 ? "default" : "secondary"}>
-                      Stock: {product.stock}
-                    </Badge>
-                  </div>
-                  
-                  <Button
-                    onClick={() => addToCart(product)}
-                    disabled={product.stock === 0}
-                    className="w-full"
-                  >
-                    <ShoppingCart className="h-4 w-4 mr-2" />
-                    Add to Cart
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+                    </div>
+                    
+                    <p className="text-gray-700 mb-4 text-sm">{product.description}</p>
+                    
+                    <div className="flex justify-between items-center">
+                      <span className="text-2xl font-bold text-blue-600">
+                        TZS {product.price.toLocaleString()}
+                      </span>
+                      <Button
+                        onClick={() => addToCart(product)}
+                        disabled={product.stock === 0}
+                        size="sm"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add to Cart
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
           </div>
-        )}
+
+          {/* Shopping Cart */}
+          <div>
+            <Card className="sticky top-8">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <ShoppingCart className="h-5 w-5" />
+                  Shopping Cart
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {cartItems.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">No items in cart</p>
+                ) : (
+                  <>
+                    <div className="space-y-3 max-h-60 overflow-y-auto">
+                      {cartItems.map((item) => (
+                        <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm">{item.name}</h4>
+                            <p className="text-gray-600 text-xs">TZS {item.price.toLocaleString()} each</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="w-8 text-center text-sm">{item.quantity}</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="border-t pt-4">
+                      <div className="flex justify-between font-bold text-lg">
+                        <span>Total:</span>
+                        <span>TZS {cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <Button className="w-full" onClick={checkout}>
+                      Checkout
+                    </Button>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );

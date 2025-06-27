@@ -65,9 +65,21 @@ const WholesaleOrdering = () => {
             description: "Failed to load products",
             variant: "destructive",
           });
+          return;
         }
 
-        setProducts(data || []);
+        const transformedProducts = (data || []).map((item: any) => ({
+          id: item.id,
+          name: item.name,
+          category: item.category,
+          price: item.sell_price || 0,
+          stock: item.stock,
+          description: item.description || '',
+          supplier: item.supplier || '',
+          min_order_qty: item.min_stock_level || 1
+        }));
+
+        setProducts(transformedProducts);
       } catch (error: any) {
         console.error('Unexpected error fetching products:', error);
         toast({
@@ -83,7 +95,6 @@ const WholesaleOrdering = () => {
         const { data, error } = await supabase
           .from('suppliers')
           .select('*')
-          .eq('user_id', user?.id)
           .order('name');
 
         if (error) {
@@ -93,6 +104,7 @@ const WholesaleOrdering = () => {
             description: "Failed to load suppliers",
             variant: "destructive",
           });
+          return;
         }
 
         setSuppliers(data || []);

@@ -80,8 +80,10 @@ const ProductEditDialog = ({ product, open, onOpenChange }: ProductEditDialogPro
   };
 
   const handleDelete = async () => {
+    if (!product) return;
+    
     try {
-      await deleteProduct.mutateAsync({ id: product.id, product });
+      await deleteProduct.mutateAsync(product.id);
       onOpenChange(false);
     } catch (error) {
       console.error('Error deleting product:', error);

@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Product {
@@ -71,6 +70,9 @@ export interface PurchaseOrderItem {
   quantity: number;
   unit_price: number;
   total_price: number;
+  unit_cost: number;
+  total_cost: number;
+  received_quantity?: number;
   created_at: string;
 }
 
@@ -356,7 +358,10 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      status: item.status as PurchaseOrder['status']
+    }));
   }
 
   async createPurchaseOrder(purchaseOrder: Omit<PurchaseOrder, 'id' | 'created_at' | 'updated_at'>): Promise<PurchaseOrder> {
@@ -371,7 +376,10 @@ class InventoryService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      status: data.status as PurchaseOrder['status']
+    };
   }
 
   async getPurchaseOrderItems(purchaseOrderId: string): Promise<PurchaseOrderItem[]> {
@@ -386,10 +394,15 @@ class InventoryService {
       throw error;
     }
 
-    return data || [];
+    return (data || []).map(item => ({
+      ...item,
+      unit_cost: item.unit_price,
+      total_cost: item.total_price,
+      received_quantity: 0
+    }));
   }
 
-  async createPurchaseOrderItem(item: Omit<PurchaseOrderItem, 'id' | 'created_at'>): Promise<PurchaseOrderItem> {
+  async createPurchaseOrderItem(item: Omit<PurchaseOrderItem, 'id' | 'created_at' | 'unit_cost' | 'total_cost' | 'received_quantity'>): Promise<PurchaseOrderItem> {
     const { data, error } = await supabase
       .from('purchase_order_items')
       .insert(item)
@@ -401,7 +414,12 @@ class InventoryService {
       throw error;
     }
 
-    return data;
+    return {
+      ...data,
+      unit_cost: data.unit_price,
+      total_cost: data.total_price,
+      received_quantity: 0
+    };
   }
 
   async getLowStockProducts(): Promise<Product[]> {
