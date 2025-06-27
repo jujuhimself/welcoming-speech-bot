@@ -12,16 +12,10 @@ import { Plus, Edit, Trash2, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 
-interface StaffMember {
-  id: string;
-  name: string;
-  email: string;
-  role: 'pos-only' | 'inventory-only' | 'manager' | 'admin';
-  created_at: string;
-  is_active: boolean;
-  created_by: string;
-}
+type StaffMember = Database['public']['Tables']['staff_members']['Row'];
+type StaffMemberInsert = Database['public']['Tables']['staff_members']['Insert'];
 
 const StaffManagement = () => {
   const { user } = useAuth();
@@ -66,7 +60,7 @@ const StaffManagement = () => {
     if (!user) return;
 
     try {
-      const staffData = {
+      const staffData: StaffMemberInsert = {
         ...formData,
         pharmacy_id: user.id,
         created_by: user.id,
