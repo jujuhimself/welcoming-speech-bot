@@ -1,4 +1,3 @@
-
 import { Routes, Route } from "react-router-dom";
 import RouteGuard from "@/components/RouteGuard";
 
@@ -18,6 +17,8 @@ import PharmacyDirectory from "@/pages/PharmacyDirectory";
 import LabDirectory from "@/pages/LabDirectory";
 import BrowseProducts from "@/pages/BrowseProducts";
 import MyOrders from "@/pages/MyOrders";
+import Catalog from "@/pages/Catalog";
+import OrderHistory from "@/pages/OrderHistory";
 
 // Pharmacy/Retail Pages
 import PharmacyDashboard from "@/pages/PharmacyDashboard";
@@ -80,6 +81,7 @@ const AppRoutes = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/auth/callback" element={<AuthCallback />} />
+      <Route path="/catalog" element={<Catalog />} />
 
       {/* Individual User Routes */}
       <Route path="/individual" element={
@@ -127,6 +129,11 @@ const AppRoutes = () => {
           <MyOrders />
         </RouteGuard>
       } />
+      <Route path="/order-history" element={
+        <RouteGuard allowedRoles={['individual']}>
+          <OrderHistory />
+        </RouteGuard>
+      } />
 
       {/* Pharmacy/Retail Routes */}
       <Route path="/pharmacy" element={
@@ -170,7 +177,7 @@ const AppRoutes = () => {
         </RouteGuard>
       } />
       <Route path="/cart" element={
-        <RouteGuard allowedRoles={['retail']} requireApproval>
+        <RouteGuard allowedRoles={['retail', 'individual']} requireApproval>
           <Cart />
         </RouteGuard>
       } />
