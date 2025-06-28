@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService, Product } from '@/services/inventoryService';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useProducts = () => {
   const { user } = useAuth();
@@ -104,7 +105,7 @@ export const useInventoryAnalytics = () => {
       if (!user) return null;
       
       // Get real analytics data from Supabase
-      const { data: products } = await inventoryService.getProducts(user.role);
+      const products = await inventoryService.getProducts(user.role);
       const { data: orders, error: ordersError } = await supabase
         .from('orders')
         .select('total_amount, created_at, status')
@@ -146,6 +147,146 @@ export const useExpiringProducts = (days: number = 30) => {
   return useQuery({
     queryKey: ['expiring-products', user?.id, days],
     queryFn: () => inventoryService.getExpiringProducts(days),
+    enabled: !!user,
+  });
+};
+
+// Suppliers hooks
+export const useSuppliers = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['suppliers'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .select('*')
+        .order('name');
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useCreateSupplier = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+
+  return useMutation({
+    mutationFn: async (supplier: any) => {
+      const { data, error } = await supabase
+        .from('suppliers')
+        .insert([supplier])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
+      toast({
+        title: "Supplier created",
+        description: "Supplier has been created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create supplier",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+// Purchase Orders hooks
+export const usePurchaseOrders = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['purchase-orders'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!user,
+  });
+};
+
+export const useCreatePurchaseOrder = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (purchaseOrder: any) => {
+      const { data, error } = await supabase
+        .from('purchase_orders')
+        .insert([{ ...purchaseOrder, user_id: user?.id }])
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
+      toast({
+        title: "Purchase order created",
+        description: "Purchase order has been created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create purchase order",
+        variant: "destructive",
+      });
+    },
+  });
+};
+
+export const usePurchaseOrderItems = (purchaseOrderId: string) => {
+  return useQuery({
+    queryKey: ['purchase-order-items', purchaseOrderId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('purchase_order_items')
+        .select('*')
+        .eq('purchase_order_id', purchaseOrderId);
+      
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: !!purchaseOrderId,
+  });
+};
+
+// Sales Analytics hook
+export const useSalesAnalytics = () => {
+  const { user } = useAuth();
+  
+  return useQuery({
+    queryKey: ['sales-analytics', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('sales_analytics')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('date', { ascending: false });
+      
+      if (error) throw error;
+      return data || [];
+    },
     enabled: !!user,
   });
 };
