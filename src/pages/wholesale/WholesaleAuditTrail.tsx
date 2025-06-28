@@ -5,51 +5,47 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { FileText, Search, Calendar, User, Activity } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Search, Shield, Activity, Package, DollarSign, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { auditService } from "@/services/auditService";
 
-interface AuditLog {
+interface AuditLogEntry {
   id: string;
   user_id: string;
   action: string;
   resource_type: string;
   resource_id?: string;
-  details?: any;
   old_values?: any;
   new_values?: any;
-  ip_address?: string;
-  user_agent?: string;
-  created_at: string;
+  details?: any;
   category?: string;
+  created_at: string;
 }
 
 const WholesaleAuditTrail = () => {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<AuditLogEntry[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [actionFilter, setActionFilter] = useState("all");
-  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [actionFilter, setActionFilter] = useState("");
+  const [dateFilter, setDateFilter] = useState("");
 
   useEffect(() => {
     fetchAuditLogs();
   }, []);
 
+  useEffect(() => {
+    filterLogs();
+  }, [auditLogs, searchTerm, categoryFilter, actionFilter, dateFilter]);
+
   const fetchAuditLogs = async () => {
-    if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from('audit_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-      setAuditLogs(data || []);
+      const logs = await auditService.getAuditLogs();
+      setAuditLogs(logs);
     } catch (error: any) {
       console.error('Error fetching audit logs:', error);
       toast({
@@ -60,215 +56,384 @@ const WholesaleAuditTrail = () => {
     }
   };
 
-  const filteredLogs = auditLogs.filter(log => {
-    const matchesSearch = 
-      log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      log.resource_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (log.resource_id && log.resource_id.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesAction = actionFilter === "all" || log.action === actionFilter;
-    const matchesCategory = categoryFilter === "all" || log.category === categoryFilter;
-    
-    return matchesSearch && matchesAction && matchesCategory;
-  });
+  const filterLogs = () => {
+    let filtered = auditLogs;
+
+    if (searchTerm) {
+      filtered = filtered.filter(log =>
+        log.action.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        log.resource_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (log.details && JSON.stringify(log.details).toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    if (categoryFilter) {
+      filtered = filtered.filter(log => log.category === categoryFilter);
+    }
+
+    if (actionFilter) {
+      filtered = filtered.filter(log => log.action === actionFilter);
+    }
+
+    if (dateFilter) {
+      const filterDate = new Date(dateFilter);
+      filtered = filtered.filter(log => {
+        const logDate = new Date(log.created_at);
+        return logDate.toDateString() === filterDate.toDateString();
+      });
+    }
+
+    setFilteredLogs(filtered);
+  };
+
+  const getCategoryIcon = (category: string) => {
+    switch (category) {
+      case 'inventory': return Package;
+      case 'authentication': return Shield;
+      case 'sales': return DollarSign;
+      case 'staff': return Users;
+      default: return Activity;
+    }
+  };
+
+  const getCategoryBadge = (category: string) => {
+    const config = {
+      'inventory': { variant: 'default' as const, label: 'Inventory' },
+      'authentication': { variant: 'secondary' as const, label: 'Auth' },
+      'sales': { variant: 'destructive' as const, label: 'Sales' },
+      'staff': { variant: 'outline' as const, label: 'Staff' },
+      'settings': { variant: 'secondary' as const, label: 'Settings' },
+      'general': { variant: 'outline' as const, label: 'General' }
+    };
+
+    const categoryConfig = config[category as keyof typeof config] || config['general'];
+    return <Badge variant={categoryConfig.variant}>{categoryConfig.label}</Badge>;
+  };
 
   const getActionBadge = (action: string) => {
-    const actionConfig = {
-      'create': { variant: 'default' as const, label: 'Create' },
-      'update': { variant: 'secondary' as const, label: 'Update' },
-      'delete': { variant: 'destructive' as const, label: 'Delete' },
-      'login': { variant: 'outline' as const, label: 'Login' },
-      'logout': { variant: 'outline' as const, label: 'Logout' },
-      'view': { variant: 'secondary' as const, label: 'View' }
+    const config = {
+      'CREATE': { variant: 'default' as const, label: 'Created' },
+      'UPDATE': { variant: 'secondary' as const, label: 'Updated' },
+      'DELETE': { variant: 'destructive' as const, label: 'Deleted' },
+      'LOGIN': { variant: 'outline' as const, label: 'Login' },
+      'LOGOUT': { variant: 'outline' as const, label: 'Logout' },
+      'STOCK_UPDATE': { variant: 'default' as const, label: 'Stock Updated' },
+      'INVENTORY_MOVEMENT': { variant: 'secondary' as const, label: 'Stock Movement' }
     };
 
-    const config = actionConfig[action.toLowerCase() as keyof typeof actionConfig] || { variant: 'secondary' as const, label: action };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    const actionConfig = config[action as keyof typeof config] || { variant: 'outline' as const, label: action };
+    return <Badge variant={actionConfig.variant}>{actionConfig.label}</Badge>;
   };
 
-  const getCategoryBadge = (category?: string) => {
-    if (!category) return null;
+  const formatChanges = (oldValues: any, newValues: any) => {
+    if (!oldValues && !newValues) return null;
+
+    const changes = [];
     
-    const categoryConfig = {
-      'inventory': { variant: 'default' as const, label: 'Inventory' },
-      'sales': { variant: 'secondary' as const, label: 'Sales' },
-      'users': { variant: 'outline' as const, label: 'Users' },
-      'system': { variant: 'destructive' as const, label: 'System' },
-      'auth': { variant: 'outline' as const, label: 'Auth' }
-    };
+    if (oldValues && newValues) {
+      for (const key in newValues) {
+        if (oldValues[key] !== newValues[key]) {
+          changes.push(`${key}: ${oldValues[key]} → ${newValues[key]}`);
+        }
+      }
+    } else if (newValues) {
+      for (const key in newValues) {
+        changes.push(`${key}: ${newValues[key]}`);
+      }
+    }
 
-    const config = categoryConfig[category.toLowerCase() as keyof typeof categoryConfig] || { variant: 'secondary' as const, label: category };
-    return <Badge variant={config.variant}>{config.label}</Badge>;
+    return changes.length > 0 ? changes.join(', ') : null;
   };
 
-  const formatDetails = (details: any) => {
-    if (!details) return '-';
-    if (typeof details === 'string') return details;
-    return JSON.stringify(details, null, 2);
-  };
+  const categories = ['inventory', 'authentication', 'sales', 'staff', 'settings'];
+  const actions = ['CREATE', 'UPDATE', 'DELETE', 'LOGIN', 'LOGOUT', 'STOCK_UPDATE', 'INVENTORY_MOVEMENT'];
 
-  const uniqueActions = Array.from(new Set(auditLogs.map(log => log.action)));
-  const uniqueCategories = Array.from(new Set(auditLogs.map(log => log.category).filter(Boolean)));
+  const inventoryLogs = filteredLogs.filter(log => log.category === 'inventory');
+  const authLogs = filteredLogs.filter(log => log.category === 'authentication');
+  const salesLogs = filteredLogs.filter(log => log.category === 'sales');
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Audit Trail</h2>
-          <p className="text-gray-600">Complete activity log for compliance and monitoring</p>
+          <p className="text-gray-600">Complete system activity tracking and monitoring</p>
         </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid md:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Activities</CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{auditLogs.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Activities</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {auditLogs.filter(log => 
-                new Date(log.created_at).toDateString() === new Date().toDateString()
-              ).length}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Unique Actions</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{uniqueActions.length}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Categories</CardTitle>
-            <User className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{uniqueCategories.length}</div>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Filters */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Filters
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
               <Input
-                placeholder="Search audit logs..."
+                placeholder="Search logs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
               />
             </div>
-            <Select value={actionFilter} onValueChange={setActionFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by action" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
-                {uniqueActions.map(action => (
-                  <SelectItem key={action} value={action}>{action}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={categoryFilter} onValueChange={setCategoryFilter}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Filter by category" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {uniqueCategories.map(category => (
-                  <SelectItem key={category} value={category}>{category}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div>
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by category" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category.charAt(0).toUpperCase() + category.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Select value={actionFilter} onValueChange={setActionFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Filter by action" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Actions</SelectItem>
+                  {actions.map((action) => (
+                    <SelectItem key={action} value={action}>
+                      {action}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Input
+                type="date"
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+              />
+            </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Audit Logs Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Activity Log ({filteredLogs.length})</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Timestamp</TableHead>
-                <TableHead>Action</TableHead>
-                <TableHead>Resource Type</TableHead>
-                <TableHead>Resource ID</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead>Details</TableHead>
-                <TableHead>IP Address</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
-                    No audit logs found. Activity will be tracked here automatically.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredLogs.map((log) => (
-                  <TableRow key={log.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">
-                          {new Date(log.created_at).toLocaleDateString()}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {new Date(log.created_at).toLocaleTimeString()}
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{getActionBadge(log.action)}</TableCell>
-                    <TableCell className="font-medium">{log.resource_type}</TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {log.resource_id ? log.resource_id.substring(0, 8) + '...' : '-'}
-                    </TableCell>
-                    <TableCell>{getCategoryBadge(log.category)}</TableCell>
-                    <TableCell className="max-w-xs">
-                      <details className="cursor-pointer">
-                        <summary className="text-sm text-gray-600 hover:text-gray-900">
-                          View Details
-                        </summary>
-                        <pre className="text-xs mt-2 p-2 bg-gray-50 rounded overflow-auto max-h-32">
-                          {formatDetails(log.details)}
-                        </pre>
-                      </details>
-                    </TableCell>
-                    <TableCell className="text-sm text-gray-600">
-                      {log.ip_address || '-'}
-                    </TableCell>
+      <Tabs defaultValue="all">
+        <TabsList>
+          <TabsTrigger value="all">All Logs ({filteredLogs.length})</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory ({inventoryLogs.length})</TabsTrigger>
+          <TabsTrigger value="auth">Authentication ({authLogs.length})</TabsTrigger>
+          <TabsTrigger value="sales">Sales ({salesLogs.length})</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="all">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Activity className="h-5 w-5" />
+                All System Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Changes</TableHead>
+                    <TableHead>Details</TableHead>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+                </TableHeader>
+                <TableBody>
+                  {filteredLogs.slice(0, 50).map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-sm">
+                        {new Date(log.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>{getCategoryBadge(log.category || 'general')}</TableCell>
+                      <TableCell>{getActionBadge(log.action)}</TableCell>
+                      <TableCell>
+                        <div>
+                          <div className="font-medium">{log.resource_type}</div>
+                          {log.resource_id && (
+                            <div className="text-sm text-gray-500">{log.resource_id}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="truncate text-sm">
+                          {formatChanges(log.old_values, log.new_values)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="max-w-xs">
+                        <div className="truncate text-sm">
+                          {log.details?.message || JSON.stringify(log.details)}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredLogs.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                        No audit logs found matching your criteria
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="inventory">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Package className="h-5 w-5" />
+                Inventory Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Stock Changes</TableHead>
+                    <TableHead>Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inventoryLogs.slice(0, 30).map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-sm">
+                        {new Date(log.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>{getActionBadge(log.action)}</TableCell>
+                      <TableCell>{log.resource_id}</TableCell>
+                      <TableCell>
+                        {log.old_values?.stock && log.new_values?.stock && (
+                          <Badge variant="outline">
+                            {log.old_values.stock} → {log.new_values.stock}
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {log.details?.message}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {inventoryLogs.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        No inventory activity found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="auth">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Shield className="h-5 w-5" />
+                Authentication Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>User ID</TableHead>
+                    <TableHead>Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {authLogs.slice(0, 30).map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-sm">
+                        {new Date(log.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>{getActionBadge(log.action)}</TableCell>
+                      <TableCell className="font-mono text-sm">{log.user_id}</TableCell>
+                      <TableCell>{log.details?.message}</TableCell>
+                    </TableRow>
+                  ))}
+                  {authLogs.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
+                        No authentication activity found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sales">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Sales Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Timestamp</TableHead>
+                    <TableHead>Action</TableHead>
+                    <TableHead>Resource</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Details</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {salesLogs.slice(0, 30).map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="font-mono text-sm">
+                        {new Date(log.created_at).toLocaleString()}
+                      </TableCell>
+                      <TableCell>{getActionBadge(log.action)}</TableCell>
+                      <TableCell>{log.resource_type}</TableCell>
+                      <TableCell>
+                        {log.new_values?.total_amount && (
+                          <span className="font-medium">
+                            TZS {log.new_values.total_amount.toLocaleString()}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="max-w-xs truncate">
+                        {log.details?.message}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {salesLogs.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                        No sales activity found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
