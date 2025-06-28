@@ -3,7 +3,6 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { ShoppingCart, Plus, Search, Package, Clock, CheckCircle, Minus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
@@ -22,6 +21,8 @@ interface Product {
   pharmacy_name?: string;
   pharmacy_id?: string;
   min_stock: number;
+  is_retail_product?: boolean;
+  is_public_product?: boolean;
 }
 
 const PublicCatalog = () => {
@@ -37,14 +38,16 @@ const PublicCatalog = () => {
     try {
       setIsLoading(true);
       
+      // Fetch products visible to individual users (retail + public products)
       const { data: productsData, error } = await supabase
         .from('products')
         .select(`
           *,
-          profiles!products_user_id_fkey(name, pharmacy_name)
+          profiles!products_user_id_fkey(name, pharmacy_name, business_name)
         `)
-        .eq('is_public_product', true)
+        .or('is_retail_product.eq.true,is_public_product.eq.true')
         .eq('status', 'in-stock')
+        .gt('stock', 0)
         .order('name');
 
       if (error) {
@@ -55,7 +58,10 @@ const PublicCatalog = () => {
         ...product,
         price: product.sell_price || 0,
         min_stock: product.min_stock_level || 0,
-        pharmacy_name: product.profiles?.pharmacy_name || product.profiles?.name || 'Unknown Pharmacy',
+        pharmacy_name: product.profiles?.business_name || 
+                      product.profiles?.pharmacy_name || 
+                      product.profiles?.name || 
+                      'Unknown Pharmacy',
         pharmacy_id: product.user_id || product.pharmacy_id
       }));
 
@@ -275,7 +281,8 @@ const PublicCatalog = () => {
       products.filter((product) =>
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase())
+        product.manufacturer?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        product.pharmacy_name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     );
   }, [searchTerm, products]);
@@ -296,7 +303,7 @@ const PublicCatalog = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Public Catalog</h1>
-          <p className="text-gray-600 text-lg">Explore our wide range of products</p>
+          <p className="text-gray-600 text-lg">Explore products from retail pharmacies near you</p>
         </div>
 
         <div className="grid lg:grid-cols-4 gap-8">
@@ -308,7 +315,7 @@ const PublicCatalog = () => {
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                   <Input
-                    placeholder="Search products..."
+                    placeholder="Search products by name, category, manufacturer, or pharmacy..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-10"
@@ -317,41 +324,64 @@ const PublicCatalog = () => {
               </CardContent>
             </Card>
 
+            {/* Product count indicator */}
+            <div className="text-sm text-gray-600">
+              Showing {filteredProducts.length} of {products.length} products
+            </div>
+
             {/* Products Grid */}
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredProducts.map((product) => (
-                <Card key={product.id} className="hover:shadow-lg transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <h3 className="font-semibold text-lg">{product.name}</h3>
-                        <p className="text-gray-600">{product.category}</p>
-                        <p className="text-sm text-gray-500">by {product.manufacturer}</p>
-                        <p className="text-sm text-blue-600">from {product.pharmacy_name}</p>
+              {filteredProducts.length === 0 ? (
+                <div className="col-span-full text-center py-12">
+                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
+                  <p className="text-gray-600">
+                    {searchTerm ? "Try adjusting your search terms." : "No products are currently available."}
+                  </p>
+                </div>
+              ) : (
+                filteredProducts.map((product) => (
+                  <Card key={product.id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex-1">
+                          <h3 className="font-semibold text-lg">{product.name}</h3>
+                          <p className="text-gray-600">{product.category}</p>
+                          {product.manufacturer && (
+                            <p className="text-sm text-gray-500">by {product.manufacturer}</p>
+                          )}
+                          <p className="text-sm text-blue-600">from {product.pharmacy_name}</p>
+                          <div className="flex gap-1 mt-2">
+                            {product.is_retail_product && <Badge variant="outline" className="text-xs">Retail</Badge>}
+                            {product.is_public_product && <Badge variant="default" className="text-xs">Public</Badge>}
+                          </div>
+                        </div>
+                        <Badge variant={product.stock > 0 ? "default" : "secondary"}>
+                          Stock: {product.stock}
+                        </Badge>
                       </div>
-                      <Badge variant={product.stock > 0 ? "default" : "secondary"}>
-                        Stock: {product.stock}
-                      </Badge>
-                    </div>
-                    
-                    <p className="text-gray-700 mb-4 text-sm">{product.description}</p>
-                    
-                    <div className="flex justify-between items-center">
-                      <span className="text-2xl font-bold text-blue-600">
-                        TZS {product.price.toLocaleString()}
-                      </span>
-                      <Button
-                        onClick={() => addToCart(product)}
-                        disabled={product.stock === 0}
-                        size="sm"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add to Cart
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                      
+                      {product.description && (
+                        <p className="text-gray-700 mb-4 text-sm line-clamp-2">{product.description}</p>
+                      )}
+                      
+                      <div className="flex justify-between items-center">
+                        <span className="text-2xl font-bold text-blue-600">
+                          TZS {product.price.toLocaleString()}
+                        </span>
+                        <Button
+                          onClick={() => addToCart(product)}
+                          disabled={product.stock === 0 || !user}
+                          size="sm"
+                        >
+                          <Plus className="h-4 w-4 mr-2" />
+                          {user ? 'Add to Cart' : 'Login to Order'}
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </div>
 

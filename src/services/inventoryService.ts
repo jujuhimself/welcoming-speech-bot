@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Product {
@@ -88,11 +89,24 @@ export interface InventoryMovement {
 }
 
 class InventoryService {
-  async getProducts(): Promise<Product[]> {
-    const { data, error } = await supabase
-      .from('products')
-      .select('*')
-      .order('name');
+  async getProducts(userRole?: string): Promise<Product[]> {
+    let query = supabase.from('products').select('*');
+
+    // Apply role-based filtering at query level for better performance
+    if (userRole === 'individual') {
+      query = query.or('is_retail_product.eq.true,is_public_product.eq.true');
+    } else if (userRole === 'retail') {
+      // Retail users see wholesale products and their own products
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        query = query.or(`is_wholesale_product.eq.true,user_id.eq.${user.id}`);
+      }
+    }
+    // Wholesale users can see all products (no additional filter needed)
+
+    query = query.order('name');
+
+    const { data, error } = await query;
 
     if (error) {
       console.error('Error fetching products:', error);
@@ -186,6 +200,24 @@ class InventoryService {
   }
 
   async createProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
+    // Get user role to set appropriate visibility flags
+    const { data: { user } } = await supabase.auth.getUser();
+    let visibilityFlags = {};
+    
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single();
+      
+      if (profile?.role === 'wholesale') {
+        visibilityFlags = { is_wholesale_product: true };
+      } else if (profile?.role === 'retail') {
+        visibilityFlags = { is_retail_product: true, is_public_product: true };
+      }
+    }
+
     const { data, error } = await supabase
       .from('products')
       .insert({
@@ -209,7 +241,8 @@ class InventoryService {
         supplier: product.supplier,
         batch_number: product.batch_number,
         status: product.status,
-        image_url: product.image_url
+        image_url: product.image_url,
+        ...visibilityFlags
       })
       .select()
       .single();

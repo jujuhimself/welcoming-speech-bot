@@ -1,14 +1,24 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { inventoryService, Product, InventoryMovement, Supplier, PurchaseOrder, PurchaseOrderItem } from '@/services/inventoryService';
-import { auditService } from '@/services/auditService';
-import { useToast } from '@/hooks/use-toast';
+import { inventoryService, Product } from '@/services/inventoryService';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 export const useProducts = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['products'],
-    queryFn: () => inventoryService.getProducts(),
+    queryKey: ['products', user?.role],
+    queryFn: () => inventoryService.getProducts(user?.role),
+    enabled: !!user,
+  });
+};
+
+export const useProduct = (productId: string) => {
+  return useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => inventoryService.getProduct(productId),
+    enabled: !!productId,
   });
 };
 
@@ -18,27 +28,21 @@ export const useCreateProduct = () => {
   const { user } = useAuth();
 
   return useMutation({
-    mutationFn: async (productData: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => {
-      const productWithUser = {
-        ...productData,
-        user_id: user?.id
-      };
-      return inventoryService.createProduct(productWithUser);
-    },
-    onSuccess: (newProduct) => {
+    mutationFn: (product: Omit<Product, 'id' | 'created_at' | 'updated_at'>) => 
+      inventoryService.createProduct(product),
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({
         title: "Product created",
-        description: "Product has been successfully added to inventory.",
+        description: "Product has been created successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to create product. Please try again.",
+        description: error.message || "Failed to create product",
         variant: "destructive",
       });
-      console.error('Error creating product:', error);
     },
   });
 };
@@ -48,23 +52,21 @@ export const useUpdateProduct = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<Product> }) => {
-      return inventoryService.updateProduct(id, updates);
-    },
+    mutationFn: ({ productId, updates }: { productId: string; updates: Partial<Product> }) =>
+      inventoryService.updateProduct(productId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({
         title: "Product updated",
-        description: "Product has been successfully updated.",
+        description: "Product has been updated successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to update product. Please try again.",
+        description: error.message || "Failed to update product",
         variant: "destructive",
       });
-      console.error('Error updating product:', error);
     },
   });
 };
@@ -74,212 +76,76 @@ export const useDeleteProduct = () => {
   const { toast } = useToast();
 
   return useMutation({
-    mutationFn: async (id: string) => {
-      return inventoryService.deleteProduct(id);
-    },
+    mutationFn: (productId: string) => inventoryService.deleteProduct(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       toast({
         title: "Product deleted",
-        description: "Product has been successfully removed from inventory.",
+        description: "Product has been deleted successfully",
       });
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast({
         title: "Error",
-        description: "Failed to delete product. Please try again.",
+        description: error.message || "Failed to delete product",
         variant: "destructive",
       });
-      console.error('Error deleting product:', error);
     },
   });
 };
 
-export const useUpdateStock = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: async ({ productId, newStock, reason }: { productId: string; newStock: number; reason?: string }) => {
-      return inventoryService.updateStock(productId, newStock, reason);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
-      toast({
-        title: "Stock updated",
-        description: "Product stock has been successfully updated.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to update stock. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Error updating stock:', error);
-    },
-  });
-};
-
-export const useInventoryMovements = (productId?: string) => {
-  return useQuery({
-    queryKey: ['inventory-movements', productId],
-    queryFn: () => inventoryService.getInventoryMovements(productId),
-  });
-};
-
-export const useCreateInventoryMovement = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: (movement: Omit<InventoryMovement, 'id' | 'created_at'>) => inventoryService.createInventoryMovement(movement),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['inventory-movements'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast({
-        title: "Inventory movement recorded",
-        description: "Inventory movement has been successfully recorded.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to record inventory movement. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Error creating inventory movement:', error);
-    },
-  });
-};
-
-export const useSuppliers = () => {
-  return useQuery({
-    queryKey: ['suppliers'],
-    queryFn: () => inventoryService.getSuppliers(),
-  });
-};
-
-export const useCreateSupplier = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  return useMutation({
-    mutationFn: (supplier: Omit<Supplier, 'id' | 'created_at' | 'updated_at'>) => inventoryService.createSupplier(supplier),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['suppliers'] });
-      toast({
-        title: "Supplier created",
-        description: "Supplier has been successfully added.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create supplier. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Error creating supplier:', error);
-    },
-  });
-};
-
-export const usePurchaseOrders = () => {
-  return useQuery({
-    queryKey: ['purchase-orders'],
-    queryFn: () => inventoryService.getPurchaseOrders(),
-  });
-};
-
-export const useCreatePurchaseOrder = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+// Analytics hooks using real Supabase data
+export const useInventoryAnalytics = () => {
   const { user } = useAuth();
-
-  return useMutation({
-    mutationFn: async (purchaseOrder: Omit<PurchaseOrder, 'id' | 'created_at' | 'updated_at' | 'user_id'>) => {
-      const orderWithUser = {
-        ...purchaseOrder,
-        user_id: user?.id || ''
-      };
-      return inventoryService.createPurchaseOrder(orderWithUser);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-orders'] });
-      toast({
-        title: "Purchase order created",
-        description: "Purchase order has been successfully created.",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to create purchase order. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Error creating purchase order:', error);
-    },
-  });
-};
-
-export const usePurchaseOrderItems = (purchaseOrderId: string) => {
+  
   return useQuery({
-    queryKey: ['purchase-order-items', purchaseOrderId],
-    queryFn: () => inventoryService.getPurchaseOrderItems(purchaseOrderId),
-    enabled: !!purchaseOrderId,
-  });
-};
+    queryKey: ['inventory-analytics', user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+      
+      // Get real analytics data from Supabase
+      const { data: products } = await inventoryService.getProducts(user.role);
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('total_amount, created_at, status')
+        .eq('user_id', user.id);
 
-export const useCreatePurchaseOrderItem = () => {
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+      if (ordersError) throw ordersError;
 
-  return useMutation({
-    mutationFn: (item: Omit<PurchaseOrderItem, 'id' | 'created_at'>) => inventoryService.createPurchaseOrderItem(item),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['purchase-order-items', data.purchase_order_id] });
-      toast({
-        title: "Purchase order item added",
-        description: "Purchase order item has been successfully added.",
-      });
+      const totalProducts = products?.length || 0;
+      const lowStockProducts = products?.filter(p => p.stock <= p.min_stock).length || 0;
+      const totalValue = products?.reduce((sum, p) => sum + (p.stock * p.sell_price), 0) || 0;
+      const totalOrders = orders?.length || 0;
+      const totalRevenue = orders?.reduce((sum, o) => sum + (o.total_amount || 0), 0) || 0;
+
+      return {
+        totalProducts,
+        lowStockProducts,
+        totalValue,
+        totalOrders,
+        totalRevenue
+      };
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: "Failed to add purchase order item. Please try again.",
-        variant: "destructive",
-      });
-      console.error('Error creating purchase order item:', error);
-    },
+    enabled: !!user,
   });
 };
 
 export const useLowStockProducts = () => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['low-stock-products'],
+    queryKey: ['low-stock-products', user?.id],
     queryFn: () => inventoryService.getLowStockProducts(),
+    enabled: !!user,
   });
 };
 
 export const useExpiringProducts = (days: number = 30) => {
+  const { user } = useAuth();
+  
   return useQuery({
-    queryKey: ['expiring-products', days],
+    queryKey: ['expiring-products', user?.id, days],
     queryFn: () => inventoryService.getExpiringProducts(days),
-  });
-};
-
-export const useSalesAnalytics = (dateRange?: { from: Date; to: Date }) => {
-  return useQuery({
-    queryKey: ['sales-analytics', dateRange],
-    queryFn: () => inventoryService.getSalesAnalytics(dateRange),
-  });
-};
-
-export const useProductAnalytics = (productId?: string, dateRange?: { from: Date; to: Date }) => {
-  return useQuery({
-    queryKey: ['product-analytics', productId, dateRange],
-    queryFn: () => inventoryService.getProductAnalytics(productId, dateRange),
-    enabled: !!productId,
+    enabled: !!user,
   });
 };

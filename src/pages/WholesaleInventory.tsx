@@ -1,6 +1,7 @@
+
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { useProducts } from "@/hooks/useInventory";
+import { useProducts, useInventoryAnalytics } from "@/hooks/useInventory";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +17,7 @@ const WholesaleInventory = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { data: products = [], isLoading, error } = useProducts();
+  const { data: analytics } = useInventoryAnalytics();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -30,7 +32,7 @@ const WholesaleInventory = () => {
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+                         (product.sku && product.sku.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -48,9 +50,6 @@ const WholesaleInventory = () => {
     const config = statusConfig[status as keyof typeof statusConfig] || statusConfig['in-stock'];
     return <Badge variant={config.variant}>{config.label}</Badge>;
   };
-
-  const totalValue = products.reduce((sum, product) => sum + (product.stock * product.sell_price), 0);
-  const lowStockCount = products.filter(p => p.status === 'low-stock' || p.status === 'out-of-stock').length;
 
   if (isLoading) {
     return (
@@ -86,7 +85,7 @@ const WholesaleInventory = () => {
           <p className="text-gray-600 text-lg">Manage your wholesale product inventory</p>
         </div>
 
-        {/* Summary Cards */}
+        {/* Summary Cards with real data */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -94,7 +93,7 @@ const WholesaleInventory = () => {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{products.length}</div>
+              <div className="text-2xl font-bold">{analytics?.totalProducts || 0}</div>
             </CardContent>
           </Card>
 
@@ -104,7 +103,7 @@ const WholesaleInventory = () => {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">TZS {totalValue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">TZS {(analytics?.totalValue || 0).toLocaleString()}</div>
             </CardContent>
           </Card>
 
@@ -114,7 +113,7 @@ const WholesaleInventory = () => {
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-red-600">{lowStockCount}</div>
+              <div className="text-2xl font-bold text-red-600">{analytics?.lowStockProducts || 0}</div>
             </CardContent>
           </Card>
 
@@ -179,13 +178,14 @@ const WholesaleInventory = () => {
                   <TableHead>Buy Price</TableHead>
                   <TableHead>Sell Price</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Visibility</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredProducts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} className="text-center py-8 text-gray-500">
+                    <TableCell colSpan={10} className="text-center py-8 text-gray-500">
                       No products found. {searchTerm || selectedCategory !== "all" ? "Try adjusting your filters." : "Add your first product to get started."}
                     </TableCell>
                   </TableRow>
@@ -193,13 +193,20 @@ const WholesaleInventory = () => {
                   filteredProducts.map((product) => (
                     <TableRow key={product.id}>
                       <TableCell className="font-medium">{product.name}</TableCell>
-                      <TableCell>{product.sku}</TableCell>
+                      <TableCell>{product.sku || 'N/A'}</TableCell>
                       <TableCell>{product.category}</TableCell>
                       <TableCell>{product.stock}</TableCell>
                       <TableCell>{product.min_stock}</TableCell>
-                      <TableCell>TZS {product.buy_price}</TableCell>
-                      <TableCell>TZS {product.sell_price}</TableCell>
+                      <TableCell>TZS {product.buy_price.toLocaleString()}</TableCell>
+                      <TableCell>TZS {product.sell_price.toLocaleString()}</TableCell>
                       <TableCell>{getStatusBadge(product.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          {product.is_wholesale_product && <Badge variant="secondary">Wholesale</Badge>}
+                          {product.is_retail_product && <Badge variant="outline">Retail</Badge>}
+                          {product.is_public_product && <Badge variant="default">Public</Badge>}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Button
                           variant="outline"

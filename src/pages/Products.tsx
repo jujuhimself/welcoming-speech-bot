@@ -1,3 +1,4 @@
+
 import ProductFilters from "@/components/ProductFilters";
 import ProductDetails from "@/components/ProductDetails";
 import ProductList from "@/components/ProductList";
@@ -13,7 +14,6 @@ import {
 import { useProductsPage } from "@/hooks/useProductsPage";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Product type is re-exported from hook for local typing where needed.
 const Products = () => {
   const {
     user,
@@ -47,6 +47,17 @@ const Products = () => {
         <div className="container mx-auto px-4 py-4 md:py-8">
           {/* Header */}
           <ProductViewHeader />
+
+          {/* Role-based information */}
+          {user && (
+            <div className="mb-4 p-4 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                {user.role === 'individual' && 'Showing products from retail pharmacies'}
+                {user.role === 'retail' && 'Showing wholesale products you can order + your own products'}
+                {user.role === 'wholesale' && 'Showing all products in the system'}
+              </p>
+            </div>
+          )}
 
           {/* Filters */}
           <div className="mb-6">
