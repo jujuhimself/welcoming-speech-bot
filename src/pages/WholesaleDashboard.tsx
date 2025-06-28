@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Package, DollarSign, Users, TrendingUp, FileText, BarChart3 } from "lucide-react";
@@ -31,7 +32,7 @@ import WholesaleStatsCards from "@/components/wholesale/WholesaleStatsCards";
 import WholesaleQuickActions from "@/components/wholesale/WholesaleQuickActions";
 import WholesaleRecentOrders from "@/components/wholesale/WholesaleRecentOrders";
 import WholesalePendingApprovalNotice from "@/components/wholesale/WholesalePendingApprovalNotice";
-import WholesaleSidebar from "@/components/wholesale/WholesaleSidebar";
+import { WholesaleSidebar } from "@/components/wholesale/WholesaleSidebar";
 
 const WholesaleDashboard = () => {
   const { user, logout } = useAuth();

@@ -55,12 +55,13 @@ const WholesaleAdjustments = () => {
 
       if (error) throw error;
 
-      // Fetch product names
+      // Fetch product names and properly cast adjustment_type
       const adjustmentsWithProducts = await Promise.all(
         (data || []).map(async (adjustment) => {
           const product = products.find(p => p.id === adjustment.product_id);
           return {
             ...adjustment,
+            adjustment_type: adjustment.adjustment_type as 'add' | 'remove',
             product_name: product?.name || 'Unknown Product'
           };
         })
