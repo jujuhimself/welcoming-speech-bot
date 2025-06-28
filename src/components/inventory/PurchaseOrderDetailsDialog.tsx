@@ -167,9 +167,9 @@ const PurchaseOrderDetailsDialog = ({ open, onOpenChange, purchaseOrderId }: Pur
                   <div className="grid grid-cols-12 gap-4 text-sm font-medium text-gray-600 border-b pb-2">
                     <div className="col-span-4">Product</div>
                     <div className="col-span-2 text-center">Quantity</div>
-                    <div className="col-span-2 text-center">Unit Cost</div>
+                    <div className="col-span-2 text-center">Unit Price</div>
                     <div className="col-span-2 text-center">Total</div>
-                    <div className="col-span-2 text-center">Received</div>
+                    <div className="col-span-2 text-center">Status</div>
                   </div>
                   
                   {items.map((item) => (
@@ -181,14 +181,14 @@ const PurchaseOrderDetailsDialog = ({ open, onOpenChange, purchaseOrderId }: Pur
                         {item.quantity}
                       </div>
                       <div className="col-span-2 text-center">
-                        TZS {item.unit_cost.toLocaleString()}
+                        TZS {item.unit_price.toLocaleString()}
                       </div>
                       <div className="col-span-2 text-center font-medium">
-                        TZS {item.total_cost.toLocaleString()}
+                        TZS {item.total_price.toLocaleString()}
                       </div>
                       <div className="col-span-2 text-center">
-                        <Badge variant={item.received_quantity === item.quantity ? "default" : "secondary"}>
-                          {item.received_quantity || 0}/{item.quantity}
+                        <Badge variant="secondary">
+                          Ordered
                         </Badge>
                       </div>
                     </div>
@@ -198,7 +198,7 @@ const PurchaseOrderDetailsDialog = ({ open, onOpenChange, purchaseOrderId }: Pur
                   
                   <div className="flex justify-between items-center font-bold text-lg">
                     <span>Total Amount:</span>
-                    <span>TZS {items.reduce((sum, item) => sum + item.total_cost, 0).toLocaleString()}</span>
+                    <span>TZS {items.reduce((sum, item) => sum + item.total_price, 0).toLocaleString()}</span>
                   </div>
                 </div>
               )}
