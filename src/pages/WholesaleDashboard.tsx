@@ -31,6 +31,7 @@ import WholesaleStatsCards from "@/components/wholesale/WholesaleStatsCards";
 import WholesaleQuickActions from "@/components/wholesale/WholesaleQuickActions";
 import WholesaleRecentOrders from "@/components/wholesale/WholesaleRecentOrders";
 import WholesalePendingApprovalNotice from "@/components/wholesale/WholesalePendingApprovalNotice";
+import WholesaleSidebar from "@/components/wholesale/WholesaleSidebar";
 
 const WholesaleDashboard = () => {
   const { user, logout } = useAuth();
@@ -132,27 +133,24 @@ const WholesaleDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <div className="container mx-auto px-4 py-8">
-        {/* Add demo link for the new features */}
-        <div className="flex justify-end mb-4">
-          <Button asChild variant="outline">
-            <Link to="/wholesale-business-tools">
-              CRM & Business Tools (New)
-            </Link>
-          </Button>
+      <div className="flex">
+        <WholesaleSidebar />
+        <div className="flex-1">
+          <div className="container mx-auto px-4 py-8">
+            <div className="mb-8">
+              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+                Welcome back, {user?.businessName}
+              </h1>
+              <p className="text-gray-600 text-lg">
+                Manage your wholesale business and serve retail pharmacies
+              </p>
+            </div>
+            <BackupScheduleManager />
+            <WholesaleStatsCards stats={stats} />
+            <WholesaleQuickActions />
+            <WholesaleRecentOrders orders={orders} />
+          </div>
         </div>
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.businessName}
-          </h1>
-          <p className="text-gray-600 text-lg">
-            Manage your wholesale business and serve retail pharmacies
-          </p>
-        </div>
-        <BackupScheduleManager />
-        <WholesaleStatsCards stats={stats} />
-        <WholesaleQuickActions />
-        <WholesaleRecentOrders orders={orders} />
       </div>
     </div>
   );

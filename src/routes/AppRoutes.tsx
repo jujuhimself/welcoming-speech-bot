@@ -53,6 +53,11 @@ import WholesalePurchaseOrders from "@/pages/WholesalePurchaseOrders";
 import WholesaleRetailers from "@/pages/WholesaleRetailers";
 import WholesaleAnalytics from "@/pages/WholesaleAnalytics";
 import WholesaleBusinessTools from "@/pages/WholesaleBusinessTools";
+import WholesalePOS from "@/pages/wholesale/WholesalePOS";
+import WholesaleCreditCRM from "@/pages/wholesale/WholesaleCreditCRM";
+import WholesaleStaffManagement from "@/pages/wholesale/WholesaleStaffManagement";
+import WholesaleAdjustments from "@/pages/wholesale/WholesaleAdjustments";
+import WholesaleAuditTrail from "@/pages/wholesale/WholesaleAuditTrail";
 
 // Lab Pages
 import LabDashboard from "@/pages/LabDashboard";
@@ -289,7 +294,33 @@ const AppRoutes = () => {
         <RouteGuard allowedRoles={['wholesale']} requireApproval>
           <WholesaleBusinessTools />
         </RouteGuard>
-      } />
+      }>
+        <Route path="pos" element={
+          <RouteGuard allowedRoles={['wholesale']} requireApproval>
+            <WholesalePOS />
+          </RouteGuard>
+        } />
+        <Route path="credit" element={
+          <RouteGuard allowedRoles={['wholesale']} requireApproval>
+            <WholesaleCreditCRM />
+          </RouteGuard>
+        } />
+        <Route path="staff" element={
+          <RouteGuard allowedRoles={['wholesale']} requireApproval>
+            <WholesaleStaffManagement />
+          </RouteGuard>
+        } />
+        <Route path="adjustments" element={
+          <RouteGuard allowedRoles={['wholesale']} requireApproval>
+            <WholesaleAdjustments />
+          </RouteGuard>
+        } />
+        <Route path="audit" element={
+          <RouteGuard allowedRoles={['wholesale']} requireApproval>
+            <WholesaleAuditTrail />
+          </RouteGuard>
+        } />
+      </Route>
 
       {/* Lab Routes */}
       <Route path="/lab" element={

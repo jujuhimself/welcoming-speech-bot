@@ -750,6 +750,39 @@ export type Database = {
         }
         Relationships: []
       }
+      expiry_alerts: {
+        Row: {
+          created_at: string | null
+          days_before_expiry: number
+          expiry_date: string
+          id: string
+          is_acknowledged: boolean | null
+          product_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          days_before_expiry?: number
+          expiry_date: string
+          id?: string
+          is_acknowledged?: boolean | null
+          product_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          days_before_expiry?: number
+          expiry_date?: string
+          id?: string
+          is_acknowledged?: boolean | null
+          product_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       generated_reports: {
         Row: {
           created_at: string
@@ -2066,6 +2099,54 @@ export type Database = {
           },
         ]
       }
+      recurring_invoices: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          end_date: string | null
+          frequency: string
+          id: string
+          is_active: boolean | null
+          next_invoice_date: string
+          template_invoice_id: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          end_date?: string | null
+          frequency: string
+          id?: string
+          is_active?: boolean | null
+          next_invoice_date: string
+          template_invoice_id?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          end_date?: string | null
+          frequency?: string
+          id?: string
+          is_active?: boolean | null
+          next_invoice_date?: string
+          template_invoice_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       report_templates: {
         Row: {
           created_at: string
@@ -2101,6 +2182,87 @@ export type Database = {
           report_type?: string
           schedule?: Json | null
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      return_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          reason: string | null
+          return_id: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity: number
+          reason?: string | null
+          return_id: string
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          reason?: string | null
+          return_id?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: []
+      }
+      returns_refunds: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          id: string
+          invoice_id: string | null
+          processed_at: string | null
+          processed_by: string | null
+          reason: string | null
+          refund_method: string
+          return_date: string
+          status: string | null
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          refund_method: string
+          return_date: string
+          status?: string | null
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          id?: string
+          invoice_id?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          reason?: string | null
+          refund_method?: string
+          return_date?: string
+          status?: string | null
+          total_amount?: number
           user_id?: string
         }
         Relationships: []
@@ -2262,6 +2424,36 @@ export type Database = {
           },
         ]
       }
+      stock_valuation: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          id: string
+          total_cost: number
+          total_retail_value: number
+          user_id: string
+          valuation_date: string
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          id?: string
+          total_cost?: number
+          total_retail_value?: number
+          user_id: string
+          valuation_date: string
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          id?: string
+          total_cost?: number
+          total_retail_value?: number
+          user_id?: string
+          valuation_date?: string
+        }
+        Relationships: []
+      }
       suppliers: {
         Row: {
           address: string | null
@@ -2364,6 +2556,42 @@ export type Database = {
           metric_unit?: string | null
           metric_value?: number
           recorded_at?: string
+        }
+        Relationships: []
+      }
+      tax_settings: {
+        Row: {
+          branch_id: string
+          created_at: string | null
+          id: string
+          is_vat_registered: boolean | null
+          tax_registration_number: string | null
+          updated_at: string | null
+          user_id: string
+          vat_rate: number | null
+          wht_rate: number | null
+        }
+        Insert: {
+          branch_id: string
+          created_at?: string | null
+          id?: string
+          is_vat_registered?: boolean | null
+          tax_registration_number?: string | null
+          updated_at?: string | null
+          user_id: string
+          vat_rate?: number | null
+          wht_rate?: number | null
+        }
+        Update: {
+          branch_id?: string
+          created_at?: string | null
+          id?: string
+          is_vat_registered?: boolean | null
+          tax_registration_number?: string | null
+          updated_at?: string | null
+          user_id?: string
+          vat_rate?: number | null
+          wht_rate?: number | null
         }
         Relationships: []
       }
