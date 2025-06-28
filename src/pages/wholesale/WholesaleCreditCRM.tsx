@@ -82,7 +82,7 @@ const WholesaleCreditCRM = () => {
             ...account,
             retailer_name: retailer?.business_name || retailer?.name || 'Unknown',
             retailer_email: retailer?.email || ''
-          });
+          };
         })
       );
 
