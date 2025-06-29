@@ -1,3 +1,5 @@
+import { supabase } from '@/integrations/supabase/client';
+import { Tables, TablesInsert, TablesUpdate } from '@/integrations/supabase/types';
 
 interface StorageData {
   orders: any[];
@@ -46,12 +48,219 @@ class DataService {
     this.dispatchStorageEvent(key, null);
   }
 
-  // Specific data methods
+  // Supabase Products Methods
+  async getProducts(userId?: string, role?: string): Promise<Tables<'products'>[]> {
+    try {
+      let query = supabase.from('products').select('*');
+      
+      if (role === 'individual') {
+        // Individuals see only public retail products
+        query = query.eq('is_public_product', true).eq('is_retail_product', true);
+      } else if (role === 'retail') {
+        // Retail users see wholesale products and their own
+        query = query.or(`wholesaler_id.is.not.null,user_id.eq.${userId}`);
+      } else if (role === 'wholesale') {
+        // Wholesale users see their own products
+        query = query.eq('user_id', userId);
+      } else if (role === 'admin') {
+        // Admins see all products
+        query = query.select('*');
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      return [];
+    }
+  }
+
+  async createProduct(product: TablesInsert<'products'>): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .insert(product)
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error creating product:', error);
+      return null;
+    }
+  }
+
+  async updateProduct(id: string, updates: TablesUpdate<'products'>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .update(updates)
+        .eq('id', id);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error updating product:', error);
+      return false;
+    }
+  }
+
+  async deleteProduct(id: string): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('products')
+        .delete()
+        .eq('id', id);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      return false;
+    }
+  }
+
+  // Supabase Orders Methods
+  async getOrders(userId?: string, role?: string): Promise<Tables<'orders'>[]> {
+    try {
+      let query = supabase.from('orders').select('*');
+      
+      if (role === 'individual') {
+        query = query.eq('user_id', userId);
+      } else if (role === 'retail') {
+        query = query.eq('pharmacy_id', userId);
+      } else if (role === 'wholesale') {
+        query = query.eq('wholesaler_id', userId);
+      }
+      
+      const { data, error } = await query;
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      return [];
+    }
+  }
+
+  async createOrder(order: TablesInsert<'orders'>): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .insert(order)
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      return null;
+    }
+  }
+
+  // Supabase Inventory Methods
+  async getInventoryAdjustments(userId?: string): Promise<Tables<'inventory_adjustments'>[]> {
+    try {
+      const { data, error } = await supabase
+        .from('inventory_adjustments')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching inventory adjustments:', error);
+      return [];
+    }
+  }
+
+  async createInventoryAdjustment(adjustment: TablesInsert<'inventory_adjustments'>): Promise<boolean> {
+    try {
+      const { error } = await supabase
+        .from('inventory_adjustments')
+        .insert(adjustment);
+      
+      if (error) throw error;
+      return true;
+    } catch (error) {
+      console.error('Error creating inventory adjustment:', error);
+      return false;
+    }
+  }
+
+  // Supabase Staff Methods
+  async getStaffMembers(pharmacyId: string): Promise<Tables<'staff_members'>[]> {
+    try {
+      const { data, error } = await supabase
+        .from('staff_members')
+        .select('*')
+        .eq('pharmacy_id', pharmacyId)
+        .eq('is_active', true);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching staff members:', error);
+      return [];
+    }
+  }
+
+  async createStaffMember(staff: TablesInsert<'staff_members'>): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('staff_members')
+        .insert(staff)
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error creating staff member:', error);
+      return null;
+    }
+  }
+
+  // Supabase Credit Methods
+  async getCreditAccounts(userId: string): Promise<Tables<'credit_accounts'>[]> {
+    try {
+      const { data, error } = await supabase
+        .from('credit_accounts')
+        .select('*')
+        .eq('user_id', userId);
+      
+      if (error) throw error;
+      return data || [];
+    } catch (error) {
+      console.error('Error fetching credit accounts:', error);
+      return [];
+    }
+  }
+
+  async createCreditAccount(account: TablesInsert<'credit_accounts'>): Promise<string | null> {
+    try {
+      const { data, error } = await supabase
+        .from('credit_accounts')
+        .insert(account)
+        .select('id')
+        .single();
+      
+      if (error) throw error;
+      return data?.id || null;
+    } catch (error) {
+      console.error('Error creating credit account:', error);
+      return null;
+    }
+  }
+
+  // Specific data methods (keeping for backward compatibility)
   saveOrders(orders: any[]): void {
     this.setItem('orders', orders);
   }
 
-  getOrders(): any[] {
+  getOrdersLocal(): any[] {
     return this.getItem('orders', []);
   }
 
@@ -59,7 +268,7 @@ class DataService {
     this.setItem('inventory', inventory);
   }
 
-  getInventory(): any[] {
+  getInventoryLocal(): any[] {
     return this.getItem('inventory', []);
   }
 
@@ -82,8 +291,8 @@ class DataService {
   // Backup and restore
   exportData(): string {
     const data: Partial<StorageData> = {
-      orders: this.getOrders(),
-      inventory: this.getInventory(),
+      orders: this.getOrdersLocal(),
+      inventory: this.getInventoryLocal(),
       prescriptions: this.getPrescriptions(),
       creditRequests: this.getItem('creditRequests', []),
       notifications: this.getNotifications(),

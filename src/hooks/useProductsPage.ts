@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from "@/contexts/AuthContext";
 import { inventoryService } from '@/services/inventoryService';
@@ -7,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { sanitizeInput } from "@/utils/security"; 
 import { logError } from "@/utils/logger";
+import { dataService } from '@/services/dataService';
 
 // Product type matching Supabase schema
 export interface Product {
@@ -22,6 +22,12 @@ export interface Product {
   prescription?: boolean;
   sell_price?: number;
   status?: string;
+  user_id?: string;
+  wholesaler_id?: string;
+  pharmacy_id?: string;
+  is_public_product?: boolean;
+  is_retail_product?: boolean;
+  is_wholesale_product?: boolean;
 }
 
 export const useProductsPage = () => {
@@ -34,6 +40,7 @@ export const useProductsPage = () => {
   const [wishlist, setWishlist] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showProductDetails, setShowProductDetails] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   // For filter UIs
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,7 +55,7 @@ export const useProductsPage = () => {
     return categoryData.map(cat => cat.name);
   }, [categoryData]);
 
-  // Fetch products from Supabase
+  // Fetch products from Supabase based on user role
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -58,15 +65,46 @@ export const useProductsPage = () => {
           return;
         }
         
-        console.log('Fetching products for user:', user.id);
+        setIsLoading(true);
+        console.log('Fetching products for user:', user.id, 'role:', user.role);
         
-        const { data, error } = await supabase
-          .from("products")
-          .select(
-            "id, name, category, stock, description, supplier, buy_price, sell_price, status, sku"
-          )
-          .eq("user_id", user.id)
-          .order("name");
+        let data, error;
+        if (user.role === 'individual') {
+          // Individuals see only public retail products
+          ({ data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('is_public_product', true)
+            .eq('is_retail_product', true)
+            .order('name')
+          );
+        } else if (user.role === 'retail') {
+          // Retail users see public wholesale products and their own
+          ({ data, error } = await supabase
+            .from('products')
+            .select('*')
+            .or(`and(is_public_product.eq.true,is_wholesale_product.eq.true),user_id.eq.${user.id}`)
+            .order('name')
+          );
+        } else if (user.role === 'wholesale') {
+          // Wholesale users see their own products
+          ({ data, error } = await supabase
+            .from('products')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('name')
+          );
+        } else if (user.role === 'admin') {
+          // Admins see all products
+          ({ data, error } = await supabase
+            .from('products')
+            .select('*')
+            .order('name')
+          );
+        } else {
+          data = [];
+          error = null;
+        }
 
         if (error) {
           logError(error, "Supabase fetch products error");
@@ -92,11 +130,16 @@ export const useProductsPage = () => {
           stock: p.stock,
           description: p.description ?? "",
           manufacturer: p.supplier ?? "",
-          dosage: "", // Default empty since column doesn't exist
-          prescription: false, // Supabase schema does not provide directly
-          image:
-            "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400", // Placeholder
+          dosage: p.strength ?? "",
+          prescription: p.requires_prescription ?? false,
+          image: p.image_url || "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400",
           status: p.status,
+          user_id: p.user_id,
+          wholesaler_id: p.wholesaler_id,
+          pharmacy_id: p.pharmacy_id,
+          is_public_product: p.is_public_product,
+          is_retail_product: p.is_retail_product,
+          is_wholesale_product: p.is_wholesale_product,
         }));
         
         console.log('Mapped products:', mapped);
@@ -110,6 +153,8 @@ export const useProductsPage = () => {
           description: "Failed to load products.",
           variant: "destructive",
         });
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -199,6 +244,7 @@ export const useProductsPage = () => {
     } else {
       existingCart.push({ ...product, quantity: 1 });
     }
+
     localStorage.setItem(cartKey, JSON.stringify(existingCart));
     toast({
       title: "Added to cart",
@@ -210,7 +256,7 @@ export const useProductsPage = () => {
     if (!user) {
       toast({
         title: "Please log in",
-        description: "You need to log in to add items to wishlist",
+        description: "You need to log in to manage wishlist",
         variant: "destructive",
       });
       return;
@@ -219,12 +265,17 @@ export const useProductsPage = () => {
     const newWishlist = wishlist.includes(productId)
       ? wishlist.filter(id => id !== productId)
       : [...wishlist, productId];
+
     setWishlist(newWishlist);
     localStorage.setItem(`bepawa_wishlist_${user.id}`, JSON.stringify(newWishlist));
-    toast({
-      title: wishlist.includes(productId) ? "Removed from wishlist" : "Added to wishlist",
-      description: `Product ${wishlist.includes(productId) ? "removed from" : "added to"} your wishlist`,
-    });
+
+    const product = products.find(p => p.id === productId);
+    if (product) {
+      toast({
+        title: wishlist.includes(productId) ? "Removed from wishlist" : "Added to wishlist",
+        description: `${product.name} ${wishlist.includes(productId) ? 'removed from' : 'added to'} wishlist`,
+      });
+    }
   };
 
   const openProductDetails = (product: Product) => {
@@ -251,11 +302,11 @@ export const useProductsPage = () => {
     setSelectedProduct,
     showProductDetails,
     setShowProductDetails,
-    // main page event handlers
     handleFiltersChange,
     addToCart,
     toggleWishlist,
     openProductDetails,
     categories,
+    isLoading,
   };
 };

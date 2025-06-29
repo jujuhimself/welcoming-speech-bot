@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Prescription {
@@ -128,6 +127,24 @@ class PrescriptionService {
       ...data,
       status: data.status as Prescription['status']
     };
+  }
+
+  async getPrescriptionsForPharmacy(pharmacyId: string): Promise<Prescription[]> {
+    const { data, error } = await supabase
+      .from('prescriptions')
+      .select('*')
+      .or(`pharmacy_id.eq.${pharmacyId},pharmacy_id.is.null`)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching pharmacy prescriptions:', error);
+      throw error;
+    }
+
+    return (data || []).map(prescription => ({
+      ...prescription,
+      status: prescription.status as Prescription['status']
+    }));
   }
 }
 

@@ -49,7 +49,60 @@ const AdminDashboard = () => {
       return;
     }
     fetchUsersWithErrorHandling();
+    fetchPlatformRevenue();
   }, [user, navigate]);
+
+  const fetchPlatformRevenue = async () => {
+    try {
+      let totalRevenue = 0;
+      let activeOrders = 0;
+
+      // Check if orders table exists and fetch from it
+      const { data: ordersData, error: ordersError } = await supabase
+        .from('orders')
+        .select('total_amount, status')
+        .in('status', ['completed', 'delivered', 'paid']);
+
+      if (!ordersError && ordersData) {
+        totalRevenue += ordersData.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        activeOrders += ordersData.length;
+      }
+
+      // Fetch from lab_orders table
+      const { data: labOrdersData, error: labOrdersError } = await supabase
+        .from('lab_orders')
+        .select('total_amount, status')
+        .in('status', ['completed'])
+        .eq('payment_status', 'paid');
+
+      if (!labOrdersError && labOrdersData) {
+        totalRevenue += labOrdersData.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+        activeOrders += labOrdersData.length;
+      }
+
+      // Fetch from prescriptions table (if they have payment amounts)
+      const { data: prescriptionsData, error: prescriptionsError } = await supabase
+        .from('prescriptions')
+        .select('status')
+        .in('status', ['completed', 'dispensed']);
+
+      if (!prescriptionsError && prescriptionsData) {
+        activeOrders += prescriptionsData.length;
+        // Note: Prescriptions might not have total_amount field, so we're just counting them
+      }
+
+      // Update system stats with real revenue
+      setSystemStats(prev => ({
+        ...prev,
+        totalRevenue,
+        activeOrders,
+      }));
+
+    } catch (err: any) {
+      logError(err, "AdminDashboard fetch platform revenue");
+      console.error("Error fetching platform revenue:", err);
+    }
+  };
 
   const fetchUsersWithErrorHandling = async () => {
     try {
@@ -78,16 +131,15 @@ const AdminDashboard = () => {
       setAllUsers(users);
       setPendingUsers(users.filter((u) => u.status === "pending"));
 
-      setSystemStats({
+      setSystemStats(prev => ({
+        ...prev,
         totalUsers: users.length,
         pendingApprovals: users.filter((u) => u.status === "pending").length,
-        totalRevenue: 15750000,
-        activeOrders: 43,
         pharmacies: users.filter((u) => u.role === "retail").length,
         wholesalers: users.filter((u) => u.role === "wholesale").length,
         labs: users.filter((u) => u.role === "lab").length,
         individuals: users.filter((u) => u.role === "individual").length,
-      });
+      }));
     } catch (err: any) {
       logError(err, "AdminDashboard fetch profiles");
       setError(err.message || "Failed to load user data");

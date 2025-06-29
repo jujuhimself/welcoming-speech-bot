@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -26,6 +25,17 @@ interface InventoryAdjustment {
   product_name?: string;
 }
 
+const REASONS = [
+  { value: 'expired', label: 'Product Expired' },
+  { value: 'damaged', label: 'Product Damaged' },
+  { value: 'stolen', label: 'Theft/Loss' },
+  { value: 'returned', label: 'Customer Return' },
+  { value: 'restock', label: 'New Stock Received' },
+  { value: 'correction', label: 'Stock Count Correction' },
+  { value: 'promotion', label: 'Promotional Giveaway' },
+  { value: 'other', label: 'Other' },
+];
+
 const WholesaleAdjustments = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -36,7 +46,9 @@ const WholesaleAdjustments = () => {
     product_id: '',
     adjustment_type: 'add' as 'add' | 'remove',
     quantity: 0,
-    reason: ''
+    reason: '',
+    customReason: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -83,6 +95,10 @@ const WholesaleAdjustments = () => {
     if (!user) return;
 
     try {
+      const reasonToSave = formData.reason === 'other'
+        ? `Other: ${formData.customReason}${formData.notes ? ' - ' + formData.notes : ''}`
+        : `${REASONS.find(r => r.value === formData.reason)?.label || formData.reason}${formData.notes ? ' - ' + formData.notes : ''}`;
+
       // Create adjustment record
       const { error: adjustmentError } = await supabase
         .from('inventory_adjustments')
@@ -91,7 +107,7 @@ const WholesaleAdjustments = () => {
           product_id: formData.product_id,
           adjustment_type: formData.adjustment_type,
           quantity: formData.quantity,
-          reason: formData.reason
+          reason: reasonToSave
         });
 
       if (adjustmentError) throw adjustmentError;
@@ -116,7 +132,7 @@ const WholesaleAdjustments = () => {
         description: `Inventory adjustment recorded successfully`,
       });
 
-      setFormData({ product_id: '', adjustment_type: 'add', quantity: 0, reason: '' });
+      setFormData({ product_id: '', adjustment_type: 'add', quantity: 0, reason: '', customReason: '', notes: '' });
       setIsDialogOpen(false);
       fetchAdjustments();
     } catch (error: any) {
@@ -150,7 +166,7 @@ const WholesaleAdjustments = () => {
   const stockRemoved = adjustments.filter(adj => adj.adjustment_type === 'remove').reduce((sum, adj) => sum + adj.quantity, 0);
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8 w-full max-w-7xl space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Inventory Adjustments</h2>
@@ -207,11 +223,35 @@ const WholesaleAdjustments = () => {
               </div>
               <div>
                 <Label>Reason</Label>
+                <Select value={formData.reason} onValueChange={(value) => setFormData({...formData, reason: value})} required>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REASONS.map(r => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.reason === 'other' && (
+                <div>
+                  <Label>Custom Reason</Label>
+                  <Textarea
+                    value={formData.customReason}
+                    onChange={(e) => setFormData({...formData, customReason: e.target.value})}
+                    placeholder="Describe the reason for this adjustment"
+                    rows={2}
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Additional Notes</Label>
                 <Textarea
-                  value={formData.reason}
-                  onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                  placeholder="Explain the reason for this adjustment..."
-                  required
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="Optional additional details..."
+                  rows={2}
                 />
               </div>
               <Button type="submit" className="w-full">

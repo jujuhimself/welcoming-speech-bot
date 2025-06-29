@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { prescriptionService, Prescription, PrescriptionItem } from '@/services/prescriptionService';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const usePrescriptions = () => {
   return useQuery({
@@ -88,5 +88,14 @@ export const useUpdatePrescriptionStatus = () => {
       });
       console.error('Error updating prescription:', error);
     },
+  });
+};
+
+export const usePharmacyPrescriptions = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ['pharmacy-prescriptions', user?.id],
+    queryFn: () => user ? prescriptionService.getPrescriptionsForPharmacy(user.id) : Promise.resolve([]),
+    enabled: !!user && user.role === 'retail',
   });
 };

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,18 +36,23 @@ const PublicCatalog = () => {
   const fetchProducts = async () => {
     try {
       setIsLoading(true);
+      let productsQuery = supabase.from('products').select('*').eq('status', 'in-stock').gt('stock', 0).order('name');
+      let productsData, error;
       
-      // Fetch products visible to individual users (retail + public products)
-      const { data: productsData, error } = await supabase
-        .from('products')
-        .select(`
-          *,
-          profiles!products_user_id_fkey(name, pharmacy_name, business_name)
-        `)
-        .or('is_retail_product.eq.true,is_public_product.eq.true')
-        .eq('status', 'in-stock')
-        .gt('stock', 0)
-        .order('name');
+      if (!user || user.role === 'individual') {
+        // Individuals: only public products
+        ({ data: productsData, error } = await productsQuery.eq('is_public_product', true));
+      } else if (user.role === 'retail') {
+        // Retailers: public and wholesale products (valid .or() filter)
+        ({ data: productsData, error } = await productsQuery.or('is_public_product.eq.true,is_wholesale_product.eq.true'));
+      } else if (user.role === 'wholesale') {
+        // Wholesalers: only their own products
+        ({ data: productsData, error } = await productsQuery.eq('user_id', user.id));
+      } else {
+        // Fallback: show nothing
+        productsData = [];
+        error = null;
+      }
 
       if (error) {
         throw error;
@@ -93,7 +97,8 @@ const PublicCatalog = () => {
           .select('items')
           .eq('user_id', user.id)
           .eq('status', 'cart')
-          .single();
+          .eq('role', user.role)
+          .maybeSingle();
 
         if (error && error.code !== 'PGRST116') {
           throw error;
@@ -104,6 +109,8 @@ const PublicCatalog = () => {
         } else {
           setCartItems([]);
         }
+
+        console.log('Cart fetch:', data, error);
       } catch (error: any) {
         console.error('Error fetching cart:', error);
         setCartItems([]);
@@ -139,29 +146,64 @@ const PublicCatalog = () => {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .upsert(
-          {
-            user_id: user.id,
-            status: 'cart',
-            items: newCartItems,
-            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-            updated_at: new Date().toISOString(),
-            order_number: `CART-${user.id}-${Date.now()}`,
-          },
-          { onConflict: 'user_id,status' }
-        )
-        .select()
-        .single();
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('role', user.role)
+        .eq('status', 'cart')
+        .maybeSingle();
 
       if (error) {
         throw error;
       }
 
-      setCartItems(newCartItems);
-      toast({
-        title: "Added to cart",
-        description: `${product.name} added to your cart`,
-      });
+      if (data) {
+        const { data: updatedData, error: updateError } = await supabase
+          .from('orders')
+          .update({
+            items: newCartItems,
+            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('role', user.role)
+          .eq('status', 'cart')
+          .select()
+          .maybeSingle();
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setCartItems(newCartItems);
+        toast({
+          title: "Added to cart",
+          description: `${product.name} added to your cart`,
+        });
+      } else {
+        const { data: newData, error: insertError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            status: 'cart',
+            role: user.role,
+            items: newCartItems,
+            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            updated_at: new Date().toISOString(),
+            order_number: `CART-${user.id}`,
+          })
+          .select()
+          .maybeSingle();
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        setCartItems(newCartItems);
+        toast({
+          title: "Added to cart",
+          description: `${product.name} added to your cart`,
+        });
+      }
     } catch (error: any) {
       console.error('Error adding to cart:', error);
       toast({
@@ -193,29 +235,64 @@ const PublicCatalog = () => {
     try {
       const { data, error } = await supabase
         .from('orders')
-        .upsert(
-          {
-            user_id: user.id,
-            status: 'cart',
-            items: newCartItems,
-            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
-            updated_at: new Date().toISOString(),
-            order_number: `CART-${user.id}-${Date.now()}`,
-          },
-          { onConflict: 'user_id,status' }
-        )
-        .select()
-        .single();
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('role', user.role)
+        .eq('status', 'cart')
+        .maybeSingle();
 
       if (error) {
         throw error;
       }
 
-      setCartItems(newCartItems);
-      toast({
-        title: "Cart updated",
-        description: "Your cart has been updated",
-      });
+      if (data) {
+        const { data: updatedData, error: updateError } = await supabase
+          .from('orders')
+          .update({
+            items: newCartItems,
+            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', user.id)
+          .eq('role', user.role)
+          .eq('status', 'cart')
+          .select()
+          .maybeSingle();
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        setCartItems(newCartItems);
+        toast({
+          title: "Cart updated",
+          description: "Your cart has been updated",
+        });
+      } else {
+        const { data: newData, error: insertError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            status: 'cart',
+            role: user.role,
+            items: newCartItems,
+            total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+            updated_at: new Date().toISOString(),
+            order_number: `CART-${user.id}`,
+          })
+          .select()
+          .maybeSingle();
+
+        if (insertError) {
+          throw insertError;
+        }
+
+        setCartItems(newCartItems);
+        toast({
+          title: "Cart updated",
+          description: "Your cart has been updated",
+        });
+      }
     } catch (error: any) {
       console.error('Error updating cart:', error);
       toast({
@@ -246,18 +323,49 @@ const PublicCatalog = () => {
     }
 
     try {
+      console.log('Starting checkout for user:', user.id);
+      console.log('Cart items:', cartItems);
+      // Check if cart order exists
+      const { data: existingCart, error: cartError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'cart')
+        .eq('role', user.role)
+        .maybeSingle();
+
+      if (cartError && cartError.code !== 'PGRST116') {
+        console.error('Error checking existing cart:', cartError);
+        throw cartError;
+      }
+
+      if (!existingCart) {
+        toast({
+          title: "No cart found",
+          description: "You must have items in your cart to checkout.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update existing cart order to pending
       const { data, error } = await supabase
         .from('orders')
-        .update({ 
+        .update({
           status: 'pending',
-          order_number: `ORDER-${user.id}-${Date.now()}`
+          items: cartItems,
+          total_amount: cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          order_number: `ORDER-${user.id}-${Date.now()}`,
+          updated_at: new Date().toISOString()
         })
         .eq('user_id', user.id)
         .eq('status', 'cart')
+        .eq('role', user.role)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) {
+        console.error('Error updating cart order:', error);
         throw error;
       }
 
@@ -270,7 +378,7 @@ const PublicCatalog = () => {
       console.error('Error checking out:', error);
       toast({
         title: "Error",
-        description: "Failed to checkout",
+        description: error.message || "Failed to checkout",
         variant: "destructive",
       });
     }
@@ -371,7 +479,7 @@ const PublicCatalog = () => {
                         </span>
                         <Button
                           onClick={() => addToCart(product)}
-                          disabled={product.stock === 0 || !user}
+                          disabled={product.stock === 0 || !user || !(user.role === 'individual' || user.role === 'retail')}
                           size="sm"
                         >
                           <Plus className="h-4 w-4 mr-2" />
@@ -387,60 +495,66 @@ const PublicCatalog = () => {
 
           {/* Shopping Cart */}
           <div>
-            <Card className="sticky top-8">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <ShoppingCart className="h-5 w-5" />
-                  Shopping Cart
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {cartItems.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">No items in cart</p>
-                ) : (
-                  <>
-                    <div className="space-y-3 max-h-60 overflow-y-auto">
-                      {cartItems.map((item) => (
-                        <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <div className="flex-1">
-                            <h4 className="font-medium text-sm">{item.name}</h4>
-                            <p className="text-gray-600 text-xs">TZS {item.price.toLocaleString()} each</p>
+            {user && (user.role === 'individual' || user.role === 'retail') && (
+              <Card className="sticky top-8">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    Shopping Cart
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {cartItems.length === 0 ? (
+                    <p className="text-gray-500 text-center py-8">No items in cart</p>
+                  ) : (
+                    <>
+                      <div className="space-y-3 max-h-60 overflow-y-auto">
+                        {cartItems.map((item) => (
+                          <div key={item.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex-1">
+                              <h4 className="font-medium text-sm">{item.name}</h4>
+                              <p className="text-gray-600 text-xs">TZS {item.price.toLocaleString()} each</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="w-8 text-center text-sm">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                            >
-                              <Minus className="h-3 w-3" />
-                            </Button>
-                            <span className="w-8 text-center text-sm">{item.quantity}</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            >
-                              <Plus className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    <div className="border-t pt-4">
-                      <div className="flex justify-between font-bold text-lg">
-                        <span>Total:</span>
-                        <span>TZS {cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                        ))}
                       </div>
-                    </div>
 
-                    <Button className="w-full" onClick={checkout}>
-                      Checkout
-                    </Button>
-                  </>
-                )}
-              </CardContent>
-            </Card>
+                      <div className="border-t pt-4">
+                        <div className="flex justify-between font-bold text-lg">
+                          <span>Total:</span>
+                          <span>TZS {cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+
+                      <Button
+                        onClick={checkout}
+                        disabled={cartItems.length === 0 || !user || !(user.role === 'individual' || user.role === 'retail')}
+                        size="sm"
+                      >
+                        Checkout
+                      </Button>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            )}
           </div>
         </div>
       </div>

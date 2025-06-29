@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface LabTest {
@@ -194,11 +193,12 @@ class LabService {
     };
   }
 
-  async updateLabOrderItemResult(id: string, result: string): Promise<LabOrderItem> {
+  async updateLabOrderItemResult(id: string, result: string, fileUrl?: string): Promise<LabOrderItem> {
     const { data, error } = await supabase
       .from('lab_order_items')
       .update({ 
         result,
+        result_file_url: fileUrl || null,
         result_date: new Date().toISOString(),
         status: 'completed'
       })

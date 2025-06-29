@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useCreateProduct } from "@/hooks/useInventory";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProductFormDialogProps {
   open: boolean;
@@ -14,6 +14,7 @@ interface ProductFormDialogProps {
 
 const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
   const createProduct = useCreateProduct();
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     category: "",
@@ -26,7 +27,8 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
     sell_price: 0,
     supplier: "",
     expiry_date: "",
-    batch_number: ""
+    batch_number: "",
+    is_public_product: false
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -51,7 +53,8 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
         sell_price: 0,
         supplier: "",
         expiry_date: "",
-        batch_number: ""
+        batch_number: "",
+        is_public_product: false
       });
       
       onOpenChange(false);
@@ -60,7 +63,7 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
     }
   };
 
-  const handleChange = (field: string, value: string | number) => {
+  const handleChange = (field: string, value: string | number | boolean) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
@@ -202,6 +205,24 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
               rows={3}
             />
           </div>
+
+          <div className="flex items-center space-x-2">
+            <input
+              id="is_public_product"
+              type="checkbox"
+              checked={formData.is_public_product}
+              onChange={e => handleChange('is_public_product', e.target.checked)}
+            />
+            <Label htmlFor="is_public_product">
+              Visible to Individual Users (Public Product)
+            </Label>
+          </div>
+          {/* Helper note for wholesalers */}
+          {user?.role === 'wholesale' && (
+            <div className="text-xs text-muted-foreground pl-6 pb-2">
+              Note: For wholesalers, public products are visible to retailers, not individuals.
+            </div>
+          )}
 
           <div className="flex justify-end space-x-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

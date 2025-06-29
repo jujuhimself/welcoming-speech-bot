@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Product {
@@ -96,13 +95,22 @@ class InventoryService {
     if (userRole === 'individual') {
       query = query.or('is_retail_product.eq.true,is_public_product.eq.true');
     } else if (userRole === 'retail') {
-      // Retail users see wholesale products and their own products
+      // Retail users see wholesale products, public products, and their own products
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        query = query.or(`is_wholesale_product.eq.true,user_id.eq.${user.id}`);
+        const orQuery = `is_wholesale_product.eq.true,is_public_product.eq.true,user_id.eq.${user.id}`;
+        console.log('Retailer product query:', orQuery, 'user.id:', user.id);
+        query = query.or(orQuery);
+      }
+    } else if (userRole === 'wholesale') {
+      // Wholesale users should only see their own products
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        query = query.eq('wholesaler_id', user.id);
+        console.log('Wholesaler product query - wholesaler_id:', user.id);
       }
     }
-    // Wholesale users can see all products (no additional filter needed)
+    // For other roles (admin, etc.), show all products (no additional filter needed)
 
     query = query.order('name');
 
@@ -112,6 +120,8 @@ class InventoryService {
       console.error('Error fetching products:', error);
       throw error;
     }
+
+    console.log(`Fetched ${data?.length || 0} products for role: ${userRole}`);
 
     return (data || []).map(item => ({
       id: item.id,
@@ -202,48 +212,54 @@ class InventoryService {
   async createProduct(product: Omit<Product, 'id' | 'created_at' | 'updated_at'>): Promise<Product> {
     // Get user role to set appropriate visibility flags
     const { data: { user } } = await supabase.auth.getUser();
-    let visibilityFlags = {};
-    
-    if (user) {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
-        .eq('id', user.id)
-        .single();
-      
-      if (profile?.role === 'wholesale') {
-        visibilityFlags = { is_wholesale_product: true };
-      } else if (profile?.role === 'retail') {
-        visibilityFlags = { is_retail_product: true, is_public_product: true };
-      }
+    if (!user) {
+      throw new Error('You must be signed in to add a product. Please log in again.');
+    }
+    let insertObj: any = {
+      name: product.name,
+      description: product.description,
+      category: product.category,
+      stock: product.stock,
+      min_stock_level: product.min_stock,
+      max_stock: product.max_stock,
+      buy_price: product.buy_price,
+      sell_price: product.sell_price,
+      requires_prescription: product.requires_prescription,
+      expiry_date: product.expiry_date,
+      branch_id: product.branch_id,
+      sku: product.sku,
+      manufacturer: product.manufacturer,
+      dosage_form: product.dosage_form,
+      strength: product.strength,
+      pack_size: product.pack_size,
+      supplier: product.supplier,
+      batch_number: product.batch_number,
+      status: product.status,
+      image_url: product.image_url,
+      user_id: user.id // Always set to current user
+    };
+
+    // Fetch user profile to determine role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.role === 'wholesale') {
+      insertObj.is_wholesale_product = true;
+      insertObj.is_retail_product = false;
+      insertObj.is_public_product = !!product.is_public_product;
+      insertObj.wholesaler_id = user.id;
+    } else if (profile?.role === 'retail') {
+      insertObj.is_wholesale_product = false;
+      insertObj.is_retail_product = true;
+      insertObj.is_public_product = !!product.is_public_product;
     }
 
     const { data, error } = await supabase
       .from('products')
-      .insert({
-        name: product.name,
-        description: product.description,
-        category: product.category,
-        stock: product.stock,
-        min_stock_level: product.min_stock,
-        max_stock: product.max_stock,
-        buy_price: product.buy_price,
-        sell_price: product.sell_price,
-        requires_prescription: product.requires_prescription,
-        expiry_date: product.expiry_date,
-        user_id: product.user_id,
-        branch_id: product.branch_id,
-        sku: product.sku,
-        manufacturer: product.manufacturer,
-        dosage_form: product.dosage_form,
-        strength: product.strength,
-        pack_size: product.pack_size,
-        supplier: product.supplier,
-        batch_number: product.batch_number,
-        status: product.status,
-        image_url: product.image_url,
-        ...visibilityFlags
-      })
+      .insert(insertObj)
       .select()
       .single();
 

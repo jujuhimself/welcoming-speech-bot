@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -184,7 +183,7 @@ const ProductFilters = ({ onFiltersChange, categories, totalProducts }: ProductF
                       <SelectValue placeholder="All categories" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border shadow-lg z-50">
-                      <SelectItem value="">All Categories</SelectItem>
+                      <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((category) => (
                         <SelectItem key={category} value={category}>
                           {category}
@@ -202,7 +201,7 @@ const ProductFilters = ({ onFiltersChange, categories, totalProducts }: ProductF
                       <SelectValue placeholder="All stock levels" />
                     </SelectTrigger>
                     <SelectContent className="bg-white border shadow-lg z-50">
-                      <SelectItem value="">All Stock Levels</SelectItem>
+                      <SelectItem value="all">All Stock Levels</SelectItem>
                       <SelectItem value="in-stock">In Stock</SelectItem>
                       <SelectItem value="low-stock">Low Stock</SelectItem>
                       <SelectItem value="out-of-stock">Out of Stock</SelectItem>

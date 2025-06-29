@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -147,7 +146,7 @@ const WholesaleRetailers = () => {
   const totalOrders = retailers.reduce((sum, r) => sum + (r.total_orders || 0), 0);
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 w-full space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Retailer Management</h2>

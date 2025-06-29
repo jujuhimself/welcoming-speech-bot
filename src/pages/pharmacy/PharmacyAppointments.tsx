@@ -7,6 +7,7 @@ import { Calendar, Clock, User, Phone, Plus, Filter } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import PharmacyAppointmentScheduler from "@/components/pharmacy/PharmacyAppointmentScheduler";
 
 interface PharmacyAppointment {
   id: string;
@@ -26,6 +27,7 @@ const PharmacyAppointments = () => {
   const [appointments, setAppointments] = useState<PharmacyAppointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<string>('all');
+  const [showScheduler, setShowScheduler] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -135,11 +137,17 @@ const PharmacyAppointments = () => {
               Completed
             </Button>
           </div>
-          <Button>
+          <Button onClick={() => setShowScheduler(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Schedule Appointment
           </Button>
         </div>
+
+        <PharmacyAppointmentScheduler
+          isOpen={showScheduler}
+          onClose={() => setShowScheduler(false)}
+          onAppointmentCreated={fetchAppointments}
+        />
 
         {filteredAppointments.length === 0 ? (
           <Card className="text-center py-12">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,6 +6,8 @@ import { Minus, Plus, Trash2, ShoppingCart, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { Json } from '@/integrations/supabase/types';
 
 interface CartItem {
   id: string;
@@ -84,38 +85,74 @@ const Cart = () => {
       });
       return;
     }
-
+    if (!user) {
+      toast({
+        title: "Not authenticated",
+        description: "Please log in to checkout",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsLoading(true);
-    
-    // Simulate checkout process
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // Create order
-    const order = {
-      id: Date.now().toString(),
-      userId: user?.id,
-      items: cartItems,
-      total: getTotalPrice(),
-      status: 'pending',
-      createdAt: new Date().toISOString()
-    };
+    try {
+      // 1. Fetch the cart
+      const { data: existingCart, error: fetchError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('role', user.role)
+        .eq('status', 'cart')
+        .single();
 
-    // Save order to localStorage (in real app, this would be sent to backend)
-    const existingOrders = JSON.parse(localStorage.getItem(`bepawa_orders_${user?.id}`) || '[]');
-    existingOrders.push(order);
-    localStorage.setItem(`bepawa_orders_${user?.id}`, JSON.stringify(existingOrders));
+      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
 
-    // Clear cart
-    clearCart();
-    
-    setIsLoading(false);
-    
-    toast({
-      title: "Order placed successfully!",
-      description: "Your order has been submitted and is being processed.",
-    });
-    
-    navigate('/orders');
+      if (existingCart) {
+        // 2. Update the cart to 'pending' and assign a new order_number
+        const { data, error } = await supabase
+          .from('orders')
+          .update({
+            status: 'pending',
+            order_number: `ORDER-${user.id}-${Date.now()}`,
+            updated_at: new Date().toISOString(),
+            total_amount: getTotalPrice(),
+          })
+          .eq('id', existingCart.id)
+          .select()
+          .single();
+        if (error) throw error;
+      } else {
+        // 3. Insert a new cart and immediately update to 'pending'
+        const { data: newCart, error: insertError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            status: 'pending',
+            role: user.role,
+            items: cartItems as unknown as Json,
+            total_amount: getTotalPrice(),
+            updated_at: new Date().toISOString(),
+            order_number: `ORDER-${user.id}-${Date.now()}`,
+          })
+          .select()
+          .single();
+        if (insertError) throw insertError;
+      }
+
+      setCartItems([]);
+      updateCartInStorage([]);
+      toast({
+        title: "Checkout successful",
+        description: "Your order has been placed",
+      });
+      setIsLoading(false);
+    } catch (error) {
+      setIsLoading(false);
+      toast({
+        title: "Error",
+        description: "Failed to process checkout",
+        variant: "destructive",
+      });
+    }
   };
 
   if (cartItems.length === 0) {
@@ -234,16 +271,6 @@ const Cart = () => {
                     </div>
                   </div>
                 </div>
-                
-                <Button 
-                  className="w-full" 
-                  size="lg"
-                  onClick={handleCheckout}
-                  disabled={isLoading}
-                >
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  {isLoading ? "Processing..." : "Proceed to Checkout"}
-                </Button>
                 
                 <Button 
                   variant="outline" 

@@ -1,11 +1,13 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Scan, Search, Package, AlertTriangle } from "lucide-react";
+import { Scan, Search, Package, AlertTriangle, Camera, CameraOff, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { inventoryService } from "@/services/inventoryService";
+import { useAuth } from "@/contexts/AuthContext";
+import QrReader from "react-qr-barcode-scanner";
 
 interface Product {
   id: string;
@@ -22,16 +24,50 @@ const BarcodeScanner = () => {
   const [scannedCode, setScannedCode] = useState("");
   const [products, setProducts] = useState<Product[]>([]);
   const [foundProduct, setFoundProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [lastScanned, setLastScanned] = useState<string | null>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Load products from localStorage
-    const storedProducts = localStorage.getItem('bepawa_products') || '[]';
-    setProducts(JSON.parse(storedProducts));
-  }, []);
+    const fetchProducts = async () => {
+      setLoading(true);
+      try {
+        const role = user?.role;
+        const supaProducts = await inventoryService.getProducts(role);
+        // Map to local Product interface
+        setProducts(
+          supaProducts.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            barcode: p.sku || p.id,
+            stock: p.stock,
+            minStock: p.min_stock,
+            price: p.sell_price || p.price || 0,
+            category: p.category || "-"
+          }))
+        );
+      } catch (err) {
+        toast({
+          title: "Error loading products",
+          description: "Could not fetch inventory from Supabase.",
+          variant: "destructive"
+        });
+      }
+      setLoading(false);
+    };
+    fetchProducts();
+  }, [user]);
 
   const handleScan = (code: string) => {
-    const product = products.find(p => p.barcode === code);
+    // Prevent duplicate scans
+    if (lastScanned === code) return;
+    
+    setLastScanned(code);
+    setScannedCode(code);
+    
+    const product = products.find(p => p.barcode === code || p.id === code);
     if (product) {
       setFoundProduct(product);
       toast({
@@ -41,19 +77,33 @@ const BarcodeScanner = () => {
     } else {
       toast({
         title: "Product Not Found",
-        description: "No product found with this barcode",
+        description: `No product found with barcode: ${code}`,
         variant: "destructive",
       });
     }
+  };
+
+  const handleCameraError = (error: any) => {
+    console.error("Camera error:", error);
+    setCameraError("Camera access denied or not available. Please check permissions.");
     setIsScanning(false);
   };
 
+  const handleCameraStart = () => {
+    setCameraError(null);
+    setLastScanned(null);
+    setIsScanning(true);
+  };
+
+  const handleCameraStop = () => {
+    setIsScanning(false);
+    setCameraError(null);
+  };
+
   const simulateBarcodeScan = () => {
-    // Simulate barcode scanning with sample codes
-    const sampleBarcodes = ['1234567890123', '9876543210987', '5555555555555'];
-    const randomBarcode = sampleBarcodes[Math.floor(Math.random() * sampleBarcodes.length)];
-    setScannedCode(randomBarcode);
-    handleScan(randomBarcode);
+    if (products.length === 0) return;
+    const randomProduct = products[Math.floor(Math.random() * products.length)];
+    handleScan(randomProduct.barcode);
   };
 
   const lowStockProducts = products.filter(p => p.stock <= p.minStock);
@@ -68,27 +118,94 @@ const BarcodeScanner = () => {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          {/* Camera Scanner */}
+          {isScanning && (
+            <div className="relative">
+              <div className="border-2 border-dashed border-gray-300 rounded-lg overflow-hidden">
+                <QrReader
+                  onUpdate={(err, result) => {
+                    if (result) {
+                      handleScan(result.getText());
+                    }
+                    if (err) {
+                      handleCameraError(err);
+                    }
+                  }}
+                  onError={handleCameraError}
+                  style={{ width: "100%", height: "300px" }}
+                />
+              </div>
+              <div className="absolute top-2 right-2">
+                <Button
+                  size="sm"
+                  variant="destructive"
+                  onClick={handleCameraStop}
+                >
+                  <CameraOff className="h-4 w-4" />
+                </Button>
+              </div>
+              <div className="text-center text-sm text-gray-600 mt-2">
+                Point camera at barcode to scan
+              </div>
+            </div>
+          )}
+
+          {/* Camera Controls */}
+          {!isScanning && (
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleCameraStart}
+                className="flex-1"
+                disabled={loading}
+              >
+                <Camera className="h-4 w-4 mr-2" />
+                Start Camera Scanner
+              </Button>
+              <Button 
+                onClick={simulateBarcodeScan}
+                variant="outline"
+                disabled={loading || products.length === 0}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Demo Scan
+              </Button>
+            </div>
+          )}
+
+          {/* Camera Error */}
+          {cameraError && (
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-red-700 text-sm">{cameraError}</p>
+              <p className="text-red-600 text-xs mt-1">
+                Try refreshing the page or check browser camera permissions.
+              </p>
+            </div>
+          )}
+
+          {/* Manual Input */}
           <div className="flex gap-2">
             <Input
-              placeholder="Enter barcode manually or scan"
+              placeholder="Enter barcode manually"
               value={scannedCode}
               onChange={(e) => setScannedCode(e.target.value)}
             />
-            <Button onClick={() => handleScan(scannedCode)} disabled={!scannedCode}>
+            <Button onClick={() => handleScan(scannedCode)} disabled={!scannedCode || loading}>
               <Search className="h-4 w-4 mr-2" />
               Search
             </Button>
           </div>
-          
-          <Button 
-            onClick={simulateBarcodeScan}
-            className="w-full"
-            variant={isScanning ? "destructive" : "default"}
-          >
-            <Scan className="h-4 w-4 mr-2" />
-            {isScanning ? "Stop Scanning" : "Start Barcode Scan (Demo)"}
-          </Button>
 
+          {/* Loading State */}
+          {loading && (
+            <div className="text-center text-gray-500 py-4">Loading inventory...</div>
+          )}
+
+          {/* Empty State */}
+          {!loading && products.length === 0 && (
+            <div className="text-center text-gray-500 py-4">No products found in inventory.</div>
+          )}
+
+          {/* Found Product */}
           {foundProduct && (
             <div className="p-4 border rounded-lg bg-green-50">
               <h3 className="font-semibold text-lg">{foundProduct.name}</h3>
@@ -108,7 +225,8 @@ const BarcodeScanner = () => {
         </CardContent>
       </Card>
 
-      {lowStockProducts.length > 0 && (
+      {/* Low Stock Alerts */}
+      {!loading && lowStockProducts.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-orange-600">

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -150,7 +149,7 @@ const WholesaleStaffManagement = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8 w-full max-w-7xl space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Wholesale Staff Management</h2>

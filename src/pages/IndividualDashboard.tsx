@@ -6,6 +6,7 @@ import IndividualStatsCards from "@/components/individual/IndividualStatsCards";
 import IndividualQuickActions from "@/components/individual/IndividualQuickActions";
 import NearbyPharmacies from "@/components/individual/NearbyPharmacies";
 import HealthSummary from "@/components/individual/HealthSummary";
+import LabResults from "@/components/individual/LabResults";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useNotificationSubscription } from "@/hooks/useNotifications";
@@ -13,7 +14,7 @@ import { useNotificationSubscription } from "@/hooks/useNotifications";
 const IndividualDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { isLoading, isError, stats, recentOrders } = useIndividualDashboard();
+  const { isLoading, isError, stats, recentOrders, labAppointments } = useIndividualDashboard();
   const [nearbyPharmacies, setNearbyPharmacies] = useState<any[]>([]);
 
   // Enable notification subscription for individuals
@@ -30,7 +31,7 @@ const IndividualDashboard = () => {
       // Fetch pharmacies from profiles table (role=retail)
       const { data, error } = await supabase
         .from('profiles')
-        .select('id, business_name, region, city, is_approved')
+        .select('id, business_name, name, region, city, phone, address, is_approved')
         .eq('role', 'retail')
         .eq('is_approved', true)
         .limit(5);
@@ -39,10 +40,13 @@ const IndividualDashboard = () => {
         setNearbyPharmacies(
           data.map((p: any) => ({
             id: p.id,
-            name: p.business_name || "Pharmacy",
-            distance: "N/A",
+            name: p.business_name || p.name || "Pharmacy",
+            location: p.address || ((p.city && p.region) ? `${p.city}, ${p.region}` : 'Location not set'),
+            phone: p.phone || 'N/A',
             rating: 4.5,
+            distance: 'N/A',
             open: true,
+            hours: '8:00 AM - 8:00 PM',
           }))
         );
       }
@@ -75,6 +79,9 @@ const IndividualDashboard = () => {
         <div className="grid lg:grid-cols-2 gap-8">
           <NearbyPharmacies pharmacies={nearbyPharmacies} />
           <HealthSummary totalOrders={stats.totalOrders} recentOrders={recentOrders} />
+        </div>
+        <div className="mt-8">
+          <LabResults labAppointments={labAppointments} />
         </div>
       </div>
     </div>

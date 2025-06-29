@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
@@ -34,6 +33,10 @@ const breadcrumbConfig: BreadcrumbConfig = {
   '/business-center': { label: 'Business Center', parent: '/pharmacy' },
   '/business-tools': { label: 'Business Tools', parent: '/pharmacy' },
   '/wholesale-ordering': { label: 'Wholesale Ordering', parent: '/pharmacy' },
+  '/staff': { label: 'Staff Management', parent: '/pharmacy' },
+  '/credit': { label: 'Credit/CRM Management', parent: '/pharmacy' },
+  '/inventory-adjustments': { label: 'Inventory Adjustments', parent: '/pharmacy' },
+  '/audit': { label: 'Audit Reports', parent: '/pharmacy' },
   '/pharmacy-directory': { label: 'Find Pharmacies', parent: '/individual' },
   '/lab-directory': { label: 'Find Labs', parent: '/individual' },
   '/prescriptions': { label: 'My Prescriptions', parent: '/individual' },

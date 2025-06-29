@@ -17,6 +17,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { logError } from "@/utils/logger";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
+import BusinessTools from '@/components/BusinessTools';
 
 const PharmacyDashboard = () => {
   const { user, logout } = useAuth();
@@ -162,6 +163,7 @@ const PharmacyDashboard = () => {
           <PharmacyQuickActions cartItems={stats.cartItems} />
           <PharmacyAdditionalServices />
           <PharmacyRecentOrders recentOrders={recentOrders} />
+          <BusinessTools />
         </div>
       </div>
     </ErrorBoundary>

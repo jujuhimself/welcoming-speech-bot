@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -200,7 +199,7 @@ const AuditReports = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Actions</SelectItem>
-                  {uniqueActions.map(action => (
+                  {uniqueActions.filter(Boolean).map(action => (
                     <SelectItem key={action} value={action}>{action}</SelectItem>
                   ))}
                 </SelectContent>
@@ -215,7 +214,9 @@ const AuditReports = () => {
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>
                   {uniqueCategories.map(category => (
-                    <SelectItem key={category} value={category || ''}>{category}</SelectItem>
+                    <SelectItem key={category || 'uncategorized'} value={category || 'uncategorized'}>
+                      {category || 'Uncategorized'}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>

@@ -8,6 +8,8 @@ import { Camera, FileText, Upload, X } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { uploadFile } from "@/services/storageService";
 import { auditService } from "@/services/auditService";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 export interface PrescriptionUploadFormProps {
   onUploadSuccess?: () => void;
@@ -15,6 +17,7 @@ export interface PrescriptionUploadFormProps {
 
 const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps) => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
   const [uploadForm, setUploadForm] = useState({
     doctorName: "",
@@ -25,38 +28,101 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive"
+        });
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'application/pdf'];
+      if (!allowedTypes.includes(file.type)) {
+        toast({
+          title: "Invalid file type",
+          description: "Please select an image (JPEG, PNG, GIF, WebP) or PDF file",
+          variant: "destructive"
+        });
+        return;
+      }
+      
       setUploadForm((prev) => ({ ...prev, selectedFile: file }));
+      toast({
+        title: "File selected",
+        description: `${file.name} has been selected for upload`,
+      });
     }
   };
 
   const handleUpload = async () => {
     if (!uploadForm.selectedFile || !uploadForm.doctorName || !user?.id) {
-      alert("Please select a file and enter doctor name");
+      toast({
+        title: "Missing information",
+        description: "Please select a file and enter doctor name",
+        variant: "destructive"
+      });
       return;
     }
+    
     setIsUploading(true);
     try {
+      // Test if storage is available (optional, can be removed in production)
+      // const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      // if (bucketsError) {
+      //   console.error('Storage buckets error:', bucketsError);
+      //   throw new Error(`Storage access error: ${bucketsError.message}`);
+      // }
+      // console.log('Available buckets:', buckets);
+      
       const { path } = await uploadFile({
         file: uploadForm.selectedFile,
         userId: user.id,
         bucket: "prescriptions",
         extraPath: "",
       });
+      
+      // Reset form
       setUploadForm({
         doctorName: "",
         notes: "",
         selectedFile: null,
       });
+      
+      // Clear file input
+      const fileInput = document.getElementById('prescription-file') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
+      // Log audit action
       await auditService.logAction(
         "upload-prescription",
         "prescription",
         undefined,
         { doctorName: uploadForm.doctorName, filePath: path }
       );
-      setIsUploading(false);
+      
+      // Show success message
+      toast({
+        title: "Upload successful!",
+        description: "Your prescription has been uploaded successfully",
+      });
+      
+      // Trigger parent callback to refresh list
       if (onUploadSuccess) onUploadSuccess();
+      
     } catch (err) {
-      alert("Upload failed");
+      console.error('Upload error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      toast({
+        title: "Upload failed",
+        description: `Error: ${errorMessage}`,
+        variant: "destructive"
+      });
+    } finally {
       setIsUploading(false);
     }
   };
@@ -85,12 +151,19 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
               <div className="mt-2 flex items-center gap-2 p-2 bg-gray-50 rounded">
                 <FileText className="h-4 w-4" />
                 <span className="text-sm">{uploadForm.selectedFile.name}</span>
+                <span className="text-xs text-gray-500">
+                  ({(uploadForm.selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                </span>
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={() =>
-                    setUploadForm((prev) => ({ ...prev, selectedFile: null }))
-                  }
+                  onClick={() => {
+                    setUploadForm((prev) => ({ ...prev, selectedFile: null }));
+                    const fileInput = document.getElementById('prescription-file') as HTMLInputElement;
+                    if (fileInput) {
+                      fileInput.value = '';
+                    }
+                  }}
                 >
                   <X className="h-3 w-3" />
                 </Button>
@@ -107,7 +180,7 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
 
         {/* Doctor Information */}
         <div>
-          <Label htmlFor="doctor-name">Doctor's Name</Label>
+          <Label htmlFor="doctor-name">Doctor's Name *</Label>
           <Input
             id="doctor-name"
             placeholder="Enter prescribing doctor's name"
@@ -144,7 +217,14 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
           disabled={!uploadForm.selectedFile || !uploadForm.doctorName || isUploading}
           className="w-full"
         >
-          {isUploading ? "Uploading..." : "Upload Prescription"}
+          {isUploading ? (
+            <>
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Uploading...
+            </>
+          ) : (
+            "Upload Prescription"
+          )}
         </Button>
       </CardContent>
     </Card>

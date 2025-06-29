@@ -9,7 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Package, Clock, Search, Filter, Download, Eye, Plus, AlertTriangle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import OrderLifecycleManager from "@/components/OrderLifecycleManager";
 
 // Update minimal Order fallback type to match OrderLifecycleManager needs
@@ -133,7 +132,7 @@ const Orders = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
+      {/* Navbar removed to avoid duplicate menu */}
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,17 +6,94 @@ import { Badge } from "@/components/ui/badge";
 import { MapPin, Search, Star, Clock, Phone, TestTube } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Lab {
+  id: string;
+  name: string;
+  location: string;
+  rating: number;
+  distance: string;
+  isOpen: boolean;
+  hours: string;
+  phone: string;
+  tests: string[];
+}
 
 const LabDirectory = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
+  const [labs, setLabs] = useState<Lab[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Empty labs list for now - will be populated from database later
-  const labs: any[] = [];
+  useEffect(() => {
+    fetchLabs();
+  }, []);
+
+  const fetchLabs = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, business_name, region, city, phone, address, is_approved')
+        .eq('role', 'lab')
+        .eq('is_approved', true)
+        .order('business_name');
+
+      if (error) throw error;
+
+      // Fetch available lab tests
+      const { data: labTests, error: testsError } = await supabase
+        .from('lab_tests')
+        .select('test_name, category')
+        .eq('is_active', true)
+        .limit(10);
+
+      const availableTests = labTests || [];
+
+      const labData: Lab[] = (data || []).map((lab: any) => ({
+        id: lab.id,
+        name: lab.business_name || lab.name || 'Laboratory',
+        location: lab.address || ((lab.city && lab.region) ? `${lab.city}, ${lab.region}` : 'Location not set'),
+        rating: 4.5, // Default rating
+        distance: 'N/A', // Would need location services for real distance
+        isOpen: true, // Default to open
+        hours: '7:00 AM - 6:00 PM', // Default hours
+        phone: lab.phone || 'N/A',
+        tests: availableTests.map((test: any) => test.test_name).slice(0, 5) // Show first 5 tests
+      }));
+
+      setLabs(labData);
+    } catch (error) {
+      console.error('Error fetching labs:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load laboratories",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredLabs = labs.filter(lab =>
     lab.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     lab.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading laboratories...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -44,7 +121,9 @@ const LabDirectory = () => {
         {filteredLabs.length === 0 ? (
           <EmptyState
             title="No laboratories found"
-            description="Laboratory directory will be populated as labs join the platform. Check back soon for available testing facilities in your area."
+            description={searchTerm 
+              ? "No laboratories match your search criteria." 
+              : "Laboratory directory will be populated as labs join the platform. Check back soon for available testing facilities in your area."}
             icon={<TestTube className="h-16 w-16" />}
             variant="card"
           />
@@ -60,6 +139,12 @@ const LabDirectory = () => {
                         <MapPin className="h-4 w-4 mr-1" />
                         {lab.location}
                       </p>
+                      {lab.phone && lab.phone !== 'N/A' && (
+                        <p className="text-gray-600 flex items-center mt-1">
+                          <Phone className="h-4 w-4 mr-1" />
+                          {lab.phone}
+                        </p>
+                      )}
                     </div>
                     <div className="text-right">
                       <div className="flex items-center">

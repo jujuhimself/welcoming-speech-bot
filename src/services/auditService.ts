@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface AuditLogEntry {
@@ -18,19 +17,35 @@ export interface AuditLogEntry {
 
 export interface AuditLog extends AuditLogEntry {}
 
+async function getOrgIdsForUser(userId: string): Promise<{ wholesaler_id?: string; retailer_id?: string }> {
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('id, role')
+    .eq('id', userId)
+    .single();
+  if (!profile) return {};
+  if (profile.role === 'wholesale') {
+    return { wholesaler_id: profile.id };
+  }
+  if (profile.role === 'retail') {
+    return { retailer_id: profile.id };
+  }
+  return {};
+}
+
 class AuditService {
   private async createAuditLog(entry: Omit<AuditLogEntry, 'id' | 'user_id' | 'created_at'>) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
+      const orgIds = await getOrgIdsForUser(user.id);
       const { error } = await supabase
         .from('audit_logs')
         .insert({
           ...entry,
-          user_id: user.id
+          user_id: user.id,
+          ...orgIds
         });
-
       if (error) {
         console.error('Error creating audit log:', error);
       }
@@ -176,6 +191,29 @@ class AuditService {
 
     if (error) {
       console.error('Error fetching audit logs:', error);
+      throw error;
+    }
+
+    return data || [];
+  }
+
+  async getOrgActivity(wholesalerId?: string, retailerId?: string) {
+    let query = supabase
+      .from('audit_logs')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (wholesalerId) {
+      query = query.eq('wholesaler_id', wholesalerId);
+    }
+    if (retailerId) {
+      query = query.eq('retailer_id', retailerId);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      console.error('Error fetching org activity:', error);
       throw error;
     }
 

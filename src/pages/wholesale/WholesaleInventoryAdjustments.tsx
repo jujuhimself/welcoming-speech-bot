@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -34,6 +33,17 @@ interface StockAdjustment {
   branch_name?: string;
 }
 
+const REASONS = [
+  { value: 'expired', label: 'Product Expired' },
+  { value: 'damaged', label: 'Product Damaged' },
+  { value: 'stolen', label: 'Theft/Loss' },
+  { value: 'returned', label: 'Customer Return' },
+  { value: 'restock', label: 'New Stock Received' },
+  { value: 'correction', label: 'Stock Count Correction' },
+  { value: 'promotion', label: 'Promotional Giveaway' },
+  { value: 'other', label: 'Other' },
+];
+
 const WholesaleInventoryAdjustments = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -47,7 +57,8 @@ const WholesaleInventoryAdjustments = () => {
     adjustment_type: 'increase',
     quantity: 0,
     reason: '',
-    reference_number: ''
+    reference_number: '',
+    notes: '',
   });
 
   useEffect(() => {
@@ -166,7 +177,8 @@ const WholesaleInventoryAdjustments = () => {
         adjustment_type: 'increase',
         quantity: 0,
         reason: '',
-        reference_number: ''
+        reference_number: '',
+        notes: '',
       });
       setIsAdjustmentDialogOpen(false);
       fetchAdjustments();
@@ -347,11 +359,35 @@ const WholesaleInventoryAdjustments = () => {
               </div>
               <div>
                 <Label>Reason</Label>
+                <Select value={formData.reason} onValueChange={(value) => setFormData({...formData, reason: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a reason" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {REASONS.map(r => (
+                      <SelectItem key={r.value} value={r.value}>{r.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {formData.reason === 'other' && (
+                <div>
+                  <Label>Custom Reason</Label>
+                  <Textarea
+                    value={formData.notes}
+                    onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                    placeholder="Describe the reason for this adjustment"
+                    rows={2}
+                  />
+                </div>
+              )}
+              <div>
+                <Label>Additional Notes</Label>
                 <Textarea
-                  value={formData.reason}
-                  onChange={(e) => setFormData({...formData, reason: e.target.value})}
-                  placeholder="Explain the reason for this adjustment"
-                  rows={3}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  placeholder="Optional additional details..."
+                  rows={2}
                 />
               </div>
               <Button onClick={createAdjustment} className="w-full">

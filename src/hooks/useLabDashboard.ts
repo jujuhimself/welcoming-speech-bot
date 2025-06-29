@@ -1,4 +1,3 @@
-
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,69 +13,48 @@ export function useLabDashboard() {
       if (!user) throw new Error('User not authenticated.');
 
       const today = new Date().toISOString().split('T')[0];
+      console.log('Fetching lab data for lab_id:', user.id, 'and date:', today);
       
-      // Fetch today's appointments for the lab
+      // Fetch appointments from the appointments table for this lab
       const { data: appointmentsData, error: appointmentsError } = await supabase
         .from('appointments')
         .select('*')
-        .eq('appointment_date', today)
+        .eq('provider_id', user.id)
         .eq('provider_type', 'lab')
-        .eq('provider_id', user.id);
+        .order('created_at', { ascending: false });
 
-      if (appointmentsError) throw appointmentsError;
-
-      // Fetch patient names for these appointments
-      const patientUserIds = (appointmentsData || []).map(apt => apt.user_id);
-      let patientProfiles: any[] = [];
-      if (patientUserIds.length > 0) {
-          const { data: profilesData, error: profilesError } = await supabase
-            .from('profiles')
-            .select('id, name')
-            .in('id', patientUserIds);
-          if (profilesError) throw profilesError;
-          patientProfiles = profilesData || [];
+      if (appointmentsError) {
+        console.error('Error fetching appointments:', appointmentsError);
+        throw appointmentsError;
       }
 
-      const profilesMap = new Map(patientProfiles.map(p => [p.id, p.name]));
+      console.log('Raw appointments data:', appointmentsData);
 
       const transformedAppointments: Appointment[] = (appointmentsData || []).map((apt: any) => ({
-        id: apt.id,
-        patientName: profilesMap.get(apt.user_id) || 'Unknown Patient',
-        testType: apt.service_type,
-        date: apt.appointment_date,
-        time: apt.appointment_time,
-        status: apt.status,
+        id: apt.id, // appointment.id
+        patientName: apt.patient_name || 'Unknown Patient',
+        testType: apt.service_type || 'Lab Test',
+        date: apt.appointment_date || today,
+        time: apt.appointment_time || '',
+        status: apt.status || 'scheduled',
         priority: 'normal' // priority is not in the db, keeping as-is for now
       }));
-      
-      // Fetch recent test results from lab_order_items for this lab
-      const { data: resultsData, error: resultsError } = await supabase
-        .from('lab_order_items')
-        .select(`
-          *,
-          lab_order:lab_orders!inner(patient_name, order_date, lab_id)
-        `)
-        .eq('lab_order.lab_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(10);
-      
-      if (resultsError) {
-        console.error("Error fetching lab results:", resultsError);
-        throw resultsError;
-      }
 
-      const transformedResults: TestResult[] = (resultsData || []).map((result: any) => ({
-        id: result.id,
-        patientName: result.lab_order?.patient_name || 'Unknown Patient',
-        testType: result.test_name,
-        completedDate: result.result_date ? new Date(result.result_date).toLocaleDateString() : 'Pending',
-        status: result.status,
-        values: result.result ? { Result: result.result } : {}
+      console.log('Transformed appointments:', transformedAppointments);
+      
+      // For now, use the same appointments as test results (since we don't have separate results yet)
+      const transformedResults: TestResult[] = (appointmentsData || []).map((apt: any) => ({
+        id: apt.id,
+        patientName: apt.patient_name || 'Unknown Patient',
+        testType: apt.service_type || 'Lab Test',
+        completedDate: apt.status === 'completed' ? new Date(apt.updated_at).toLocaleDateString() : 'Pending',
+        status: apt.status || 'pending',
+        values: {} // No result values yet
       }));
 
       // Calculate stats
-      const todayAppointments = transformedAppointments.length;
-      const pendingResults = transformedResults.filter(r => r.status === 'pending').length;
+      const todayAppointments = transformedAppointments.filter(apt => apt.date === today).length;
+      const pendingResults = transformedResults.filter(r => r.status === 'pending' || r.status === 'scheduled').length;
       const urgentTests = transformedAppointments.filter(a => a.priority === 'urgent').length;
       const completedToday = transformedResults.filter(r => 
         r.status === 'completed' && 

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,9 +10,14 @@ import {
   Edit, 
   AlertTriangle,
   TrendingUp,
-  TrendingDown
+  TrendingDown,
+  Loader2
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
+import ProductFormDialog from '@/components/ProductFormDialog';
 
 interface InventoryItem {
   id: string;
@@ -31,69 +35,114 @@ interface InventoryItem {
 
 const InventoryManagement = () => {
   const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [showAddProduct, setShowAddProduct] = useState(false);
 
   useEffect(() => {
-    // Sample inventory data
-    const sampleInventory: InventoryItem[] = [
-      {
-        id: '1',
-        name: 'Paracetamol 500mg',
-        sku: 'MED-001',
-        category: 'Pain Relief',
-        quantity: 500,
-        minStock: 100,
-        maxStock: 1000,
-        unitPrice: 50,
-        supplier: 'PharmaCorp Ltd',
-        expiryDate: '2025-12-31',
-        status: 'in-stock'
-      },
-      {
-        id: '2',
-        name: 'Amoxicillin 250mg',
-        sku: 'MED-002',
-        category: 'Antibiotics',
-        quantity: 25,
-        minStock: 50,
-        maxStock: 500,
-        unitPrice: 120,
-        supplier: 'MediSupply Co',
-        expiryDate: '2024-08-15',
-        status: 'low-stock'
-      },
-      {
-        id: '3',
-        name: 'Insulin Injection',
-        sku: 'MED-003',
-        category: 'Diabetes',
-        quantity: 0,
-        minStock: 20,
-        maxStock: 200,
-        unitPrice: 850,
-        supplier: 'DiaCare Ltd',
-        expiryDate: '2024-10-30',
-        status: 'out-of-stock'
-      },
-      {
-        id: '4',
-        name: 'Vitamin C Tablets',
-        sku: 'MED-004',
-        category: 'Vitamins',
-        quantity: 150,
-        minStock: 50,
-        maxStock: 300,
-        unitPrice: 75,
-        supplier: 'HealthSupp Inc',
-        expiryDate: '2024-03-15',
-        status: 'expired'
-      }
-    ];
+    const fetchInventory = async () => {
+      try {
+        if (!user) {
+          setInventory([]);
+          setIsLoading(false);
+          return;
+        }
 
-    setInventory(sampleInventory);
-  }, []);
+        setIsLoading(true);
+        console.log('Fetching inventory for user:', user.id, 'role:', user.role);
+
+        let query = supabase.from("products").select("*");
+        
+        // Role-based filtering
+        if (user.role === 'retail') {
+          // Retail users see their own products
+          query = query.eq('user_id', user.id);
+        } else if (user.role === 'wholesale') {
+          // Wholesale users see their own products
+          query = query.eq('user_id', user.id);
+        } else if (user.role === 'admin') {
+          // Admins see all products
+          query = query.select('*');
+        } else {
+          // Other roles don't have inventory management
+          setInventory([]);
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await query.order("name");
+
+        if (error) {
+          console.error('Inventory fetch error:', error);
+          toast({
+            title: "Error loading inventory",
+            description: error.message,
+            variant: "destructive",
+          });
+          setInventory([]);
+          return;
+        }
+
+        // Map Supabase data to InventoryItem format
+        const mappedInventory: InventoryItem[] = (data || []).map((product: Tables<'products'>) => {
+          const quantity = product.stock || 0;
+          const minStock = product.min_stock_level || 0;
+          const maxStock = product.max_stock || 1000;
+          const unitPrice = Number(product.buy_price || 0);
+          
+          // Determine status based on quantity and expiry
+          let status: 'in-stock' | 'low-stock' | 'out-of-stock' | 'expired' = 'in-stock';
+          
+          if (quantity === 0) {
+            status = 'out-of-stock';
+          } else if (quantity <= minStock) {
+            status = 'low-stock';
+          }
+          
+          // Check if expired (if expiry_date exists)
+          if (product.expiry_date) {
+            const expiryDate = new Date(product.expiry_date);
+            const today = new Date();
+            if (expiryDate < today) {
+              status = 'expired';
+            }
+          }
+
+          return {
+            id: product.id,
+            name: product.name,
+            sku: product.sku || `SKU-${product.id}`,
+            category: product.category,
+            quantity,
+            minStock,
+            maxStock,
+            unitPrice,
+            supplier: product.supplier || 'Unknown',
+            expiryDate: product.expiry_date || 'No expiry',
+            status
+          };
+        });
+
+        console.log('Mapped inventory:', mappedInventory);
+        setInventory(mappedInventory);
+      } catch (error) {
+        console.error('Unexpected error fetching inventory:', error);
+        toast({
+          title: "Unexpected error",
+          description: "Failed to load inventory.",
+          variant: "destructive",
+        });
+        setInventory([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchInventory();
+  }, [user, toast]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -133,6 +182,17 @@ const InventoryManagement = () => {
     totalValue: inventory.reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0)
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Loading inventory...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
       <div className="container mx-auto px-4 py-8">
@@ -141,11 +201,13 @@ const InventoryManagement = () => {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Inventory Management</h1>
             <p className="text-gray-600 text-lg">Manage your medical inventory and stock levels</p>
           </div>
-          <Button>
+          <Button onClick={() => setShowAddProduct(true)}>
             <Plus className="h-5 w-5 mr-2" />
-            Add Item
+            Add Product
           </Button>
         </div>
+
+        <ProductFormDialog open={showAddProduct} onOpenChange={setShowAddProduct} />
 
         {/* Stats Cards */}
         <div className="grid md:grid-cols-6 gap-4 mb-8">

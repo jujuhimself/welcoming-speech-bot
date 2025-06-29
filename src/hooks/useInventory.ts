@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { inventoryService, Product } from '@/services/inventoryService';
 import { useAuth } from '@/contexts/AuthContext';
@@ -33,6 +32,7 @@ export const useCreateProduct = () => {
       inventoryService.createProduct(product),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      if (user?.id) queryClient.invalidateQueries({ queryKey: ['inventory-analytics', user.id] });
       toast({
         title: "Product created",
         description: "Product has been created successfully",
@@ -51,12 +51,14 @@ export const useCreateProduct = () => {
 export const useUpdateProduct = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: ({ productId, updates }: { productId: string; updates: Partial<Product> }) =>
       inventoryService.updateProduct(productId, updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      if (user?.id) queryClient.invalidateQueries({ queryKey: ['inventory-analytics', user.id] });
       toast({
         title: "Product updated",
         description: "Product has been updated successfully",
@@ -75,11 +77,13 @@ export const useUpdateProduct = () => {
 export const useDeleteProduct = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   return useMutation({
     mutationFn: (productId: string) => inventoryService.deleteProduct(productId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
+      if (user?.id) queryClient.invalidateQueries({ queryKey: ['inventory-analytics', user.id] });
       toast({
         title: "Product deleted",
         description: "Product has been deleted successfully",

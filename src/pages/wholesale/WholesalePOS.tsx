@@ -1,331 +1,442 @@
-
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useEffect, useState } from "react";
+import { posService, PosSale } from "@/services/posService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Minus, ShoppingCart, DollarSign, Receipt } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import ExportButton from "@/components/ExportButton";
+import DateRangeFilter from "@/components/DateRangeFilter";
+import UserSelect from "@/components/UserSelect";
 import { supabase } from "@/integrations/supabase/client";
-import { useProducts } from "@/hooks/useInventory";
+import { Tables } from "@/integrations/supabase/types";
+import { Search, Plus, Minus, Trash2, ShoppingCart } from "lucide-react";
 
 interface CartItem {
-  id: string;
-  name: string;
-  price: number;
+  product: Tables<'products'>;
   quantity: number;
-  stock: number;
+  unitPrice: number;
 }
 
-const WholesalePOS = () => {
+export default function WholesalePOS() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { data: products = [] } = useProducts();
+  const [sales, setSales] = useState<PosSale[]>([]);
+  const [filtered, setFiltered] = useState<PosSale[]>([]);
+  const [products, setProducts] = useState<Tables<'products'>[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [method, setMethod] = useState("cash");
   const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  // Filters
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
+  const [userId, setUserId] = useState("");
+  const [payType, setPayType] = useState("");
 
-  const filteredProducts = products.filter(product =>
-    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    product.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const addToCart = (product: any) => {
-    const existingItem = cart.find(item => item.id === product.id);
-    if (existingItem) {
-      if (existingItem.quantity < product.stock) {
-        setCart(cart.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        ));
-      } else {
-        toast({
-          title: "Insufficient Stock",
-          description: `Only ${product.stock} units available`,
-          variant: "destructive",
-        });
-      }
-    } else {
-      if (product.stock > 0) {
-        setCart([...cart, {
-          id: product.id,
-          name: product.name,
-          price: product.sell_price,
-          quantity: 1,
-          stock: product.stock
-        }]);
-      } else {
-        toast({
-          title: "Out of Stock",
-          description: "This product is currently out of stock",
-          variant: "destructive",
-        });
-      }
+  // Fetch products and sales on component mount
+  useEffect(() => {
+    if (user) {
+      fetchProducts();
+      fetchSales();
     }
-  };
+  }, [user]);
 
-  const updateQuantity = (id: string, newQuantity: number) => {
-    if (newQuantity === 0) {
-      setCart(cart.filter(item => item.id !== id));
-    } else {
-      const item = cart.find(item => item.id === id);
-      if (item && newQuantity <= item.stock) {
-        setCart(cart.map(item =>
-          item.id === id ? { ...item, quantity: newQuantity } : item
-        ));
-      }
-    }
-  };
-
-  const getTotalAmount = () => {
-    return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  };
-
-  const processSale = async () => {
-    if (!user || cart.length === 0) return;
-
+  const fetchProducts = async () => {
     try {
-      // Create POS sale
-      const { data: saleData, error: saleError } = await supabase
-        .from('pos_sales')
-        .insert({
-          user_id: user.id,
-          total_amount: getTotalAmount(),
-          payment_method: paymentMethod,
-          customer_name: customerName || null,
-          customer_phone: customerPhone || null,
-        })
-        .select()
-        .single();
+      console.log('Fetching products for wholesaler:', user?.id);
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('wholesaler_id', user?.id)
+        .gt('stock', 0)
+        .order('name');
 
-      if (saleError) throw saleError;
-
-      // Create sale items and update inventory
-      for (const item of cart) {
-        // Add sale item
-        await supabase
-          .from('pos_sale_items')
-          .insert({
-            pos_sale_id: saleData.id,
-            product_id: item.id,
-            quantity: item.quantity,
-            unit_price: item.price,
-            total_price: item.price * item.quantity,
-          });
-
-        // Update product stock
-        await supabase
-          .from('products')
-          .update({ 
-            stock: item.stock - item.quantity 
-          })
-          .eq('id', item.id);
-      }
-
+      if (error) throw error;
+      
+      console.log('Products fetched from POS:', data?.length || 0, 'products');
+      console.log('Products data:', data);
+      
+      setProducts(data || []);
+    } catch (error) {
+      console.error('Error fetching products:', error);
       toast({
-        title: "Sale Completed",
-        description: `Sale processed successfully. Total: TZS ${getTotalAmount().toLocaleString()}`,
-      });
-
-      // Reset form
-      setCart([]);
-      setCustomerName("");
-      setCustomerPhone("");
-      setPaymentMethod("cash");
-      setIsCheckoutOpen(false);
-
-    } catch (error: any) {
-      console.error('Error processing sale:', error);
-      toast({
-        title: "Error",
-        description: "Failed to process sale",
+        title: "Error loading products",
+        description: "Could not load products for POS",
         variant: "destructive",
       });
     }
   };
 
+  const fetchSales = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pos_sales')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setSales(data || []);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      toast({
+        title: "Error loading sales",
+        description: "Could not load sales history",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    setFiltered(
+      sales.filter(s => {
+        const dateOk = (!from || new Date(s.sale_date) >= new Date(from)) &&
+          (!to || new Date(s.sale_date) <= new Date(to));
+        const userOk = !userId || s.user_id === userId;
+        const pmOk = !payType || s.payment_method === payType;
+        return dateOk && userOk && pmOk;
+      })
+    );
+  }, [sales, from, to, userId, payType]);
+
+  const filteredProducts = products.filter(product =>
+    product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    product.sku?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const addToCart = (product: Tables<'products'>) => {
+    const existingItem = cart.find(item => item.product.id === product.id);
+    
+    if (existingItem) {
+      if (existingItem.quantity < product.stock) {
+        setCart(cart.map(item =>
+          item.product.id === product.id
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        ));
+      } else {
+        toast({
+          title: "Stock limit reached",
+          description: `Only ${product.stock} units available`,
+          variant: "destructive",
+        });
+      }
+    } else {
+      setCart([...cart, {
+        product,
+        quantity: 1,
+        unitPrice: Number(product.sell_price)
+      }]);
+    }
+  };
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    const item = cart.find(item => item.product.id === productId);
+    if (!item) return;
+
+    if (quantity <= 0) {
+      removeFromCart(productId);
+    } else if (quantity <= item.product.stock) {
+      setCart(cart.map(item =>
+        item.product.id === productId
+          ? { ...item, quantity }
+          : item
+      ));
+    } else {
+      toast({
+        title: "Stock limit reached",
+        description: `Only ${item.product.stock} units available`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const removeFromCart = (productId: string) => {
+    setCart(cart.filter(item => item.product.id !== productId));
+  };
+
+  const getCartTotal = () => {
+    return cart.reduce((total, item) => total + (item.quantity * item.unitPrice), 0);
+  };
+
+  const clearCart = () => {
+    setCart([]);
+    setCustomerName("");
+  };
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!user || cart.length === 0) {
+      toast({
+        title: "Invalid sale",
+        description: "Please add items to cart",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const totalAmount = getCartTotal();
+      
+      // Create the sale
+      const saleData = await posService.createSale(
+        {
+          user_id: user.id,
+          sale_date: new Date().toISOString(),
+          total_amount: totalAmount,
+          payment_method: method,
+          customer_name: customerName || undefined,
+        },
+        cart.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          unit_price: item.unitPrice,
+          total_price: item.quantity * item.unitPrice,
+        }))
+      );
+
+      // Update product stock
+      for (const item of cart) {
+        const newStock = item.product.stock - item.quantity;
+        await supabase
+          .from('products')
+          .update({ stock: newStock })
+          .eq('id', item.product.id);
+      }
+
+      // Create inventory movement record
+      for (const item of cart) {
+        await supabase
+          .from('inventory_movements')
+          .insert({
+            product_id: item.product.id,
+            quantity: -item.quantity, // Negative for sales
+            movement_type: 'sale',
+            reason: `POS sale - ${saleData.id}`,
+            user_id: user.id,
+          });
+      }
+
+      toast({
+        title: "Sale completed",
+        description: `Sale of ${totalAmount.toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })} recorded`,
+      });
+
+      clearCart();
+      fetchProducts(); // Refresh product stock
+      fetchSales(); // Refresh sales list
+    } catch (error) {
+      console.error('Error creating sale:', error);
+      toast({
+        title: "Error completing sale",
+        description: "Could not process the sale",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Wholesale POS System</h2>
-          <p className="text-gray-600">Process walk-in sales and manage transactions</p>
-        </div>
-        <div className="flex items-center gap-4">
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            Cart: {cart.length} items
-          </Badge>
-          <Dialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
-            <DialogTrigger asChild>
-              <Button disabled={cart.length === 0}>
-                <ShoppingCart className="h-4 w-4 mr-2" />
-                Checkout (TZS {getTotalAmount().toLocaleString()})
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Checkout</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Customer Name (Optional)</label>
-                    <Input
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      placeholder="Enter customer name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Customer Phone (Optional)</label>
-                    <Input
-                      value={customerPhone}
-                      onChange={(e) => setCustomerPhone(e.target.value)}
-                      placeholder="Enter phone number"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Payment Method</label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="cash">Cash</SelectItem>
-                      <SelectItem value="card">Card</SelectItem>
-                      <SelectItem value="mobile_money">Mobile Money</SelectItem>
-                      <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-medium mb-2">Order Summary</h3>
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center py-1">
-                      <span>{item.name} x {item.quantity}</span>
-                      <span>TZS {(item.price * item.quantity).toLocaleString()}</span>
-                    </div>
-                  ))}
-                  <div className="border-t pt-2 mt-2">
-                    <div className="flex justify-between items-center font-bold">
-                      <span>Total</span>
-                      <span>TZS {getTotalAmount().toLocaleString()}</span>
-                    </div>
-                  </div>
-                </div>
-                <Button onClick={processSale} className="w-full">
-                  <Receipt className="h-4 w-4 mr-2" />
-                  Complete Sale
-                </Button>
+    <div className="container mx-auto px-4 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Product Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Product Selection</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
               </div>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Products</CardTitle>
-              <Input
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </CardHeader>
-            <CardContent>
-              <div className="grid md:grid-cols-2 gap-4">
-                {filteredProducts.map((product) => (
-                  <div key={product.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <h3 className="font-medium">{product.name}</h3>
-                        <p className="text-sm text-gray-600">{product.sku}</p>
-                      </div>
-                      <Badge variant={product.stock > 0 ? "default" : "destructive"}>
-                        {product.stock} in stock
-                      </Badge>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-lg font-bold">TZS {product.sell_price}</span>
-                      <Button
-                        onClick={() => addToCart(product)}
-                        disabled={product.stock === 0}
-                        size="sm"
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </div>
+            
+            <div className="max-h-96 overflow-y-auto space-y-2">
+              {filteredProducts.map(product => (
+                <div
+                  key={product.id}
+                  className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+                  onClick={() => addToCart(product)}
+                >
+                  <div className="flex-1">
+                    <h4 className="font-medium">{product.name}</h4>
+                    <p className="text-sm text-gray-600">
+                      Stock: {product.stock} | {Number(product.sell_price).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })}
+                    </p>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                  <Button size="sm" variant="outline">
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
 
-        <div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                Shopping Cart
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {cart.length === 0 ? (
-                <p className="text-gray-500 text-center py-8">Cart is empty</p>
-              ) : (
-                <div className="space-y-4">
-                  {cart.map((item) => (
-                    <div key={item.id} className="flex justify-between items-center border-b pb-2">
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-gray-600">TZS {item.price}</p>
+        {/* Cart and Checkout */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5" />
+              Cart ({cart.length} items)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {cart.length === 0 ? (
+              <p className="text-gray-500 text-center py-8">No items in cart</p>
+            ) : (
+              <>
+                <div className="space-y-3 mb-4">
+                  {cart.map(item => (
+                    <div key={item.product.id} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex-1">
+                        <h4 className="font-medium">{item.product.name}</h4>
+                        <p className="text-sm text-gray-600">
+                          {item.unitPrice.toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })} each
+                        </p>
                       </div>
                       <div className="flex items-center gap-2">
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
                         >
-                          <Minus className="h-3 w-3" />
+                          <Minus className="h-4 w-4" />
                         </Button>
-                        <span className="font-medium w-8 text-center">{item.quantity}</span>
+                        <span className="w-8 text-center">{item.quantity}</span>
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          disabled={item.quantity >= item.stock}
+                          onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
                         >
-                          <Plus className="h-3 w-3" />
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => removeFromCart(item.product.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   ))}
-                  <div className="pt-4 border-t">
-                    <div className="flex justify-between items-center font-bold text-lg">
-                      <span>Total</span>
-                      <span>TZS {getTotalAmount().toLocaleString()}</span>
-                    </div>
-                  </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+
+                <div className="border-t pt-4">
+                  <div className="flex justify-between text-lg font-bold mb-4">
+                    <span>Total:</span>
+                    <span>{getCartTotal().toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })}</span>
+                  </div>
+
+                  <form onSubmit={handleSubmit} className="space-y-3">
+                    <Input
+                      type="text"
+                      placeholder="Customer name (optional)"
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                    />
+                    
+                    <select
+                      value={method}
+                      onChange={(e) => setMethod(e.target.value)}
+                      className="w-full border rounded px-3 py-2"
+                      required
+                    >
+                      <option value="cash">Cash</option>
+                      <option value="mpesa">M-PESA</option>
+                      <option value="card">Card</option>
+                      <option value="credit">Credit</option>
+                    </select>
+
+                    <div className="flex gap-2">
+                      <Button type="submit" className="flex-1" disabled={isLoading}>
+                        {isLoading ? "Processing..." : "Complete Sale"}
+                      </Button>
+                      <Button type="button" variant="outline" onClick={clearCart}>
+                        Clear Cart
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Sales History */}
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle>
+              Recent Sales
+              <span className="float-right">
+                <ExportButton
+                  data={filtered}
+                  filename="wholesale-sales.csv"
+                  disabled={filtered.length === 0}
+                />
+              </span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2 mb-4 items-center">
+              <DateRangeFilter from={from} to={to} setFrom={setFrom} setTo={setTo} />
+              <UserSelect value={userId} onChange={setUserId} user={user} />
+              <div>
+                <label className="text-sm mr-1">Payment Method:</label>
+                <select 
+                  className="border rounded px-2 py-1 text-sm"
+                  value={payType} 
+                  onChange={e => setPayType(e.target.value)}
+                >
+                  <option value="">All</option>
+                  <option value="cash">Cash</option>
+                  <option value="mpesa">M-PESA</option>
+                  <option value="card">Card</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Payment</th>
+                    <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">ID</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {filtered.map(sale => (
+                    <tr key={sale.id}>
+                      <td className="px-4 py-2 whitespace-nowrap">{new Date(sale.sale_date).toLocaleString()}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">{sale.customer_name || 'Walk-in'}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">{Number(sale.total_amount).toLocaleString('en-TZ', { style: 'currency', currency: 'TZS' })}</td>
+                      <td className="px-4 py-2 whitespace-nowrap">{sale.payment_method.charAt(0).toUpperCase() + sale.payment_method.slice(1)}</td>
+                      <td className="px-4 py-2 whitespace-nowrap font-mono text-xs">{sale.id}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
-};
-
-export default WholesalePOS;
+}

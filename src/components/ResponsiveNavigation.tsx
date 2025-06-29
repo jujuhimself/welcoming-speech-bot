@@ -42,24 +42,27 @@ const ResponsiveNavigation = () => {
   const navigationConfig = new NavigationMenuConfig(user?.role || 'individual');
   const menuGroups = navigationConfig.getMenuGroups();
 
+  // Deduplicate groups by name
+  const uniqueMenuGroups = menuGroups.filter((group, idx, arr) =>
+    arr.findIndex(g => g.name === group.name) === idx
+  );
+
+  // DEBUG: Log the group structure
+  console.log('NAV GROUPS', uniqueMenuGroups);
+
   return (
     <nav className="bg-white shadow-sm border-b sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3">
-            <div className="bg-gradient-to-r from-primary-600 to-primary-700 p-2 rounded-lg shadow-sm">
-              <Package className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-bold text-gray-900">BEPAWA</span>
-              <span className="text-xs text-gray-500 hidden sm:block">Healthcare Platform</span>
-            </div>
+            <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
+            <span className="text-xl font-bold text-gray-900">BEPAWA</span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden lg:flex items-center space-x-6">
-            {menuGroups.map((group) => (
+            {uniqueMenuGroups.map((group) => (
               <div key={group.name} className="relative group">
                 <Button variant="ghost" className="font-medium">
                   {group.name}
@@ -197,7 +200,7 @@ const ResponsiveNavigation = () => {
 
                   {/* Mobile Navigation */}
                   <div className="flex-1 overflow-y-auto p-2">
-                    {menuGroups.map((group) => (
+                    {uniqueMenuGroups.map((group) => (
                       <div key={group.name} className="mb-6">
                         <h3 className="px-3 py-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">
                           {group.name}

@@ -1,15 +1,18 @@
-
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { MapPin, Phone, Clock, Star } from "lucide-react";
 
 interface Pharmacy {
-  id: number;
+  id: string | number;
   name: string;
-  distance: string;
+  location: string;
+  phone: string;
   rating: number;
+  distance: string;
   open: boolean;
+  hours: string;
 }
 
 const NearbyPharmacies = ({ pharmacies }: { pharmacies: Pharmacy[] }) => (
@@ -28,12 +31,24 @@ const NearbyPharmacies = ({ pharmacies }: { pharmacies: Pharmacy[] }) => (
           <div key={pharmacy.id} className="flex justify-between items-center p-4 border rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors">
             <div>
               <p className="font-semibold text-lg">{pharmacy.name}</p>
-              <p className="text-gray-600">{pharmacy.distance} away</p>
+              <p className="text-gray-600 flex items-center gap-1">
+                <MapPin className="h-4 w-4" />
+                {pharmacy.location}
+              </p>
+              {pharmacy.phone && pharmacy.phone !== 'N/A' && (
+                <p className="text-gray-600 flex items-center gap-1 mt-1">
+                  <Phone className="h-4 w-4" />
+                  {pharmacy.phone}
+                </p>
+              )}
               <div className="flex items-center space-x-2 mt-1">
-                <span className="text-yellow-500">★ {pharmacy.rating}</span>
+                <Star className="h-4 w-4 text-yellow-500" />
+                <span>{pharmacy.rating}</span>
                 <Badge variant={pharmacy.open ? "default" : "secondary"}>
                   {pharmacy.open ? "Open" : "Closed"}
                 </Badge>
+                <Clock className="h-4 w-4 ml-2" />
+                <span className="text-sm text-gray-600">{pharmacy.hours}</span>
               </div>
             </div>
             <Button variant="outline" size="sm" asChild>

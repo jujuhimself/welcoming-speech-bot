@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,112 +18,34 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-
-interface Order {
-  id: string;
-  orderNumber: string;
-  pharmacyName: string;
-  pharmacyLocation: string;
-  items: number;
-  total: number;
-  status: 'pending' | 'confirmed' | 'packed' | 'shipped' | 'delivered';
-  priority: 'normal' | 'urgent';
-  orderDate: string;
-  expectedDelivery: string;
-  paymentStatus: 'pending' | 'paid' | 'partial';
-}
+import { useWholesaleOrders } from "@/hooks/useOrders";
 
 const WholesaleOrders = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [orders, setOrders] = useState<Order[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [activeTab, setActiveTab] = useState("all");
 
-  useEffect(() => {
-    if (!user || user.role !== 'wholesale') {
-      navigate('/login');
-      return;
-    }
+  const { data: orders = [], isLoading, isError } = useWholesaleOrders();
 
-    // Sample orders data
-    const sampleOrders: Order[] = [
-      {
-        id: '1',
-        orderNumber: 'WO-2024-001',
-        pharmacyName: 'City Pharmacy',
-        pharmacyLocation: 'Dar es Salaam, Kinondoni',
-        items: 15,
-        total: 2450000,
-        status: 'pending',
-        priority: 'urgent',
-        orderDate: '2024-06-06',
-        expectedDelivery: '2024-06-08',
-        paymentStatus: 'pending'
-      },
-      {
-        id: '2',
-        orderNumber: 'WO-2024-002',
-        pharmacyName: 'HealthCare Plus',
-        pharmacyLocation: 'Arusha, Central',
-        items: 28,
-        total: 4350000,
-        status: 'confirmed',
-        priority: 'normal',
-        orderDate: '2024-06-05',
-        expectedDelivery: '2024-06-09',
-        paymentStatus: 'paid'
-      },
-      {
-        id: '3',
-        orderNumber: 'WO-2024-003',
-        pharmacyName: 'MediPoint',
-        pharmacyLocation: 'Mwanza, Nyamagana',
-        items: 8,
-        total: 1250000,
-        status: 'packed',
-        priority: 'normal',
-        orderDate: '2024-06-04',
-        expectedDelivery: '2024-06-07',
-        paymentStatus: 'paid'
-      },
-      {
-        id: '4',
-        orderNumber: 'WO-2024-004',
-        pharmacyName: 'PharmaCare',
-        pharmacyLocation: 'Dodoma, Central',
-        items: 35,
-        total: 5680000,
-        status: 'shipped',
-        priority: 'normal',
-        orderDate: '2024-06-03',
-        expectedDelivery: '2024-06-06',
-        paymentStatus: 'paid'
-      },
-      {
-        id: '5',
-        orderNumber: 'WO-2024-005',
-        pharmacyName: 'WellnessMed',
-        pharmacyLocation: 'Mbeya, Urban',
-        items: 12,
-        total: 1850000,
-        status: 'delivered',
-        priority: 'normal',
-        orderDate: '2024-06-01',
-        expectedDelivery: '2024-06-04',
-        paymentStatus: 'paid'
-      }
-    ];
+  if (!user || user.role !== 'wholesale') {
+    navigate('/login');
+    return null;
+  }
 
-    setOrders(sampleOrders);
-  }, [user, navigate]);
+  if (isLoading) {
+    return <div className="p-8 text-center text-lg">Loading orders...</div>;
+  }
+
+  if (isError) {
+    return <div className="p-8 text-center text-red-600">Failed to load orders. Please try again later.</div>;
+  }
 
   const filteredOrders = orders.filter(order => {
-    const matchesSearch = order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         order.pharmacyName.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = (order.order_number || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (order.pharmacyName || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTab = activeTab === "all" || order.status === activeTab;
-    
     return matchesSearch && matchesTab;
   });
 
@@ -147,29 +69,18 @@ const WholesaleOrders = () => {
     }
   };
 
-  const handleUpdateStatus = (orderId: string, newStatus: string) => {
-    setOrders(prev => prev.map(order => 
-      order.id === orderId ? { ...order, status: newStatus as any } : order
-    ));
-    
-    toast({
-      title: "Order Updated",
-      description: `Order status changed to ${newStatus}`,
-    });
-  };
-
+  // Stats
   const stats = {
     totalOrders: orders.length,
     pending: orders.filter(o => o.status === 'pending').length,
     inProgress: orders.filter(o => ['confirmed', 'packed', 'shipped'].includes(o.status)).length,
     delivered: orders.filter(o => o.status === 'delivered').length,
-    totalRevenue: orders.reduce((sum, o) => sum + o.total, 0),
+    totalRevenue: orders.reduce((sum, o) => sum + (o.total_amount || 0), 0),
     urgentOrders: orders.filter(o => o.priority === 'urgent').length
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -198,7 +109,6 @@ const WholesaleOrders = () => {
               <div className="text-2xl font-bold">{stats.totalOrders}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-yellow-100">Pending</CardTitle>
@@ -207,7 +117,6 @@ const WholesaleOrders = () => {
               <div className="text-2xl font-bold">{stats.pending}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-purple-500 to-purple-600 text-white border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-purple-100">In Progress</CardTitle>
@@ -216,7 +125,6 @@ const WholesaleOrders = () => {
               <div className="text-2xl font-bold">{stats.inProgress}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-green-500 to-green-600 text-white border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-green-100">Delivered</CardTitle>
@@ -225,7 +133,6 @@ const WholesaleOrders = () => {
               <div className="text-2xl font-bold">{stats.delivered}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-orange-500 to-orange-600 text-white border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-orange-100">Urgent</CardTitle>
@@ -234,7 +141,6 @@ const WholesaleOrders = () => {
               <div className="text-2xl font-bold">{stats.urgentOrders}</div>
             </CardContent>
           </Card>
-          
           <Card className="bg-gradient-to-r from-indigo-500 to-indigo-600 text-white border-0">
             <CardHeader className="pb-2">
               <CardTitle className="text-xs font-medium text-indigo-100">Revenue</CardTitle>
@@ -273,117 +179,79 @@ const WholesaleOrders = () => {
 
           <TabsContent value={activeTab} className="mt-6">
             <div className="space-y-4">
-              {filteredOrders.map((order) => (
-                <Card key={order.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="flex justify-between items-start mb-4">
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <Package className="h-6 w-6 text-blue-600" />
+              {filteredOrders.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">No orders found.</div>
+              ) : (
+                filteredOrders.map((order) => (
+                  <Card key={order.id} className="hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div className="flex items-start gap-4">
+                          <div className="p-3 bg-blue-100 rounded-lg">
+                            <Package className="h-6 w-6 text-blue-600" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <h3 className="font-semibold text-lg">{order.order_number}</h3>
+                              {order.priority === 'urgent' && (
+                                <Badge variant="destructive" className="text-xs">Urgent</Badge>
+                              )}
+                            </div>
+                            <p className="text-gray-600 mb-1">{order.pharmacyName || order.pharmacy_id}</p>
+                            <div className="flex items-center gap-1 text-sm text-gray-500">
+                              <MapPin className="h-3 w-3" />
+                              {order.pharmacyLocation || ''}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="text-2xl font-bold text-green-600 mb-1">
+                            TZS {order.total_amount?.toLocaleString()}
+                          </div>
+                          <p className="text-sm text-gray-500">{order.items?.length || 0} items</p>
+                        </div>
+                      </div>
+
+                      <div className="grid md:grid-cols-4 gap-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Order Date</p>
+                          <p className="font-medium">{new Date(order.created_at).toLocaleDateString()}</p>
                         </div>
                         <div>
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-lg">{order.orderNumber}</h3>
-                            {order.priority === 'urgent' && (
-                              <Badge variant="destructive" className="text-xs">Urgent</Badge>
-                            )}
-                          </div>
-                          <p className="text-gray-600 mb-1">{order.pharmacyName}</p>
-                          <div className="flex items-center gap-1 text-sm text-gray-500">
-                            <MapPin className="h-3 w-3" />
-                            {order.pharmacyLocation}
-                          </div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Expected Delivery</p>
+                          <p className="font-medium">{order.expectedDelivery ? new Date(order.expectedDelivery).toLocaleDateString() : '-'}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Order Status</p>
+                          <Badge className={getStatusColor(order.status)}>
+                            {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          </Badge>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 uppercase tracking-wide">Payment</p>
+                          <Badge className={getPaymentStatusColor(order.payment_status)}>
+                            {order.payment_status.charAt(0).toUpperCase() + order.payment_status.slice(1)}
+                          </Badge>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold text-green-600 mb-1">
-                          TZS {order.total.toLocaleString()}
-                        </div>
-                        <p className="text-sm text-gray-500">{order.items} items</p>
-                      </div>
-                    </div>
 
-                    <div className="grid md:grid-cols-4 gap-4 mb-4">
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Order Date</p>
-                        <p className="font-medium">{new Date(order.orderDate).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Expected Delivery</p>
-                        <p className="font-medium">{new Date(order.expectedDelivery).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Order Status</p>
-                        <Badge className={getStatusColor(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                        </Badge>
-                      </div>
-                      <div>
-                        <p className="text-xs text-gray-500 uppercase tracking-wide">Payment</p>
-                        <Badge className={getPaymentStatusColor(order.paymentStatus)}>
-                          {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
-                        </Badge>
-                      </div>
-                    </div>
-
-                    <div className="flex justify-between items-center">
-                      <div className="flex gap-2">
-                        <Button size="sm" variant="outline">
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
-                        <Button size="sm" variant="outline">
-                          <Truck className="h-4 w-4 mr-1" />
-                          Track Order
-                        </Button>
-                      </div>
-                      
-                      <div className="flex gap-2">
-                        {order.status === 'pending' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'confirmed')}
-                            className="bg-blue-600 hover:bg-blue-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Confirm
+                      <div className="flex justify-between items-center">
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline">
+                            <Eye className="h-4 w-4 mr-1" />
+                            View Details
                           </Button>
-                        )}
-                        {order.status === 'confirmed' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'packed')}
-                            className="bg-purple-600 hover:bg-purple-700"
-                          >
-                            <Package className="h-4 w-4 mr-1" />
-                            Mark Packed
-                          </Button>
-                        )}
-                        {order.status === 'packed' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'shipped')}
-                            className="bg-orange-600 hover:bg-orange-700"
-                          >
+                          <Button size="sm" variant="outline">
                             <Truck className="h-4 w-4 mr-1" />
-                            Ship Order
+                            Track Order
                           </Button>
-                        )}
-                        {order.status === 'shipped' && (
-                          <Button 
-                            size="sm" 
-                            onClick={() => handleUpdateStatus(order.id, 'delivered')}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="h-4 w-4 mr-1" />
-                            Mark Delivered
-                          </Button>
-                        )}
+                        </div>
+                        {/* Status update actions can be added here if needed */}
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
           </TabsContent>
         </Tabs>

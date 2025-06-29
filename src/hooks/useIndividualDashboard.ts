@@ -1,4 +1,3 @@
-
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -41,24 +40,44 @@ export function useIndividualDashboard() {
     enabled: !!userId,
   });
 
+  // Fetch lab appointments for the user
+  const labAppointmentsQuery = useQuery({
+    queryKey: ["individual-lab-appointments", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("appointments")
+        .select("*")
+        .eq("user_id", userId)
+        .eq("provider_type", "lab")
+        .order("appointment_date", { ascending: false });
+      if (error) throw error;
+      return Array.isArray(data) ? data : [];
+    },
+    enabled: !!userId,
+  });
+
   // Wishlist - not implemented in Supabase, show 0, prompt in the UI
   // const wishlistQuery = useQuery(...)
 
   // Gather computed stats
   const isLoading =
-    ordersQuery.isLoading || prescriptionsQuery.isLoading;
+    ordersQuery.isLoading || prescriptionsQuery.isLoading || labAppointmentsQuery.isLoading;
   const isError =
-    ordersQuery.isError || prescriptionsQuery.isError;
+    ordersQuery.isError || prescriptionsQuery.isError || labAppointmentsQuery.isError;
 
   let stats = {
     totalOrders: 0,
     pendingOrders: 0,
     savedItems: 0, // TODO: Fetch from Supabase if/when wishlist is implemented
     activePrescriptions: 0,
+    labAppointments: 0,
+    completedLabTests: 0,
   };
 
   let recentOrders: any[] = [];
   let orders: any[] = Array.isArray(ordersQuery.data) ? ordersQuery.data : [];
+  let labAppointments: any[] = Array.isArray(labAppointmentsQuery.data) ? labAppointmentsQuery.data : [];
 
   if (!isLoading && !isError) {
     stats.totalOrders = orders.length;
@@ -68,6 +87,8 @@ export function useIndividualDashboard() {
     stats.activePrescriptions = prescriptions.filter(
       (p: any) => p.status === "pending" || p.status === "processed"
     ).length;
+    stats.labAppointments = labAppointments.length;
+    stats.completedLabTests = labAppointments.filter((apt) => apt.status === "completed").length;
     recentOrders = orders.slice(0, 5);
   }
 
@@ -76,5 +97,6 @@ export function useIndividualDashboard() {
     isError,
     stats,
     recentOrders,
+    labAppointments,
   };
 }

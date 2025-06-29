@@ -1,11 +1,10 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface InventoryAdjustment {
   id: string;
   user_id: string;
   product_id: string;
-  adjustment_type: 'add' | 'remove';
+  adjustment_type: string;
   quantity: number;
   reason?: string;
   created_at: string;
@@ -30,12 +29,18 @@ class InventoryAdjustmentService {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    
-    // Cast the data to match our interface types
-    return (data || []).map(item => ({
-      ...item,
-      adjustment_type: item.adjustment_type as 'add' | 'remove'
-    }));
+    return data || [];
+  }
+
+  async fetchAdjustmentsByUser(userId: string): Promise<InventoryAdjustment[]> {
+    const { data, error } = await supabase
+      .from('inventory_adjustments')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    return data || [];
   }
 }
 

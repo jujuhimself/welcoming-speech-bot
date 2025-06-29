@@ -1,5 +1,4 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,18 +12,25 @@ import {
   Thermometer,
   Plus,
   Search,
-  Download
+  Download,
+  TestTube,
+  Package,
+  Clock
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 interface HealthRecord {
   id: string;
-  patientName: string;
-  date: string;
-  type: 'consultation' | 'lab-test' | 'prescription' | 'vital-signs';
+  type: 'consultation' | 'lab-test' | 'prescription' | 'vital-signs' | 'order';
   title: string;
   description: string;
-  doctor: string;
-  status: 'active' | 'completed' | 'pending';
+  date: string;
+  status: 'active' | 'completed' | 'pending' | 'cancelled';
+  provider?: string;
+  result_data?: any;
+  result_file_url?: string;
   vitals?: {
     bloodPressure?: string;
     heartRate?: string;
@@ -34,64 +40,148 @@ interface HealthRecord {
 }
 
 const HealthRecords = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState("all");
+  const [records, setRecords] = useState<HealthRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const [records] = useState<HealthRecord[]>([
-    {
-      id: '1',
-      patientName: 'John Mwangi',
-      date: '2024-06-10',
-      type: 'consultation',
-      title: 'General Checkup',
-      description: 'Routine health examination. Patient reports feeling well with no major concerns.',
-      doctor: 'Dr. Sarah Kimani',
-      status: 'completed',
-    },
-    {
-      id: '2',
-      patientName: 'Mary Hassan',
-      date: '2024-06-12',
-      type: 'lab-test',
-      title: 'Blood Test Results',
-      description: 'Complete blood count and lipid profile analysis.',
-      doctor: 'Dr. James Mushi',
-      status: 'completed',
-    },
-    {
-      id: '3',
-      patientName: 'David Kimani',
-      date: '2024-06-14',
-      type: 'vital-signs',
-      title: 'Vital Signs Monitoring',
-      description: 'Regular monitoring of vital signs for chronic condition management.',
-      doctor: 'Nurse Grace Mlaki',
-      status: 'active',
-      vitals: {
-        bloodPressure: '120/80',
-        heartRate: '72 bpm',
-        temperature: '36.5°C',
-        weight: '75 kg'
-      }
-    },
-    {
-      id: '4',
-      patientName: 'Sarah Juma',
-      date: '2024-06-15',
-      type: 'prescription',
-      title: 'Medication Prescription',
-      description: 'Prescribed antibiotics for respiratory infection.',
-      doctor: 'Dr. Peter Mwangi',
-      status: 'active',
+  useEffect(() => {
+    if (user) {
+      fetchHealthRecords();
     }
-  ]);
+  }, [user]);
+
+  const fetchHealthRecords = async () => {
+    if (!user?.id) return;
+
+    setIsLoading(true);
+    try {
+      const records: HealthRecord[] = [];
+
+      // Fetch lab appointments
+      const { data: appointments, error: appointmentsError } = await supabase
+        .from('appointments')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('provider_type', 'lab')
+        .order('appointment_date', { ascending: false });
+
+      if (appointmentsError) throw appointmentsError;
+
+      // Transform appointments to health records
+      appointments?.forEach(apt => {
+        records.push({
+          id: apt.id,
+          type: 'lab-test',
+          title: apt.service_type || 'Laboratory Test',
+          description: apt.notes || 'Laboratory appointment',
+          date: apt.appointment_date,
+          status: apt.status === 'completed' ? 'completed' : 
+                  apt.status === 'cancelled' ? 'cancelled' : 'pending',
+          provider: 'Laboratory',
+          result_data: apt.notes?.includes('Result:') ? apt.notes : undefined
+        });
+      });
+
+      // Fetch lab order items (results)
+      const { data: labResults, error: labResultsError } = await supabase
+        .from('lab_order_items')
+        .select(`
+          *,
+          lab_order:lab_orders(user_id, patient_name)
+        `)
+        .eq('lab_order.user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (labResultsError) throw labResultsError;
+
+      // Transform lab results to health records
+      labResults?.forEach(result => {
+        if (result.status === 'completed' && result.result) {
+          records.push({
+            id: result.id,
+            type: 'lab-test',
+            title: result.test_name,
+            description: `Test result: ${result.result}`,
+            date: result.result_date || result.created_at,
+            status: 'completed',
+            provider: 'Laboratory',
+            result_data: result.result
+          });
+        }
+      });
+
+      // Fetch prescriptions
+      const { data: prescriptions, error: prescriptionsError } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (prescriptionsError) throw prescriptionsError;
+
+      // Transform prescriptions to health records
+      prescriptions?.forEach(prescription => {
+        records.push({
+          id: prescription.id,
+          type: 'prescription',
+          title: 'Medical Prescription',
+          description: prescription.instructions || 'Prescription uploaded',
+          date: prescription.created_at,
+          status: prescription.status === 'completed' ? 'completed' : 
+                  prescription.status === 'cancelled' ? 'cancelled' : 'pending',
+          provider: 'Pharmacy'
+        });
+      });
+
+      // Fetch orders (medication orders)
+      const { data: orders, error: ordersError } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (ordersError) throw ordersError;
+
+      // Transform orders to health records
+      orders?.forEach(order => {
+        records.push({
+          id: order.id,
+          type: 'order',
+          title: 'Medication Order',
+          description: `Order for ${order.total_amount ? `TZS ${order.total_amount}` : 'medications'}`,
+          date: order.created_at,
+          status: order.status === 'completed' ? 'completed' : 
+                  order.status === 'cancelled' ? 'cancelled' : 'pending',
+          provider: 'Pharmacy'
+        });
+      });
+
+      // Sort all records by date (newest first)
+      records.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      setRecords(records);
+    } catch (error) {
+      console.error('Error fetching health records:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load health records",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
       case 'consultation': return <User className="h-5 w-5" />;
-      case 'lab-test': return <Activity className="h-5 w-5" />;
+      case 'lab-test': return <TestTube className="h-5 w-5" />;
       case 'prescription': return <FileText className="h-5 w-5" />;
       case 'vital-signs': return <Heart className="h-5 w-5" />;
+      case 'order': return <Package className="h-5 w-5" />;
       default: return <FileText className="h-5 w-5" />;
     }
   };
@@ -102,6 +192,7 @@ const HealthRecords = () => {
       case 'lab-test': return 'bg-green-100 text-green-800';
       case 'prescription': return 'bg-purple-100 text-purple-800';
       case 'vital-signs': return 'bg-red-100 text-red-800';
+      case 'order': return 'bg-orange-100 text-orange-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -111,16 +202,30 @@ const HealthRecords = () => {
       case 'active': return 'bg-green-100 text-green-800';
       case 'completed': return 'bg-blue-100 text-blue-800';
       case 'pending': return 'bg-yellow-100 text-yellow-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
 
   const filteredRecords = records.filter(record => {
-    const matchesSearch = record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         record.title.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = record.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         record.description.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = selectedType === 'all' || record.type === selectedType;
     return matchesSearch && matchesType;
   });
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading health records...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -128,12 +233,8 @@ const HealthRecords = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Health Records</h1>
-            <p className="text-gray-600 text-lg">Manage and view patient health records</p>
+            <p className="text-gray-600 text-lg">Your complete health history and medical records</p>
           </div>
-          <Button>
-            <Plus className="h-5 w-5 mr-2" />
-            Add Record
-          </Button>
         </div>
 
         {/* Filters */}
@@ -155,9 +256,10 @@ const HealthRecords = () => {
                 className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="all">All Types</option>
-                <option value="consultation">Consultations</option>
                 <option value="lab-test">Lab Tests</option>
                 <option value="prescription">Prescriptions</option>
+                <option value="order">Medication Orders</option>
+                <option value="consultation">Consultations</option>
                 <option value="vital-signs">Vital Signs</option>
               </select>
             </div>
@@ -165,7 +267,7 @@ const HealthRecords = () => {
         </Card>
 
         {/* Records */}
-        <div className="grid gap-6">
+        <div className="space-y-6">
           {filteredRecords.map((record) => (
             <Card key={record.id} className="hover:shadow-lg transition-shadow">
               <CardContent className="p-6">
@@ -178,16 +280,17 @@ const HealthRecords = () => {
                       <h3 className="text-xl font-semibold mb-2">{record.title}</h3>
                       <div className="flex items-center gap-4 text-gray-600 mb-2">
                         <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          <span>{record.patientName}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
                           <Calendar className="h-4 w-4" />
                           <span>{new Date(record.date).toLocaleDateString()}</span>
                         </div>
+                        {record.provider && (
+                          <div className="flex items-center gap-1">
+                            <User className="h-4 w-4" />
+                            <span>{record.provider}</span>
+                          </div>
+                        )}
                       </div>
                       <p className="text-gray-700 mb-3">{record.description}</p>
-                      <p className="text-sm text-gray-600">Doctor: {record.doctor}</p>
                     </div>
                   </div>
                   <div className="text-right space-y-2">
@@ -200,6 +303,19 @@ const HealthRecords = () => {
                     </Badge>
                   </div>
                 </div>
+
+                {/* Result Data Display */}
+                {record.result_data && (
+                  <div className="bg-green-50 p-4 rounded-lg mb-4">
+                    <h4 className="font-medium mb-3 flex items-center gap-2">
+                      <TestTube className="h-4 w-4" />
+                      Test Results
+                    </h4>
+                    <div className="text-sm text-gray-700">
+                      {typeof record.result_data === 'string' ? record.result_data : JSON.stringify(record.result_data)}
+                    </div>
+                  </div>
+                )}
 
                 {/* Vital Signs Display */}
                 {record.vitals && (
@@ -241,13 +357,14 @@ const HealthRecords = () => {
                   <Button variant="outline" size="sm">
                     View Details
                   </Button>
-                  <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-1" />
-                    Export
-                  </Button>
-                  {record.status === 'active' && (
-                    <Button size="sm">
-                      Update
+                  {record.result_file_url && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => window.open(record.result_file_url, '_blank')}
+                    >
+                      <Download className="h-4 w-4 mr-1" />
+                      Download
                     </Button>
                   )}
                 </div>
@@ -264,7 +381,7 @@ const HealthRecords = () => {
               <p className="text-gray-600">
                 {searchTerm || selectedType !== 'all' 
                   ? "No records match your search criteria." 
-                  : "No health records available."}
+                  : "No health records available yet. Your lab results, prescriptions, and orders will appear here."}
               </p>
             </CardContent>
           </Card>

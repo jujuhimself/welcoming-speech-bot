@@ -1,7 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { orderService, OrderItem, OrderStatusHistory } from '@/services/orderService';
+import { orderService, OrderItem, OrderStatusHistory, WholesaleOrder, RetailOrder } from '@/services/orderService';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const useOrderItems = (orderId: string) => {
   return useQuery({
@@ -65,5 +65,24 @@ export const useUpdateOrderStatus = () => {
       });
       console.error('Error updating order status:', error);
     },
+  });
+};
+
+// New hooks for fetching orders
+export const useWholesaleOrders = () => {
+  const { user } = useAuth();
+  return useQuery<WholesaleOrder[]>({
+    queryKey: ['wholesale-orders', user?.id],
+    queryFn: () => user?.id ? orderService.getWholesaleOrders(user.id) : Promise.resolve([]),
+    enabled: !!user?.id,
+  });
+};
+
+export const useRetailOrders = () => {
+  const { user } = useAuth();
+  return useQuery<RetailOrder[]>({
+    queryKey: ['retail-orders', user?.id],
+    queryFn: () => user?.id ? orderService.getRetailOrders(user.id) : Promise.resolve([]),
+    enabled: !!user?.id,
   });
 };

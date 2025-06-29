@@ -1,7 +1,5 @@
-
 import { Outlet, Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { BusinessToolsSidebar } from "@/components/wholesale/BusinessToolsSidebar";
 
 export default function WholesaleBusinessTools() {
   const { user } = useAuth();
@@ -19,7 +17,6 @@ export default function WholesaleBusinessTools() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-green-50 flex flex-col">
       <div className="flex flex-1 w-full">
-        <BusinessToolsSidebar />
         <main className="flex-1 p-6">
           <Outlet />
         </main>

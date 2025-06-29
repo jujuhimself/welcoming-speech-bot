@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -6,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Search, Package, FileText, Users, CreditCard } from 'lucide-react';
 import { dataService } from '@/services/dataService';
 import { useNavigate } from 'react-router-dom';
+import { inventoryService } from '@/services/inventoryService';
 
 interface SearchResult {
   id: string;
@@ -23,6 +23,7 @@ export const GlobalSearch = () => {
   const [loading, setLoading] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const [inventory, setInventory] = useState<any[]>([]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -49,6 +50,13 @@ export const GlobalSearch = () => {
 
     return () => clearTimeout(searchTimeout);
   }, [query]);
+
+  useEffect(() => {
+    (async () => {
+      const products = await inventoryService.getProducts();
+      setInventory(products);
+    })();
+  }, []);
 
   const performSearch = (searchQuery: string) => {
     const searchResults: SearchResult[] = [];
@@ -87,7 +95,6 @@ export const GlobalSearch = () => {
     });
 
     // Search inventory
-    const inventory = dataService.getInventory();
     inventory.forEach(item => {
       if (item.name?.toLowerCase().includes(lowercaseQuery) ||
           item.category?.toLowerCase().includes(lowercaseQuery)) {

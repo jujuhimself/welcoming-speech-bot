@@ -343,9 +343,7 @@ const Index = () => {
           <div className="grid md:grid-cols-4 gap-8 mb-8">
             <div>
               <div className="flex items-center space-x-3 mb-6">
-                <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-2 rounded-xl">
-                  <Package className="h-6 w-6 text-white" />
-                </div>
+                <img src="/logo.png" alt="Logo" className="h-8 w-auto" />
                 <span className="text-xl font-semibold">BEPAWA</span>
               </div>
               <p className="text-gray-400 mb-4 leading-relaxed">

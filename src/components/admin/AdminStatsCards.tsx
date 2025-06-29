@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Clock, DollarSign, TrendingUp } from "lucide-react";
 
@@ -45,7 +44,7 @@ const AdminStatsCards = ({ stats }: { stats: Stats }) => (
         </div>
         <div className="flex items-center mt-2">
           <DollarSign className="h-4 w-4 mr-1" />
-          <span className="text-sm text-green-100">This month</span>
+          <span className="text-sm text-green-100">All completed orders</span>
         </div>
       </CardContent>
     </Card>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,16 +10,71 @@ import PharmacyCard from "@/components/PharmacyCard";
 import PharmacyStockDialog from "@/components/PharmacyStockDialog";
 import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
+interface Pharmacy {
+  id: string;
+  name: string;
+  location: string;
+  rating: number;
+  distance: string;
+  isOpen: boolean;
+  hours: string;
+  phone: string;
+  stock: any[];
+}
 
 const PharmacyDirectory = () => {
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedPharmacy, setSelectedPharmacy] = useState<any>(null);
+  const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
   const [orderModal, setOrderModal] = useState(false);
   const [selectedMedicine, setSelectedMedicine] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Empty pharmacies list - no mock data
-  const pharmacies: any[] = [];
+  useEffect(() => {
+    fetchPharmacies();
+  }, []);
+
+  const fetchPharmacies = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, name, business_name, region, city, phone, address, is_approved')
+        .eq('role', 'retail')
+        .eq('is_approved', true)
+        .order('business_name');
+
+      if (error) throw error;
+
+      const pharmacyData: Pharmacy[] = (data || []).map((pharmacy: any) => ({
+        id: pharmacy.id,
+        name: pharmacy.business_name || pharmacy.name || 'Pharmacy',
+        location: pharmacy.address || ((pharmacy.city && pharmacy.region) ? `${pharmacy.city}, ${pharmacy.region}` : 'Location not set'),
+        rating: 4.5, // Default rating
+        distance: 'N/A', // Would need location services for real distance
+        isOpen: true, // Default to open
+        hours: '8:00 AM - 8:00 PM', // Default hours
+        phone: pharmacy.phone || 'N/A',
+        stock: [] // Would need to fetch from products table
+      }));
+
+      setPharmacies(pharmacyData);
+    } catch (error) {
+      console.error('Error fetching pharmacies:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load pharmacies",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredPharmacies = pharmacies.filter(pharmacy =>
     pharmacy.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -32,9 +87,25 @@ const PharmacyDirectory = () => {
       setOrderModal(false);
       setSelectedMedicine("");
       setQuantity(1);
-      alert("Order placed successfully!");
+      toast({
+        title: "Order Placed",
+        description: "Your order has been placed successfully!",
+      });
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading pharmacies...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
@@ -62,33 +133,82 @@ const PharmacyDirectory = () => {
         {filteredPharmacies.length === 0 ? (
           <EmptyState
             title="No pharmacies found"
-            description="Pharmacy directory will be populated as pharmacies join the platform. Check back soon for available pharmacies in your area."
+            description={searchTerm 
+              ? "No pharmacies match your search criteria." 
+              : "Pharmacy directory will be populated as pharmacies join the platform. Check back soon for available pharmacies in your area."}
             icon={<MapPin className="h-16 w-16" />}
             variant="card"
           />
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredPharmacies.map((pharmacy) => (
-              <PharmacyCard
-                key={pharmacy.id}
-                pharmacy={pharmacy}
-                onViewStock={() => setSelectedPharmacy(pharmacy)}
-              />
+              <Card key={pharmacy.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-lg">{pharmacy.name}</CardTitle>
+                      <p className="text-gray-600 flex items-center mt-1">
+                        <MapPin className="h-4 w-4 mr-1" />
+                        {pharmacy.location}
+                      </p>
+                      {pharmacy.phone && pharmacy.phone !== 'N/A' && (
+                        <p className="text-gray-600 flex items-center mt-1">
+                          <Phone className="h-4 w-4 mr-1" />
+                          {pharmacy.phone}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <div className="flex items-center">
+                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                        <span className="ml-1 font-medium">{pharmacy.rating}</span>
+                      </div>
+                      <p className="text-sm text-gray-500">{pharmacy.distance}</p>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <Badge variant={pharmacy.isOpen ? "default" : "secondary"}>
+                        <Clock className="h-3 w-3 mr-1" />
+                        {pharmacy.isOpen ? "Open" : "Closed"}
+                      </Badge>
+                      <span className="text-sm text-gray-600">{pharmacy.hours}</span>
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <Button 
+                        size="sm" 
+                        className="flex-1"
+                        onClick={() => setSelectedPharmacy(pharmacy)}
+                      >
+                        View Details
+                      </Button>
+                      <Button size="sm" variant="outline">
+                        <Phone className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
         
         {/* Pharmacy Details Modal */}
-        <PharmacyStockDialog
-          open={!!selectedPharmacy}
-          onOpenChange={() => setSelectedPharmacy(null)}
-          pharmacyName={selectedPharmacy?.name}
-          stock={selectedPharmacy?.stock}
-          onOrder={(medicine: string) => {
-            setSelectedMedicine(medicine);
-            setOrderModal(true);
-          }}
-        />
+        {selectedPharmacy && (
+          <PharmacyStockDialog
+            open={!!selectedPharmacy}
+            onOpenChange={() => setSelectedPharmacy(null)}
+            pharmacyName={selectedPharmacy.name}
+            stock={selectedPharmacy.stock}
+            onOrder={(medicine: string) => {
+              setSelectedMedicine(medicine);
+              setOrderModal(true);
+            }}
+          />
+        )}
         
         {/* Order Modal */}
         <Dialog open={orderModal} onOpenChange={setOrderModal}>

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -17,6 +16,24 @@ import type { Database } from "@/integrations/supabase/types";
 type StaffMember = Database['public']['Tables']['staff_members']['Row'];
 type StaffMemberInsert = Database['public']['Tables']['staff_members']['Insert'];
 
+const defaultPermissions = {
+  pos: false,
+  inventory: false,
+  orders: false,
+  business_tools: false,
+  analytics: false,
+  credit_crm: false,
+  audit: false,
+  alerts: false,
+};
+
+const roleTemplates: Record<string, typeof defaultPermissions> = {
+  'pos-only': { ...defaultPermissions, pos: true },
+  'inventory-only': { ...defaultPermissions, inventory: true },
+  'manager': { ...defaultPermissions, pos: true, inventory: true, orders: true, analytics: true },
+  'admin': { ...Object.fromEntries(Object.keys(defaultPermissions).map(k => [k, true])) },
+};
+
 const StaffManagement = () => {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -26,12 +43,18 @@ const StaffManagement = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    role: 'pos-only' as StaffMember['role']
+    role: 'pos-only' as StaffMember['role'],
+    permissions: { ...roleTemplates['pos-only'] },
   });
 
   useEffect(() => {
     fetchStaff();
   }, []);
+
+  useEffect(() => {
+    setFormData(f => ({ ...f, permissions: { ...roleTemplates[f.role] } }));
+    // eslint-disable-next-line
+  }, [formData.role]);
 
   const fetchStaff = async () => {
     if (!user) return;
@@ -64,7 +87,8 @@ const StaffManagement = () => {
         ...formData,
         pharmacy_id: user.id,
         created_by: user.id,
-        is_active: true
+        is_active: true,
+        permissions: formData.permissions,
       };
 
       if (editingStaff) {
@@ -84,7 +108,7 @@ const StaffManagement = () => {
         toast({ title: "Staff member added successfully" });
       }
 
-      setFormData({ name: '', email: '', role: 'pos-only' });
+      setFormData({ name: '', email: '', role: 'pos-only', permissions: { ...roleTemplates['pos-only'] } });
       setIsAddDialogOpen(false);
       setEditingStaff(null);
       fetchStaff();
@@ -138,7 +162,8 @@ const StaffManagement = () => {
     setFormData({
       name: staffMember.name,
       email: staffMember.email,
-      role: staffMember.role
+      role: staffMember.role,
+      permissions: staffMember.permissions || { ...roleTemplates['pos-only'] },
     });
     setIsAddDialogOpen(true);
   };
@@ -146,11 +171,15 @@ const StaffManagement = () => {
   const closeDialog = () => {
     setIsAddDialogOpen(false);
     setEditingStaff(null);
-    setFormData({ name: '', email: '', role: 'pos-only' });
+    setFormData({ name: '', email: '', role: 'pos-only', permissions: { ...roleTemplates['pos-only'] } });
+  };
+
+  const handlePermissionChange = (perm: keyof typeof defaultPermissions, value: boolean) => {
+    setFormData(f => ({ ...f, permissions: { ...f.permissions, [perm]: value } }));
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-7xl mx-auto px-4 w-full space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Staff Management</h2>
@@ -190,7 +219,7 @@ const StaffManagement = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="role">Role & Permissions</Label>
+                <Label htmlFor="role">Role Template</Label>
                 <Select value={formData.role} onValueChange={(value: StaffMember['role']) => setFormData({ ...formData, role: value })}>
                   <SelectTrigger>
                     <SelectValue />
@@ -202,6 +231,21 @@ const StaffManagement = () => {
                     <SelectItem value="admin">Admin - Full access</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+              <div>
+                <Label>Permissions</Label>
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  {Object.keys(defaultPermissions).map((perm) => (
+                    <label key={perm} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.permissions[perm as keyof typeof defaultPermissions]}
+                        onChange={e => handlePermissionChange(perm as keyof typeof defaultPermissions, e.target.checked)}
+                      />
+                      {perm.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </label>
+                  ))}
+                </div>
               </div>
               <div className="flex gap-2">
                 <Button type="submit" className="flex-1">
@@ -232,6 +276,7 @@ const StaffManagement = () => {
                 <TableHead>Role</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Added</TableHead>
+                <TableHead>Permissions</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -254,6 +299,13 @@ const StaffManagement = () => {
                       </Badge>
                     </TableCell>
                     <TableCell>{new Date(member.created_at).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(member.permissions || {}).filter(([_, v]) => v).map(([k]) => (
+                          <Badge key={k} variant="secondary">{k.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</Badge>
+                        ))}
+                      </div>
+                    </TableCell>
                     <TableCell>
                       <div className="flex gap-2">
                         <Button

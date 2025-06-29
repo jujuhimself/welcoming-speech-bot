@@ -3,12 +3,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import Navbar from "@/components/Navbar";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import FinancialManagement from "@/components/FinancialManagement";
 import CustomerRelationshipManagement from "@/components/CustomerRelationshipManagement";
 import DeliveryTracking from "@/components/DeliveryTracking";
-import NotificationCenter from "@/components/NotificationCenter";
+import NotificationManagement from '@/components/NotificationManagement';
+import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { 
   Scan, 
   DollarSign, 
@@ -20,7 +20,7 @@ import {
   MessageCircle
 } from "lucide-react";
 
-const BusinessTools = () => {
+const BusinessOperationsHub = () => {
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("inventory");
@@ -81,11 +81,9 @@ const BusinessTools = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-green-50">
-      <Navbar />
-      
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Business Tools</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">Business Operations Hub</h1>
           <p className="text-gray-600 text-lg">Enhanced tools to manage your healthcare business efficiently</p>
         </div>
 
@@ -181,14 +179,23 @@ const BusinessTools = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <NotificationCenter />
+                <NotificationManagement />
               </CardContent>
             </Card>
           </TabsContent>
         </Tabs>
+
+        <Card className="mt-8 shadow-lg border-0">
+          <CardHeader>
+            <CardTitle className="text-2xl">Business Analytics</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <AnalyticsDashboard />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 };
 
-export default BusinessTools;
+export default BusinessOperationsHub;

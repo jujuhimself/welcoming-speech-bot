@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,6 +19,6 @@ export default function BusinessToolsRetail() {
     );
   }
 
-  // If logged in, redirect to the sidebar-based main shell.
-  return <Navigate to="/business-tools-retail/pos" replace />;
+  // If logged in, redirect to the retail business tools page
+  return <Navigate to="/retail/pos" replace />;
 }

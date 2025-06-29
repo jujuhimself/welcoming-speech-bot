@@ -1,4 +1,3 @@
-
 import React from "react";
 import { 
   Home, 
@@ -20,8 +19,9 @@ import {
   Activity,
   Database,
   UserCheck,
-  Eye
+  Eye,
 } from "lucide-react";
+import { FaCashRegister } from 'react-icons/fa';
 
 export interface NavigationItem {
   label: string;
@@ -45,11 +45,9 @@ export class NavigationMenuConfig {
     return {
       admin: [
         { label: "Dashboard", icon: React.createElement(Home, { className: "w-4 h-4" }), href: "/admin" },
-        { label: "Analytics", icon: React.createElement(BarChart3, { className: "w-4 h-4" }), href: "/admin/analytics" },
         { label: "User Management", icon: React.createElement(Users, { className: "w-4 h-4" }), href: "/admin/users" },
         { label: "System Monitoring", icon: React.createElement(Activity, { className: "w-4 h-4" }), href: "/admin/system-monitoring" },
         { label: "Audit Logs", icon: React.createElement(Eye, { className: "w-4 h-4" }), href: "/admin/audit-logs" },
-        { label: "Business Tools", icon: React.createElement(Wrench, { className: "w-4 h-4" }), href: "/business-tools" },
         { label: "Settings", icon: React.createElement(Settings, { className: "w-4 h-4" }), href: "/settings" },
       ],
       individual: [
@@ -71,18 +69,18 @@ export class NavigationMenuConfig {
         { label: "Appointments", icon: React.createElement(Calendar, { className: "w-4 h-4" }), href: "/pharmacy/appointments" },
         { label: "Business Center", icon: React.createElement(Calculator, { className: "w-4 h-4" }), href: "/business-center" },
         { label: "Credit Request", icon: React.createElement(CreditCard, { className: "w-4 h-4" }), href: "/credit-request" },
-        { label: "Business Tools", icon: React.createElement(Wrench, { className: "w-4 h-4" }), href: "/business-tools-retail" },
+        { label: "POS", icon: React.createElement(FaCashRegister, { size: 16 }), href: "/pos" },
+        { label: "Business Operations Hub", icon: React.createElement(Wrench, { className: "w-4 h-4" }), href: "/business-tools" },
         { label: "Settings", icon: React.createElement(Settings, { className: "w-4 h-4" }), href: "/settings" },
       ],
       wholesale: [
         { label: "Dashboard", icon: React.createElement(Home, { className: "w-4 h-4" }), href: "/wholesale" },
         { label: "Inventory", icon: React.createElement(Package, { className: "w-4 h-4" }), href: "/wholesale/inventory" },
-        { label: "Orders", icon: React.createElement(FileText, { className: "w-4 h-4" }), href: "/wholesale/orders" },
         { label: "Retailer Orders", icon: React.createElement(Users, { className: "w-4 h-4" }), href: "/wholesale/retailer-orders" },
         { label: "Purchase Orders", icon: React.createElement(FileText, { className: "w-4 h-4" }), href: "/wholesale/purchase-orders" },
         { label: "Retailers", icon: React.createElement(Users, { className: "w-4 h-4" }), href: "/wholesale/retailers" },
-        { label: "Analytics", icon: React.createElement(BarChart3, { className: "w-4 h-4" }), href: "/wholesale/analytics" },
-        { label: "Business Tools", icon: React.createElement(Wrench, { className: "w-4 h-4" }), href: "/wholesale/business-tools" },
+        { label: "POS", icon: React.createElement(FaCashRegister, { size: 16 }), href: "/pos" },
+        { label: "Business Operations Hub", icon: React.createElement(Wrench, { className: "w-4 h-4" }), href: "/business-tools" },
         { label: "Settings", icon: React.createElement(Settings, { className: "w-4 h-4" }), href: "/settings" },
       ],
       lab: [
@@ -99,8 +97,8 @@ export class NavigationMenuConfig {
   }
 
   private groupItemsByCategory(items: NavigationItem[]): NavigationGroup[] {
-    const groups: NavigationGroup[] = [];
-
+    // Merge all items with the same group name into a single group
+    const groupedItems: Record<string, NavigationItem[]> = {};
     const groupMapping: Record<string, string> = {
       "Dashboard": "General",
       "Analytics": "General",
@@ -116,6 +114,7 @@ export class NavigationMenuConfig {
       "Retailer Orders": "Orders",
       "Purchase Orders": "Orders",
       "Business Center": "Business",
+      "Business Operations Hub": "Business",
       "Credit Request": "Business",
       "Retailers": "Business",
       "Find Pharmacies": "Directory",
@@ -126,11 +125,9 @@ export class NavigationMenuConfig {
       "Test Catalog": "Lab Services",
       "Results Management": "Lab Services",
       "Quality Control": "Lab Services",
-      "Business Tools": "Tools",
+      "POS": "General",
       "Settings": "Account",
     };
-
-    const groupedItems: Record<string, NavigationItem[]> = {};
 
     items.forEach(item => {
       const groupName = groupMapping[item.label] || "Other";
@@ -154,16 +151,13 @@ export class NavigationMenuConfig {
       "Other"
     ];
     
-    groupOrder.forEach(groupName => {
-      if (groupedItems[groupName]) {
-        groups.push({
-          name: groupName,
-          items: groupedItems[groupName]
-        });
-      }
-    });
-
-    return groups;
+    // Only one group per name, with all items merged
+    return groupOrder
+      .filter(groupName => groupedItems[groupName])
+      .map(groupName => ({
+        name: groupName,
+        items: groupedItems[groupName]
+      }));
   }
 
   getMenuGroups(): NavigationGroup[] {

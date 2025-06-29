@@ -2326,6 +2326,7 @@ export type Database = {
           pharmacy_id: string
           role: string
           updated_at: string
+          permissions: Json | null
         }
         Insert: {
           created_at?: string
@@ -2337,6 +2338,7 @@ export type Database = {
           pharmacy_id: string
           role: string
           updated_at?: string
+          permissions?: Json | null
         }
         Update: {
           created_at?: string
@@ -2348,6 +2350,7 @@ export type Database = {
           pharmacy_id?: string
           role?: string
           updated_at?: string
+          permissions?: Json | null
         }
         Relationships: []
       }

@@ -1,5 +1,7 @@
 import { Routes, Route } from "react-router-dom";
 import RouteGuard from "@/components/RouteGuard";
+import StaffManagement from '@/components/retail/StaffManagement';
+import { useAuth } from "@/contexts/AuthContext";
 
 // Index and Auth
 import Index from "@/pages/Index";
@@ -36,13 +38,16 @@ import CreditRequest from "@/pages/CreditRequest";
 import CreditRequestManagement from "@/pages/CreditRequestManagement";
 import Suppliers from "@/pages/Suppliers";
 import PurchaseOrders from "@/pages/PurchaseOrders";
-import RetailBusinessTools from "@/pages/RetailBusinessTools";
+import RetailBusinessTools from "@/pages/retail/RetailBusinessTools";
 import RetailAuditLog from "@/pages/retail/RetailAuditLog";
 import RetailAdjustment from "@/pages/retail/RetailAdjustment";
 import RetailCredit from "@/pages/retail/RetailCredit";
 import RetailForecast from "@/pages/retail/RetailForecast";
 import RetailPos from "@/pages/retail/RetailPos";
 import RetailReporting from "@/pages/retail/RetailReporting";
+import CreditCRMManagement from '@/pages/CreditCRMManagement';
+import InventoryAdjustments from '@/pages/InventoryAdjustments';
+import AuditReports from '@/pages/AuditReports';
 
 // Wholesale Pages
 import WholesaleDashboard from "@/pages/WholesaleDashboard";
@@ -51,7 +56,6 @@ import WholesaleOrders from "@/pages/WholesaleOrders";
 import WholesaleRetailerOrders from "@/pages/WholesaleRetailerOrders";
 import WholesalePurchaseOrders from "@/pages/WholesalePurchaseOrders";
 import WholesaleRetailers from "@/pages/WholesaleRetailers";
-import WholesaleAnalytics from "@/pages/WholesaleAnalytics";
 import WholesaleBusinessTools from "@/pages/WholesaleBusinessTools";
 import WholesalePOS from "@/pages/wholesale/WholesalePOS";
 import WholesaleCreditCRM from "@/pages/wholesale/WholesaleCreditCRM";
@@ -69,7 +73,6 @@ import LabQualityControl from "@/pages/lab/LabQualityControl";
 
 // Admin Pages
 import AdminDashboard from "@/pages/AdminDashboard";
-import AdminAnalytics from "@/pages/AdminAnalytics";
 import AdminSystemMonitoring from "@/pages/admin/AdminSystemMonitoring";
 
 // Common Pages
@@ -77,8 +80,10 @@ import BusinessTools from "@/pages/BusinessTools";
 import SystemSettings from "@/pages/SystemSettings";
 import Pharmacies from "@/pages/Pharmacies";
 import NotFound from "@/pages/NotFound";
+import Analytics from "@/pages/Analytics";
 
 const AppRoutes = () => {
+  const { user } = useAuth();
   return (
     <Routes>
       {/* Public Routes */}
@@ -110,7 +115,7 @@ const AppRoutes = () => {
         </RouteGuard>
       } />
       <Route path="/prescription-management" element={
-        <RouteGuard allowedRoles={['individual']}>
+        <RouteGuard allowedRoles={['individual', 'retail']}>
           <PrescriptionManagement />
         </RouteGuard>
       } />
@@ -221,6 +226,11 @@ const AppRoutes = () => {
           <RetailBusinessTools />
         </RouteGuard>
       } />
+      <Route path="/credit" element={
+        <RouteGuard allowedRoles={['retail']} requireApproval>
+          <CreditCRMManagement />
+        </RouteGuard>
+      } />
 
       {/* Retail Business Tools Sub-routes */}
       <Route path="/retail/audit-log" element={
@@ -285,42 +295,57 @@ const AppRoutes = () => {
           <WholesaleRetailers />
         </RouteGuard>
       } />
-      <Route path="/wholesale/analytics" element={
-        <RouteGuard allowedRoles={['wholesale']} requireApproval>
-          <WholesaleAnalytics />
-        </RouteGuard>
-      } />
       <Route path="/wholesale/business-tools" element={
         <RouteGuard allowedRoles={['wholesale']} requireApproval>
           <WholesaleBusinessTools />
         </RouteGuard>
-      }>
-        <Route path="pos" element={
-          <RouteGuard allowedRoles={['wholesale']} requireApproval>
-            <WholesalePOS />
-          </RouteGuard>
-        } />
-        <Route path="credit" element={
-          <RouteGuard allowedRoles={['wholesale']} requireApproval>
-            <WholesaleCreditCRM />
-          </RouteGuard>
-        } />
-        <Route path="staff" element={
-          <RouteGuard allowedRoles={['wholesale']} requireApproval>
-            <WholesaleStaffManagement />
-          </RouteGuard>
-        } />
-        <Route path="adjustments" element={
-          <RouteGuard allowedRoles={['wholesale']} requireApproval>
-            <WholesaleAdjustments />
-          </RouteGuard>
-        } />
-        <Route path="audit" element={
-          <RouteGuard allowedRoles={['wholesale']} requireApproval>
-            <WholesaleAuditTrail />
-          </RouteGuard>
-        } />
-      </Route>
+      } />
+      <Route path="/wholesale/business-tools/pos" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesalePOS />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/business-tools/credit" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleCreditCRM />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/business-tools/staff" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleStaffManagement />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/business-tools/adjustments" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleAdjustments />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/business-tools/audit" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleAuditTrail />
+        </RouteGuard>
+      } />
+      {/* Direct routes for wholesale quick actions */}
+      <Route path="/wholesale/staff" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleStaffManagement />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/credit-crm" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleCreditCRM />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/adjustments" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleAdjustments />
+        </RouteGuard>
+      } />
+      <Route path="/wholesale/audit-reports" element={
+        <RouteGuard allowedRoles={['wholesale']} requireApproval>
+          <WholesaleAuditTrail />
+        </RouteGuard>
+      } />
 
       {/* Lab Routes */}
       <Route path="/lab" element={
@@ -360,11 +385,6 @@ const AppRoutes = () => {
           <AdminDashboard />
         </RouteGuard>
       } />
-      <Route path="/admin/analytics" element={
-        <RouteGuard allowedRoles={['admin']}>
-          <AdminAnalytics />
-        </RouteGuard>
-      } />
       <Route path="/admin/system-monitoring" element={
         <RouteGuard allowedRoles={['admin']}>
           <AdminSystemMonitoring />
@@ -396,6 +416,41 @@ const AppRoutes = () => {
         <RouteGuard>
           <Pharmacies />
         </RouteGuard>
+      } />
+      <Route path="/analytics" element={<Analytics />} />
+
+      {/* Retail Staff Management Route */}
+      <Route path="/staff" element={
+        <RouteGuard allowedRoles={['retail']} requireApproval>
+          <StaffManagement />
+        </RouteGuard>
+      } />
+
+      {/* Inventory Adjustments Route */}
+      <Route path="/inventory-adjustments" element={
+        <RouteGuard allowedRoles={['retail', 'wholesale']} requireApproval>
+          <InventoryAdjustments />
+        </RouteGuard>
+      } />
+
+      {/* Audit Reports Route */}
+      <Route path="/audit" element={
+        <RouteGuard allowedRoles={['retail', 'wholesale']} requireApproval>
+          <AuditReports />
+        </RouteGuard>
+      } />
+
+      {/* POS Route for Retail and Wholesale */}
+      <Route path="/pos" element={
+        user?.role === 'wholesale' ? (
+          <RouteGuard allowedRoles={['wholesale']} requireApproval>
+            <WholesalePOS />
+          </RouteGuard>
+        ) : (
+          <RouteGuard allowedRoles={['retail']} requireApproval>
+            <RetailPos />
+          </RouteGuard>
+        )
       } />
 
       {/* Catch all - 404 */}

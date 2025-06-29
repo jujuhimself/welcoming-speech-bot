@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { useAuditLogs } from "@/hooks/useAudit";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -6,21 +5,22 @@ import ExportButton from "@/components/ExportButton";
 import DateRangeFilter from "@/components/DateRangeFilter";
 import UserSelect from "@/components/UserSelect";
 import { useState, useMemo } from "react";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 
 export default function RetailAuditLog() {
   const { user } = useAuth();
-  const { data: logs = [], isLoading } = useAuditLogs();
+  const { data: logs = [], isLoading } = useAuditLogs(user);
   // Add local filtering (since API does not expose by date/user)
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [userId, setUserId] = useState("");
-  const [action, setAction] = useState("");
+  const [action, setAction] = useState("all");
   const filtered = useMemo(() =>
     logs.filter(log => {
       const dateOk = (!from || new Date(log.created_at) >= new Date(from)) &&
         (!to || new Date(log.created_at) <= new Date(to));
       const userOk = !userId || log.user_id === userId;
-      const actOk = !action || log.action === action;
+      const actOk = action === "all" || log.action === action;
       return dateOk && userOk && actOk;
     }), [logs, from, to, userId, action]);
 
@@ -28,8 +28,8 @@ export default function RetailAuditLog() {
   const actions = Array.from(new Set(logs.map(log => log.action || ""))).filter(a => a);
 
   return (
-    <div>
-      <Card>
+    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 md:px-8">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle>
             Audit Log (Preview)
@@ -45,11 +45,17 @@ export default function RetailAuditLog() {
             {actions.length > 0 && (
               <div>
                 <label className="text-sm mr-1">Action:</label>
-                <select className="border rounded px-2 py-1 text-sm"
-                  value={action} onChange={e => setAction(e.target.value)}>
-                  <option value="">All</option>
-                  {actions.map(a => <option key={a} value={a}>{a}</option>)}
-                </select>
+                <Select value={action} onValueChange={setAction}>
+                  <SelectTrigger className="w-32 text-sm">
+                    <SelectValue placeholder="All Actions" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Actions</SelectItem>
+                    {actions.filter(Boolean).map(a => (
+                      <SelectItem key={a} value={a}>{a}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
           </div>

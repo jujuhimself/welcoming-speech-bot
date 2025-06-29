@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -44,13 +43,24 @@ const WholesaleAuditTrail = () => {
 
   const fetchAuditLogs = async () => {
     try {
-      const logs = await auditService.getAuditLogs();
+      if (!user) return;
+      let logs = [];
+      if (user.role === 'wholesale') {
+        // Try to fetch org-wide logs by wholesaler_id (assume audit_logs table has wholesaler_id)
+        logs = await auditService.getOrgActivity(user.id);
+        // If no logs found, fallback to user-specific logs
+        if (!logs || logs.length === 0) {
+          logs = await auditService.getUserActivity(user.id);
+        }
+      } else {
+        logs = await auditService.getUserActivity(user.id);
+      }
       setAuditLogs(logs);
     } catch (error: any) {
       console.error('Error fetching audit logs:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch audit logs",
+        description: error?.message || "Failed to fetch audit logs",
         variant: "destructive",
       });
     }
@@ -67,11 +77,11 @@ const WholesaleAuditTrail = () => {
       );
     }
 
-    if (categoryFilter) {
+    if (categoryFilter && categoryFilter !== 'all') {
       filtered = filtered.filter(log => log.category === categoryFilter);
     }
 
-    if (actionFilter) {
+    if (actionFilter && actionFilter !== 'all') {
       filtered = filtered.filter(log => log.action === actionFilter);
     }
 
@@ -153,16 +163,8 @@ const WholesaleAuditTrail = () => {
   const salesLogs = filteredLogs.filter(log => log.category === 'sales');
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-bold">Audit Trail</h2>
-          <p className="text-gray-600">Complete system activity tracking and monitoring</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <Card>
+    <div className="w-full max-w-6xl mx-auto px-2 sm:px-4 md:px-8">
+      <Card className="w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
@@ -184,8 +186,8 @@ const WholesaleAuditTrail = () => {
                   <SelectValue placeholder="Filter by category" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Categories</SelectItem>
-                  {categories.map((category) => (
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.filter(Boolean).map((category) => (
                     <SelectItem key={category} value={category}>
                       {category.charAt(0).toUpperCase() + category.slice(1)}
                     </SelectItem>
@@ -199,8 +201,8 @@ const WholesaleAuditTrail = () => {
                   <SelectValue placeholder="Filter by action" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">All Actions</SelectItem>
-                  {actions.map((action) => (
+                  <SelectItem value="all">All Actions</SelectItem>
+                  {actions.filter(Boolean).map((action) => (
                     <SelectItem key={action} value={action}>
                       {action}
                     </SelectItem>

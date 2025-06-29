@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -20,139 +19,48 @@ import {
   Search
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface Medication {
-  name: string;
-  dosage: string;
-  frequency: string;
-  duration: string;
-  quantity: number;
-  instructions: string;
-}
+import { usePrescriptions, usePharmacyPrescriptions, useCreatePrescription, useUpdatePrescriptionStatus } from '@/hooks/usePrescriptions';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Prescription {
   id: string;
-  patientName: string;
-  patientId: string;
-  doctorName: string;
-  hospitalName: string;
-  medications: Medication[];
-  status: 'pending' | 'reviewed' | 'processed' | 'ready' | 'dispensed' | 'rejected';
-  createdAt: string;
-  processedAt?: string;
-  dispensedAt?: string;
-  notes?: string;
-  pharmacyNotes?: string;
-  totalCost?: number;
-  priority: 'normal' | 'urgent';
+  patient_name: string;
+  doctor_name: string;
+  prescription_date: string;
+  status: 'pending' | 'verified' | 'dispensed' | 'completed' | 'cancelled';
+  diagnosis?: string;
+  instructions?: string;
+  created_at: string;
+  updated_at: string;
 }
 
 const PrescriptionManagement = () => {
   const { toast } = useToast();
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const { user } = useAuth();
+  const { data: individualPrescriptions = [], isLoading: isLoadingIndividual } = usePrescriptions();
+  const { data: pharmacyPrescriptions = [], isLoading: isLoadingPharmacy } = usePharmacyPrescriptions();
+  const createPrescription = useCreatePrescription();
+  const updatePrescriptionStatus = useUpdatePrescriptionStatus();
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
-  const [pharmacyNotes, setPharmacyNotes] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
 
-  useEffect(() => {
-    // Mock data for prescriptions
-    const mockPrescriptions: Prescription[] = [
-      {
-        id: "RX001",
-        patientName: "John Mwangi",
-        patientId: "PAT001",
-        doctorName: "Dr. Sarah Kimani",
-        hospitalName: "Aga Khan Hospital",
-        medications: [
-          {
-            name: "Amoxicillin 500mg",
-            dosage: "500mg",
-            frequency: "3 times daily",
-            duration: "7 days",
-            quantity: 21,
-            instructions: "Take with food"
-          },
-          {
-            name: "Paracetamol 500mg",
-            dosage: "500mg",
-            frequency: "As needed",
-            duration: "5 days",
-            quantity: 10,
-            instructions: "For pain relief, max 4 times daily"
-          }
-        ],
-        status: "pending",
-        createdAt: "2024-01-15T10:00:00Z",
-        priority: "normal",
-        notes: "Patient has mild penicillin sensitivity - monitor for reactions"
-      },
-      {
-        id: "RX002", 
-        patientName: "Mary Wanjiku",
-        patientId: "PAT002",
-        doctorName: "Dr. James Ochieng",
-        hospitalName: "Kenyatta National Hospital",
-        medications: [
-          {
-            name: "Metformin 500mg",
-            dosage: "500mg",
-            frequency: "Twice daily",
-            duration: "30 days",
-            quantity: 60,
-            instructions: "Take with breakfast and dinner"
-          },
-          {
-            name: "Atorvastatin 20mg",
-            dosage: "20mg",
-            frequency: "Once daily",
-            duration: "30 days",
-            quantity: 30,
-            instructions: "Take in the evening"
-          }
-        ],
-        status: "processed",
-        createdAt: "2024-01-14T14:30:00Z",
-        processedAt: "2024-01-14T16:00:00Z",
-        priority: "normal",
-        totalCost: 3500,
-        pharmacyNotes: "All medications in stock and prepared"
-      },
-      {
-        id: "RX003",
-        patientName: "David Kariuki",
-        patientId: "PAT003", 
-        doctorName: "Dr. Grace Mutua",
-        hospitalName: "Nairobi Hospital",
-        medications: [
-          {
-            name: "Salbutamol Inhaler",
-            dosage: "100mcg",
-            frequency: "2 puffs as needed",
-            duration: "30 days",
-            quantity: 1,
-            instructions: "For acute asthma symptoms"
-          }
-        ],
-        status: "dispensed",
-        createdAt: "2024-01-13T09:15:00Z",
-        processedAt: "2024-01-13T10:00:00Z",
-        dispensedAt: "2024-01-13T11:30:00Z",
-        priority: "urgent",
-        totalCost: 1200,
-        pharmacyNotes: "Patient counseled on proper inhaler technique"
-      }
-    ];
-    setPrescriptions(mockPrescriptions);
-  }, []);
+  // Choose the correct list based on user role
+  const prescriptions = user?.role === 'retail' ? pharmacyPrescriptions : individualPrescriptions;
+  const isLoading = user?.role === 'retail' ? isLoadingPharmacy : isLoadingIndividual;
+
+  if (isLoading) {
+    return <div className="min-h-screen flex items-center justify-center">Loading prescriptions...</div>;
+  }
+  if (!prescriptions || prescriptions.length === 0) {
+    return <div className="min-h-screen flex items-center justify-center text-gray-500 text-lg">No prescriptions found for your pharmacy. If you expect to see prescriptions here, please ensure they are assigned to your pharmacy or are unassigned in the database.</div>;
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'pending': return 'bg-yellow-100 text-yellow-800';
-      case 'reviewed': return 'bg-blue-100 text-blue-800'; 
-      case 'processed': return 'bg-purple-100 text-purple-800';
-      case 'ready': return 'bg-green-100 text-green-800';
+      case 'verified': return 'bg-blue-100 text-blue-800'; 
       case 'dispensed': return 'bg-green-200 text-green-900';
-      case 'rejected': return 'bg-red-100 text-red-800';
+      case 'completed': return 'bg-green-100 text-green-800';
+      case 'cancelled': return 'bg-red-100 text-red-800';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -160,52 +68,39 @@ const PrescriptionManagement = () => {
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'pending': return Clock;
-      case 'reviewed': return Eye;
-      case 'processed': return Pill;
-      case 'ready': return CheckCircle;
+      case 'verified': return Eye;
       case 'dispensed': return CheckCircle;
-      case 'rejected': return AlertTriangle;
+      case 'completed': return CheckCircle;
+      case 'cancelled': return AlertTriangle;
       default: return FileText;
     }
   };
 
-  const handleStatusUpdate = (prescriptionId: string, newStatus: Prescription['status']) => {
-    const updatedPrescriptions = prescriptions.map(prescription => {
-      if (prescription.id === prescriptionId) {
-        const updates: Partial<Prescription> = {
-          status: newStatus,
-          pharmacyNotes: pharmacyNotes || prescription.pharmacyNotes
-        };
-        
-        if (newStatus === 'processed') {
-          updates.processedAt = new Date().toISOString();
-        } else if (newStatus === 'dispensed') {
-          updates.dispensedAt = new Date().toISOString();
-        }
-        
-        return { ...prescription, ...updates };
-      }
-      return prescription;
-    });
-    
-    setPrescriptions(updatedPrescriptions);
-    setSelectedPrescription(null);
-    setPharmacyNotes("");
-    
-    toast({
-      title: "Prescription Updated",
-      description: `Prescription ${prescriptionId} has been ${newStatus}.`,
-    });
+  const handleStatusUpdate = async (prescriptionId: string, newStatus: Prescription['status']) => {
+    try {
+      await updatePrescriptionStatus.mutateAsync({ id: prescriptionId, status: newStatus });
+      setSelectedPrescription(null);
+      toast({
+        title: "Prescription Updated",
+        description: `Prescription ${prescriptionId} has been ${newStatus}.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update prescription status.",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredPrescriptions = prescriptions.filter(prescription =>
-    prescription.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    prescription.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     prescription.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    prescription.doctorName.toLowerCase().includes(searchTerm.toLowerCase())
+    prescription.doctor_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const pendingCount = prescriptions.filter(p => p.status === 'pending').length;
-  const processedCount = prescriptions.filter(p => p.status === 'processed').length;
+  const processedCount = prescriptions.filter(p => p.status === 'verified').length;
   const dispensedCount = prescriptions.filter(p => p.status === 'dispensed').length;
 
   return (
@@ -294,32 +189,19 @@ const PrescriptionManagement = () => {
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-semibold text-lg">{prescription.patientName}</h3>
-                          {prescription.priority === 'urgent' && (
-                            <Badge variant="destructive" className="text-xs">URGENT</Badge>
-                          )}
+                          <h3 className="font-semibold text-lg">{prescription.patient_name}</h3>
                         </div>
                         <p className="text-sm text-gray-600">Prescription ID: {prescription.id}</p>
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Doctor:</span>
-                            <p className="font-medium">{prescription.doctorName}</p>
+                            <p className="font-medium">{prescription.doctor_name}</p>
                           </div>
                           <div>
-                            <span className="text-gray-600">Hospital:</span>
-                            <p className="font-medium">{prescription.hospitalName}</p>
-                          </div>
-                          <div>
-                            <span className="text-gray-600">Medications:</span>
-                            <p className="font-medium">{prescription.medications.length} items</p>
+                            <span className="text-gray-600">Prescription Date:</span>
+                            <p className="font-medium">{prescription.prescription_date}</p>
                           </div>
                         </div>
-                        {prescription.totalCost && (
-                          <div className="text-sm">
-                            <span className="text-gray-600">Total Cost:</span>
-                            <span className="font-medium ml-1">TZS {prescription.totalCost.toLocaleString()}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -339,7 +221,7 @@ const PrescriptionManagement = () => {
                         </DialogTrigger>
                         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                           <DialogHeader>
-                            <DialogTitle>Prescription Details - {prescription.patientName}</DialogTitle>
+                            <DialogTitle>Prescription Details - {prescription.patient_name}</DialogTitle>
                           </DialogHeader>
                           <div className="space-y-6">
                             {/* Patient & Doctor Info */}
@@ -352,11 +234,7 @@ const PrescriptionManagement = () => {
                                   <div className="space-y-2">
                                     <div>
                                       <span className="text-sm text-gray-600">Name:</span>
-                                      <p className="font-medium">{prescription.patientName}</p>
-                                    </div>
-                                    <div>
-                                      <span className="text-sm text-gray-600">Patient ID:</span>
-                                      <p className="font-medium">{prescription.patientId}</p>
+                                      <p className="font-medium">{prescription.patient_name}</p>
                                     </div>
                                   </div>
                                 </CardContent>
@@ -370,72 +248,27 @@ const PrescriptionManagement = () => {
                                   <div className="space-y-2">
                                     <div>
                                       <span className="text-sm text-gray-600">Doctor:</span>
-                                      <p className="font-medium">{prescription.doctorName}</p>
-                                    </div>
-                                    <div>
-                                      <span className="text-sm text-gray-600">Hospital:</span>
-                                      <p className="font-medium">{prescription.hospitalName}</p>
+                                      <p className="font-medium">{prescription.doctor_name}</p>
                                     </div>
                                   </div>
                                 </CardContent>
                               </Card>
                             </div>
 
-                            {/* Medications */}
-                            <Card>
-                              <CardHeader>
-                                <CardTitle className="text-lg">Medications</CardTitle>
-                              </CardHeader>
-                              <CardContent>
-                                <div className="space-y-4">
-                                  {prescription.medications.map((medication, index) => (
-                                    <div key={index} className="border rounded-lg p-4">
-                                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                        <div>
-                                          <span className="text-sm text-gray-600">Medication:</span>
-                                          <p className="font-medium">{medication.name}</p>
-                                        </div>
-                                        <div>
-                                          <span className="text-sm text-gray-600">Dosage:</span>
-                                          <p className="font-medium">{medication.dosage}</p>
-                                        </div>
-                                        <div>
-                                          <span className="text-sm text-gray-600">Frequency:</span>
-                                          <p className="font-medium">{medication.frequency}</p>
-                                        </div>
-                                        <div>
-                                          <span className="text-sm text-gray-600">Duration:</span>
-                                          <p className="font-medium">{medication.duration}</p>
-                                        </div>
-                                        <div>
-                                          <span className="text-sm text-gray-600">Quantity:</span>
-                                          <p className="font-medium">{medication.quantity}</p>
-                                        </div>
-                                        <div>
-                                          <span className="text-sm text-gray-600">Instructions:</span>
-                                          <p className="font-medium">{medication.instructions}</p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </CardContent>
-                            </Card>
-
                             {/* Notes */}
-                            {prescription.notes && (
+                            {prescription.diagnosis && (
                               <Card>
                                 <CardHeader>
                                   <CardTitle className="text-lg">Doctor's Notes</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <p>{prescription.notes}</p>
+                                  <p>{prescription.diagnosis}</p>
                                 </CardContent>
                               </Card>
                             )}
 
                             {/* Pharmacy Actions */}
-                            {prescription.status !== 'dispensed' && prescription.status !== 'rejected' && (
+                            {prescription.status !== 'dispensed' && prescription.status !== 'cancelled' && (
                               <Card>
                                 <CardHeader>
                                   <CardTitle className="text-lg">Pharmacy Actions</CardTitle>
@@ -454,29 +287,13 @@ const PrescriptionManagement = () => {
                                   <div className="flex gap-3">
                                     {prescription.status === 'pending' && (
                                       <Button 
-                                        onClick={() => handleStatusUpdate(prescription.id, 'reviewed')}
+                                        onClick={() => handleStatusUpdate(prescription.id, 'verified')}
                                         variant="outline"
                                       >
-                                        Mark as Reviewed
+                                        Mark as Verified
                                       </Button>
                                     )}
-                                    {(prescription.status === 'pending' || prescription.status === 'reviewed') && (
-                                      <Button 
-                                        onClick={() => handleStatusUpdate(prescription.id, 'processed')}
-                                        className="bg-purple-600 hover:bg-purple-700"
-                                      >
-                                        Mark as Processed
-                                      </Button>
-                                    )}
-                                    {prescription.status === 'processed' && (
-                                      <Button 
-                                        onClick={() => handleStatusUpdate(prescription.id, 'ready')}
-                                        className="bg-green-600 hover:bg-green-700"
-                                      >
-                                        Mark as Ready
-                                      </Button>
-                                    )}
-                                    {prescription.status === 'ready' && (
+                                    {prescription.status === 'verified' && (
                                       <Button 
                                         onClick={() => handleStatusUpdate(prescription.id, 'dispensed')}
                                         className="bg-green-600 hover:bg-green-700"
@@ -485,23 +302,23 @@ const PrescriptionManagement = () => {
                                       </Button>
                                     )}
                                     <Button 
-                                      onClick={() => handleStatusUpdate(prescription.id, 'rejected')}
+                                      onClick={() => handleStatusUpdate(prescription.id, 'cancelled')}
                                       variant="destructive"
                                     >
-                                      Reject
+                                      Cancel
                                     </Button>
                                   </div>
                                 </CardContent>
                               </Card>
                             )}
 
-                            {prescription.pharmacyNotes && (
+                            {prescription.instructions && (
                               <Card>
                                 <CardHeader>
-                                  <CardTitle className="text-lg">Pharmacy Notes</CardTitle>
+                                  <CardTitle className="text-lg">Doctor's Notes</CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                  <p>{prescription.pharmacyNotes}</p>
+                                  <p>{prescription.instructions}</p>
                                 </CardContent>
                               </Card>
                             )}

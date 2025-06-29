@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -479,9 +478,7 @@ const Register = () => {
       <div className="w-full max-w-4xl">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center mb-6">
-            <div className="bg-gradient-to-br from-primary-600 to-primary-700 p-3 rounded-2xl shadow-lg">
-              <Package className="h-10 w-10 text-white" />
-            </div>
+            <img src="/logo.png" alt="Logo" className="h-12 w-auto mx-auto" />
           </div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-700 to-primary-600 bg-clip-text text-transparent mb-2">
             Join BEPAWA

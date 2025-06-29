@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -194,8 +193,8 @@ const AdvancedSearch = ({ onSearch, onReset }: AdvancedSearchProps) => {
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
-                    {categories.map(category => (
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.filter(Boolean).map(category => (
                       <SelectItem key={category} value={category}>{category}</SelectItem>
                     ))}
                   </SelectContent>
@@ -210,8 +209,8 @@ const AdvancedSearch = ({ onSearch, onReset }: AdvancedSearchProps) => {
                     <SelectValue placeholder="All Manufacturers" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Manufacturers</SelectItem>
-                    {manufacturers.map(manufacturer => (
+                    <SelectItem value="all">All Manufacturers</SelectItem>
+                    {manufacturers.filter(Boolean).map(manufacturer => (
                       <SelectItem key={manufacturer} value={manufacturer}>{manufacturer}</SelectItem>
                     ))}
                   </SelectContent>
@@ -226,7 +225,7 @@ const AdvancedSearch = ({ onSearch, onReset }: AdvancedSearchProps) => {
                     <SelectValue placeholder="All Products" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Products</SelectItem>
+                    <SelectItem value="all">All Products</SelectItem>
                     <SelectItem value="true">Prescription Required</SelectItem>
                     <SelectItem value="false">No Prescription</SelectItem>
                   </SelectContent>
@@ -241,7 +240,7 @@ const AdvancedSearch = ({ onSearch, onReset }: AdvancedSearchProps) => {
                     <SelectValue placeholder="All Products" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">All Products</SelectItem>
+                    <SelectItem value="all">All Products</SelectItem>
                     <SelectItem value="in-stock">In Stock</SelectItem>
                     <SelectItem value="low-stock">Low Stock</SelectItem>
                     <SelectItem value="out-of-stock">Out of Stock</SelectItem>

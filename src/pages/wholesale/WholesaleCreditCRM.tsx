@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -91,7 +90,7 @@ const WholesaleCreditCRM = () => {
       console.error('Error fetching credit accounts:', error);
       toast({
         title: "Error",
-        description: "Failed to fetch credit accounts",
+        description: error?.message || "Failed to fetch credit accounts",
         variant: "destructive",
       });
     }
@@ -155,7 +154,7 @@ const WholesaleCreditCRM = () => {
       console.error('Error creating credit account:', error);
       toast({
         title: "Error",
-        description: "Failed to create credit account",
+        description: error?.message || "Failed to create credit account",
         variant: "destructive",
       });
     }
@@ -205,7 +204,7 @@ const WholesaleCreditCRM = () => {
       console.error('Error creating transaction:', error);
       toast({
         title: "Error",
-        description: "Failed to record transaction",
+        description: error?.message || "Failed to record transaction",
         variant: "destructive",
       });
     }
@@ -227,7 +226,7 @@ const WholesaleCreditCRM = () => {
   const activeAccounts = accounts.filter(account => account.status === 'active').length;
 
   return (
-    <div className="space-y-6">
+    <div className="container mx-auto px-4 py-8 w-full max-w-7xl space-y-8">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Credit & CRM Management</h2>

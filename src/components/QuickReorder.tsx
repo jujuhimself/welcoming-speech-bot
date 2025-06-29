@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Clock, Package } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { dataService } from "@/services/dataService";
+import { orderService } from "@/services/orderService";
 
 interface OrderHistory {
   id: string;
@@ -22,52 +23,57 @@ const QuickReorder = () => {
   const { toast } = useToast();
   const [orderHistory, setOrderHistory] = useState<OrderHistory[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingOrders, setLoadingOrders] = useState(true);
+  const [emptyMessage, setEmptyMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      // Load order history from localStorage
-      const historyKey = `bepawa_order_history_${user.id}`;
-      const storedHistory = localStorage.getItem(historyKey);
-      if (storedHistory) {
-        setOrderHistory(JSON.parse(storedHistory));
-      } else {
-        // Initialize with sample order history
-        const sampleHistory: OrderHistory[] = [
-          {
-            id: "1",
-            productId: "1",
-            productName: "Paracetamol 500mg",
-            quantity: 2,
-            price: 1500,
-            orderDate: "2024-05-20",
-            image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400"
-          },
-          {
-            id: "2",
-            productId: "6",
-            productName: "Digital Thermometer",
-            quantity: 1,
-            price: 12000,
-            orderDate: "2024-05-18",
-            image: "https://images.unsplash.com/photo-1559757175-0eb30cd8c063?w=400"
-          },
-          {
-            id: "3",
-            productId: "3",
-            productName: "Latex Gloves (Box of 100)",
-            quantity: 3,
-            price: 15000,
-            orderDate: "2024-05-15",
-            image: "https://images.unsplash.com/photo-1584464491033-06628f3a6b7b?w=400"
+    const fetchOrderHistory = async () => {
+      if (!user) return;
+      setLoadingOrders(true);
+      setEmptyMessage(null);
+      try {
+        const orders = await dataService.getOrders(user.id, user.role);
+        if (!orders || orders.length === 0) {
+          setOrderHistory([]);
+          setEmptyMessage("Your recent orders will appear here once you place an order.");
+          setLoadingOrders(false);
+          return;
+        }
+        // Get the most recent 3 orders
+        const recentOrders = orders
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+          .slice(0, 3);
+        // Fetch items for each order
+        const allItems: OrderHistory[] = [];
+        for (const order of recentOrders) {
+          const items = await orderService.getOrderItems(order.id);
+          if (items && items.length > 0) {
+            items.forEach(item => {
+              allItems.push({
+                id: item.id,
+                productId: item.product_id || item.id,
+                productName: item.product_name,
+                quantity: item.quantity,
+                price: item.unit_price,
+                orderDate: order.created_at,
+                image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=400" // TODO: fetch product image if needed
+              });
+            });
           }
-        ];
-        localStorage.setItem(historyKey, JSON.stringify(sampleHistory));
-        setOrderHistory(sampleHistory);
+        }
+        if (allItems.length === 0) {
+          setEmptyMessage("Your recent order items will appear here once you purchase products.");
+        }
+        setOrderHistory(allItems);
+      } catch (err) {
+        setEmptyMessage("Failed to load order history. Please try again later.");
       }
-    }
+      setLoadingOrders(false);
+    };
+    fetchOrderHistory();
   }, [user]);
 
-  const quickReorder = (item: OrderHistory) => {
+  const quickReorder = async (item: OrderHistory) => {
     if (!user) {
       toast({
         title: "Please log in",
@@ -76,29 +82,8 @@ const QuickReorder = () => {
       });
       return;
     }
-
     setLoading(true);
-    
-    // Add to cart
-    const cartKey = `bepawa_cart_${user.id}`;
-    const existingCart = JSON.parse(localStorage.getItem(cartKey) || '[]');
-    
-    const existingItem = existingCart.find((cartItem: any) => cartItem.id === item.productId);
-    
-    if (existingItem) {
-      existingItem.quantity += item.quantity;
-    } else {
-      existingCart.push({
-        id: item.productId,
-        name: item.productName,
-        price: item.price,
-        quantity: item.quantity,
-        image: item.image
-      });
-    }
-    
-    localStorage.setItem(cartKey, JSON.stringify(existingCart));
-    
+    // TODO: Replace with real add-to-cart logic using Supabase if available
     setTimeout(() => {
       setLoading(false);
       toast({
@@ -108,10 +93,37 @@ const QuickReorder = () => {
     }, 1000);
   };
 
-  if (!user || orderHistory.length === 0) {
-    return null;
+  if (!user) return null;
+  if (loadingOrders) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary-600" />
+            Quick Reorder
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-gray-500 py-6">Loading your recent orders...</div>
+        </CardContent>
+      </Card>
+    );
   }
-
+  if (emptyMessage) {
+    return (
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="h-5 w-5 text-primary-600" />
+            Quick Reorder
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center text-gray-500 py-6">{emptyMessage}</div>
+        </CardContent>
+      </Card>
+    );
+  }
   return (
     <Card className="w-full">
       <CardHeader>
@@ -122,7 +134,7 @@ const QuickReorder = () => {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {orderHistory.slice(0, 3).map((item) => (
+          {orderHistory.map((item) => (
             <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg hover:shadow-md transition-shadow">
               <div className="flex items-center gap-3">
                 <img

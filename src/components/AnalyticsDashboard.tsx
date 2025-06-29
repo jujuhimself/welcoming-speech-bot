@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -6,6 +5,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { TrendingUp, TrendingDown, DollarSign, Package, Users, ShoppingCart } from 'lucide-react';
 import { dataService } from '@/services/dataService';
+import { inventoryService } from '@/services/inventoryService';
+import { useAuth } from '@/contexts/AuthContext';
+import { analyticsService } from '@/services/analyticsService';
 
 interface AnalyticsData {
   revenue: { period: string; amount: number; }[];
@@ -16,104 +18,59 @@ interface AnalyticsData {
 }
 
 export const AnalyticsDashboard = () => {
+  const { user } = useAuth();
   const [timeframe, setTimeframe] = useState('7d');
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    revenue: [],
-    orders: [],
-    topProducts: [],
-    customerMetrics: { newCustomers: 0, returningCustomers: 0, totalCustomers: 0 },
-    inventoryTurnover: []
-  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [ordersData, setOrdersData] = useState<any[]>([]);
+  const [topProducts, setTopProducts] = useState<any[]>([]);
+  const [customerMetrics, setCustomerMetrics] = useState<any>({ newCustomers: 0, returningCustomers: 0, totalCustomers: 0 });
+  const [inventoryTurnover, setInventoryTurnover] = useState<any[]>([]);
 
   useEffect(() => {
-    generateAnalyticsData();
-  }, [timeframe]);
+    if (!user) return;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        // Date range for analytics
+        const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
+        const endDate = new Date();
+        const startDate = new Date();
+        startDate.setDate(endDate.getDate() - days + 1);
+        const start = startDate.toISOString().split('T')[0];
+        const end = endDate.toISOString().split('T')[0];
 
-  const generateAnalyticsData = () => {
-    const orders = dataService.getOrders();
-    const inventory = dataService.getInventory();
-    
-    // Generate revenue data
-    const revenueData = generateTimeSeriesData('revenue', timeframe);
-    const ordersData = generateTimeSeriesData('orders', timeframe);
-    
-    // Calculate top products
-    const productSales: { [key: string]: { sales: number; revenue: number; } } = {};
-    orders.forEach(order => {
-      order.items?.forEach((item: any) => {
-        if (!productSales[item.name]) {
-          productSales[item.name] = { sales: 0, revenue: 0 };
-        }
-        productSales[item.name].sales += item.quantity;
-        productSales[item.name].revenue += item.price * item.quantity;
-      });
-    });
-
-    const topProducts = Object.entries(productSales)
-      .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10);
-
-    // Calculate customer metrics
-    const uniqueCustomers = new Set(orders.map(order => order.pharmacyId)).size;
-    const customerMetrics = {
-      newCustomers: Math.floor(uniqueCustomers * 0.3),
-      returningCustomers: Math.floor(uniqueCustomers * 0.7),
-      totalCustomers: uniqueCustomers
-    };
-
-    // Calculate inventory turnover
-    const inventoryTurnover = inventory.slice(0, 10).map(item => ({
-      product: item.name,
-      turnoverRate: Math.random() * 12 + 1, // Mock turnover rate
-      daysInStock: Math.floor(Math.random() * 90) + 1
-    }));
-
-    setAnalyticsData({
-      revenue: revenueData,
-      orders: ordersData,
-      topProducts,
-      customerMetrics,
-      inventoryTurnover
-    });
-  };
-
-  const generateTimeSeriesData = (type: 'revenue' | 'orders', timeframe: string) => {
-    const days = timeframe === '7d' ? 7 : timeframe === '30d' ? 30 : 90;
-    const data = [];
-    
-    for (let i = days - 1; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const period = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-      
-      if (type === 'revenue') {
-        data.push({
-          period,
-          amount: Math.floor(Math.random() * 50000) + 10000
+        // Fetch sales analytics
+        const sales = await analyticsService.getSalesAnalytics(start, end);
+        // Revenue trend
+        setRevenueData(sales.map(s => ({ period: s.date, amount: s.total_sales })));
+        // Orders trend
+        setOrdersData(sales.map(s => ({ period: s.date, count: s.total_orders })));
+        // Top products (by items sold)
+        // If you want to show real top products, fetch from product_analytics or join with products
+        setTopProducts([]); // No real top products logic yet
+        // Customer metrics
+        setCustomerMetrics({
+          newCustomers: sales.reduce((sum, s) => sum + (s.new_customers || 0), 0),
+          returningCustomers: 0, // Not available in current schema
+          totalCustomers: 0 // Will be set below
         });
-      } else {
-        data.push({
-          period,
-          count: Math.floor(Math.random() * 20) + 5
-        });
+        // Inventory turnover (not available, show message)
+        setInventoryTurnover([]);
+        // Fetch customer count
+        const customers = await analyticsService.getCustomerAnalytics();
+        setCustomerMetrics(metrics => ({ ...metrics, totalCustomers: customers.length }));
+      } catch (err) {
+        setError('Failed to load analytics. Please try again later.');
       }
-    }
-    
-    return data;
-  };
+      setLoading(false);
+    })();
+  }, [user, timeframe]);
 
-  const calculateGrowth = (data: any[], key: string) => {
-    if (data.length < 2) return '0';
-    const current = data[data.length - 1][key];
-    const previous = data[data.length - 2][key];
-    return ((current - previous) / previous * 100).toFixed(1);
-  };
-
-  const revenueGrowth = calculateGrowth(analyticsData.revenue, 'amount');
-  const orderGrowth = calculateGrowth(analyticsData.orders, 'count');
-
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  const revenueGrowth = revenueData.length > 1 ? (((revenueData[revenueData.length - 1].amount - revenueData[revenueData.length - 2].amount) / (revenueData[revenueData.length - 2].amount || 1)) * 100).toFixed(1) : '0';
+  const orderGrowth = ordersData.length > 1 ? (((ordersData[ordersData.length - 1].count - ordersData[ordersData.length - 2].count) / (ordersData[ordersData.length - 2].count || 1)) * 100).toFixed(1) : '0';
 
   return (
     <div className="space-y-6">
@@ -130,7 +87,6 @@ export const AnalyticsDashboard = () => {
           </SelectContent>
         </Select>
       </div>
-
       {/* KPI Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
@@ -139,7 +95,7 @@ export const AnalyticsDashboard = () => {
               <div>
                 <p className="text-sm text-gray-600">Total Revenue</p>
                 <p className="text-2xl font-bold">
-                  TZS {analyticsData.revenue.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
+                  TZS {revenueData.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
                 </p>
                 <div className="flex items-center mt-1">
                   {parseFloat(revenueGrowth) >= 0 ? (
@@ -156,14 +112,13 @@ export const AnalyticsDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Total Orders</p>
                 <p className="text-2xl font-bold">
-                  {analyticsData.orders.reduce((sum, item) => sum + item.count, 0)}
+                  {ordersData.reduce((sum, item) => sum + item.count, 0)}
                 </p>
                 <div className="flex items-center mt-1">
                   {parseFloat(orderGrowth) >= 0 ? (
@@ -180,32 +135,31 @@ export const AnalyticsDashboard = () => {
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Active Customers</p>
-                <p className="text-2xl font-bold">{analyticsData.customerMetrics.totalCustomers}</p>
+                <p className="text-2xl font-bold">{customerMetrics.totalCustomers}</p>
                 <p className="text-sm text-gray-500">
-                  {analyticsData.customerMetrics.newCustomers} new this period
+                  {customerMetrics.newCustomers} new this period
                 </p>
               </div>
               <Users className="h-8 w-8 text-primary" />
             </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600">Products Sold</p>
                 <p className="text-2xl font-bold">
-                  {analyticsData.topProducts.reduce((sum, product) => sum + product.sales, 0)}
+                  {/* Not available in current analytics, show 0 or message */}
+                  0
                 </p>
                 <p className="text-sm text-gray-500">
-                  {analyticsData.topProducts.length} unique products
+                  0 unique products
                 </p>
               </div>
               <Package className="h-8 w-8 text-primary" />
@@ -213,7 +167,6 @@ export const AnalyticsDashboard = () => {
           </CardContent>
         </Card>
       </div>
-
       {/* Charts */}
       <Tabs defaultValue="revenue" className="space-y-4">
         <TabsList>
@@ -222,83 +175,104 @@ export const AnalyticsDashboard = () => {
           <TabsTrigger value="products">Top Products</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
         </TabsList>
-
         <TabsContent value="revenue">
           <Card>
             <CardHeader>
               <CardTitle>Revenue Trend</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={analyticsData.revenue}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`TZS ${Number(value).toLocaleString()}`, 'Revenue']} />
-                  <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} />
-                </LineChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="text-center text-gray-500 py-6">Loading revenue trend...</div>
+              ) : revenueData.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">Revenue trend will appear here once you have sales data.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <LineChart data={revenueData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="period" />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`TZS ${Number(value).toLocaleString()}`, 'Revenue']} />
+                    <Line type="monotone" dataKey="amount" stroke="#8884d8" strokeWidth={2} />
+                  </LineChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="orders">
           <Card>
             <CardHeader>
               <CardTitle>Order Volume</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analyticsData.orders}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="period" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="count" fill="#8884d8" />
-                </BarChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="text-center text-gray-500 py-6">Loading order volume...</div>
+              ) : ordersData.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">Order volume will appear here once you have order data.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={ordersData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="period" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="count" fill="#8884d8" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="products">
           <Card>
             <CardHeader>
               <CardTitle>Top Products by Revenue</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analyticsData.topProducts.slice(0, 8)}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [`TZS ${Number(value).toLocaleString()}`, 'Revenue']} />
-                  <Bar dataKey="revenue" fill="#82ca9d" />
-                </BarChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="text-center text-gray-500 py-6">Loading top products...</div>
+              ) : topProducts.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">Top products will appear here once you have product sales data.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={topProducts.slice(0, 8)}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                    <YAxis />
+                    <Tooltip formatter={(value) => [`TZS ${Number(value).toLocaleString()}`, 'Revenue']} />
+                    <Bar dataKey="revenue" fill="#82ca9d" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
-
         <TabsContent value="inventory">
           <Card>
             <CardHeader>
               <CardTitle>Inventory Turnover</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={analyticsData.inventoryTurnover}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="product" angle={-45} textAnchor="end" height={80} />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="turnoverRate" fill="#ffc658" />
-                </BarChart>
-              </ResponsiveContainer>
+              {loading ? (
+                <div className="text-center text-gray-500 py-6">Loading inventory turnover...</div>
+              ) : inventoryTurnover.length === 0 ? (
+                <div className="text-center text-gray-500 py-6">Inventory turnover will appear here once you have inventory movement data.</div>
+              ) : (
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={inventoryTurnover}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="product" angle={-45} textAnchor="end" height={80} />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="turnoverRate" fill="#ffc658" />
+                  </BarChart>
+                </ResponsiveContainer>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+      {error && <div className="text-center text-red-500 py-4">{error}</div>}
     </div>
   );
 };
