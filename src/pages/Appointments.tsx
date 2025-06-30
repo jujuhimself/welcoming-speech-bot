@@ -1,15 +1,22 @@
-
 import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Calendar, Clock, User, Plus } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserAppointments, useUpdateAppointmentStatus } from "@/hooks/useAppointments";
+import AppointmentScheduler from "@/components/lab/AppointmentScheduler";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 const Appointments = () => {
   const { user } = useAuth();
   const { data: appointments, isLoading, error } = useUserAppointments(user?.id || '');
   const updateAppointmentStatusMutation = useUpdateAppointmentStatus();
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [appointmentToCancel, setAppointmentToCancel] = useState(null);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -49,7 +56,7 @@ const Appointments = () => {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Appointments</h1>
             <p className="text-gray-600 text-lg">Manage your appointments</p>
           </div>
-          <Button>
+          <Button onClick={() => setShowAppointmentDialog(true)}>
             <Plus className="h-5 w-5 mr-2" />
             Schedule Appointment
           </Button>
@@ -62,7 +69,7 @@ const Appointments = () => {
                 <Calendar className="h-16 w-16 text-gray-300 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">No appointments scheduled</h3>
                 <p className="text-gray-600 mb-6">Schedule your first appointment to get started</p>
-                <Button>
+                <Button onClick={() => setShowAppointmentDialog(true)}>
                   <Plus className="h-5 w-5 mr-2" />
                   Schedule Appointment
                 </Button>
@@ -111,10 +118,10 @@ const Appointments = () => {
                   )}
                   
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => { setSelectedAppointment(appointment); setShowDetailsDialog(true); }}>
                       View Details
                     </Button>
-                    <Button variant="outline" size="sm">
+                    <Button variant="outline" size="sm" onClick={() => { setSelectedAppointment(appointment); setShowRescheduleDialog(true); }}>
                       Reschedule
                     </Button>
                     {appointment.status === 'scheduled' && (
@@ -137,6 +144,16 @@ const Appointments = () => {
                         Mark Complete
                       </Button>
                     )}
+                    {appointment.status !== 'cancelled' && appointment.status !== 'completed' && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => { setAppointmentToCancel(appointment); setShowCancelDialog(true); }}
+                        disabled={updateAppointmentStatusMutation.isPending}
+                      >
+                        Cancel
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -144,6 +161,61 @@ const Appointments = () => {
           )}
         </div>
       </div>
+      <AppointmentScheduler
+        isOpen={showAppointmentDialog}
+        onClose={() => setShowAppointmentDialog(false)}
+        onAppointmentCreated={() => setShowAppointmentDialog(false)}
+      />
+      {/* View Details Dialog */}
+      <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Appointment Details</DialogTitle>
+          </DialogHeader>
+          {selectedAppointment && (
+            <div className="space-y-2">
+              <div><strong>Service:</strong> {selectedAppointment.service_type}</div>
+              <div><strong>Provider:</strong> {selectedAppointment.provider_type}</div>
+              <div><strong>Date:</strong> {new Date(selectedAppointment.appointment_date).toLocaleDateString()}</div>
+              <div><strong>Time:</strong> {selectedAppointment.appointment_time}</div>
+              <div><strong>Status:</strong> {selectedAppointment.status}</div>
+              {selectedAppointment.notes && <div><strong>Notes:</strong> {selectedAppointment.notes}</div>}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Reschedule Dialog */}
+      <AppointmentScheduler
+        isOpen={showRescheduleDialog}
+        onClose={() => setShowRescheduleDialog(false)}
+        onAppointmentCreated={() => setShowRescheduleDialog(false)}
+        appointment={selectedAppointment}
+        mode="edit"
+      />
+      {/* Cancel Confirmation Dialog */}
+      <Dialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancel Appointment</DialogTitle>
+          </DialogHeader>
+          <div>Are you sure you want to cancel this appointment?</div>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setShowCancelDialog(false)}>No</Button>
+            <Button
+              variant="destructive"
+              onClick={() => {
+                if (appointmentToCancel) {
+                  updateAppointmentStatus(appointmentToCancel.id, 'cancelled');
+                  setShowCancelDialog(false);
+                }
+              }}
+              disabled={updateAppointmentStatusMutation.isPending}
+            >
+              Yes, Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

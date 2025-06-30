@@ -14,11 +14,20 @@ import { cn } from "@/lib/utils";
 import { appointmentService } from "@/services/appointmentService";
 import { useToast } from "@/hooks/use-toast";
 import PatientSearch, { Patient } from "./PatientSearch";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AppointmentSchedulerProps {
   isOpen: boolean;
   onClose: () => void;
   onAppointmentCreated: () => void;
+  lab?: {
+    id: string;
+    name: string;
+    location?: string;
+    phone?: string;
+  };
+  appointment?: any;
+  mode?: string;
 }
 
 interface LabTest {
@@ -47,7 +56,7 @@ const timeSlots = [
   "16:00", "16:30", "17:00", "17:30"
 ];
 
-const AppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }: AppointmentSchedulerProps) => {
+const AppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated, lab, appointment, mode }: AppointmentSchedulerProps) => {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedTest, setSelectedTest] = useState<LabTest | null>(null);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
@@ -68,25 +77,41 @@ const AppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }: Appoint
 
   // Check availability when date changes
   useEffect(() => {
-    if (selectedDate) {
+    if (selectedDate && lab?.id) {
       checkAvailability();
     }
-  }, [selectedDate]);
+  }, [selectedDate, lab]);
+
+  useEffect(() => {
+    if (appointment) {
+      setSelectedPatient({
+        id: appointment.user_id,
+        full_name: appointment.patientName || "",
+        email: appointment.patientEmail || "",
+        phone: appointment.patientPhone || "",
+        role: "individual",
+        created_at: appointment.created_at || new Date().toISOString(),
+      });
+      setSelectedTest(labTests.find(test => test.name === appointment.service_type) || null);
+      setSelectedDate(appointment.appointment_date ? new Date(appointment.appointment_date) : undefined);
+      setSelectedTime(appointment.appointment_time || "");
+      setNotes(appointment.notes || "");
+    }
+  }, [appointment]);
 
   const checkAvailability = async () => {
-    if (!selectedDate) return;
-    
+    if (!selectedDate || !lab?.id) return;
     try {
-      // Get existing appointments for the selected date
       const dateStr = format(selectedDate, 'yyyy-MM-dd');
-      const { data: existingAppointments } = await appointmentService.getAppointmentsByDate(dateStr);
-      
-      // Filter out booked time slots
-      const bookedSlots = existingAppointments?.map(apt => apt.time) || [];
+      const { data: existingAppointments, error } = await supabase
+        .from('appointments')
+        .select('appointment_time')
+        .eq('appointment_date', dateStr)
+        .eq('provider_id', lab.id);
+      if (error) throw error;
+      const bookedSlots = (existingAppointments || []).map((apt: any) => apt.appointment_time);
       const available = timeSlots.filter(slot => !bookedSlots.includes(slot));
       setAvailableSlots(available);
-      
-      // If current selected time is not available, clear it
       if (selectedTime && !available.includes(selectedTime)) {
         setSelectedTime("");
       }
@@ -104,44 +129,51 @@ const AppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }: Appoint
       });
       return;
     }
-
     setIsSubmitting(true);
     try {
-      const appointmentData = {
-        user_id: selectedPatient.id,
-        patientName: selectedPatient.full_name || selectedPatient.email,
-        testType: selectedTest.name,
-        date: format(selectedDate, 'yyyy-MM-dd'),
-        time: selectedTime,
-        status: "scheduled",
-        priority,
-        notes: notes || `Test: ${selectedTest.name}\nPreparation: ${selectedTest.preparation}`,
-        provider_id: "lab", // This will be set to the current lab user's ID
-        provider_type: "lab",
-      };
-
-      await appointmentService.createAppointment(appointmentData);
-      
-      toast({
-        title: "Appointment Scheduled",
-        description: `Appointment scheduled for ${selectedPatient.full_name || selectedPatient.email} on ${format(selectedDate, 'MMM dd, yyyy')} at ${selectedTime}`,
-      });
-
-      // Reset form
+      if (mode === "edit" && appointment) {
+        // Update existing appointment
+        await appointmentService.updateAppointment(appointment.id, {
+          appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+          appointment_time: selectedTime,
+          service_type: selectedTest.name,
+          notes: notes || `Test: ${selectedTest.name}\nPreparation: ${selectedTest.preparation}`,
+        });
+        toast({
+          title: "Appointment Rescheduled",
+          description: `Appointment rescheduled to ${format(selectedDate, 'MMM dd, yyyy')} at ${selectedTime}`,
+        });
+      } else {
+        // Create new appointment
+        const appointmentData = {
+          user_id: selectedPatient.id,
+          appointment_date: format(selectedDate, 'yyyy-MM-dd'),
+          appointment_time: selectedTime,
+          service_type: selectedTest.name,
+          provider_id: lab?.id || "lab",
+          provider_type: "lab",
+          status: "scheduled" as 'scheduled',
+          notes: notes || `Test: ${selectedTest.name}\nPreparation: ${selectedTest.preparation}`,
+        };
+        await appointmentService.createAppointment(appointmentData);
+        toast({
+          title: "Appointment Scheduled",
+          description: `Appointment scheduled for ${selectedPatient.full_name || selectedPatient.email} on ${format(selectedDate, 'MMM dd, yyyy')} at ${selectedTime}`,
+        });
+      }
       setSelectedPatient(null);
       setSelectedTest(null);
       setSelectedDate(undefined);
       setSelectedTime("");
       setPriority("routine");
       setNotes("");
-      
       onAppointmentCreated();
       onClose();
     } catch (error) {
-      console.error("Error creating appointment:", error);
+      console.error("Error creating/updating appointment:", error);
       toast({
         title: "Error",
-        description: "Failed to schedule appointment. Please try again.",
+        description: "Failed to schedule or update appointment. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -167,7 +199,13 @@ const AppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }: Appoint
             Schedule New Appointment
           </DialogTitle>
         </DialogHeader>
-
+        {lab && (
+          <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+            <div className="font-medium">Booking with: {lab.name}</div>
+            {lab.location && <div className="text-sm text-gray-600">{lab.location}</div>}
+            {lab.phone && <div className="text-sm text-gray-600">Phone: {lab.phone}</div>}
+          </div>
+        )}
         <div className="space-y-6">
           {/* Patient Selection */}
           <div className="space-y-2">

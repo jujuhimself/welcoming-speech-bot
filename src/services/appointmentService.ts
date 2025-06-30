@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 
 export interface Appointment {
@@ -72,6 +71,17 @@ class AppointmentService {
       ...apt,
       status: apt.status as 'scheduled' | 'confirmed' | 'completed' | 'cancelled'
     }));
+  }
+
+  async updateAppointment(appointmentId: string, update: Partial<Omit<Appointment, 'id' | 'created_at'>>) {
+    const { data, error } = await supabase
+      .from('appointments')
+      .update(update)
+      .eq('id', appointmentId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
   }
 }
 

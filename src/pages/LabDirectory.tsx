@@ -8,6 +8,9 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import LabTestCatalog from "@/components/lab/LabTestCatalog";
+import AppointmentScheduler from "@/components/lab/AppointmentScheduler";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Lab {
   id: string;
@@ -26,6 +29,9 @@ const LabDirectory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [labs, setLabs] = useState<Lab[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [selectedLab, setSelectedLab] = useState<Lab | null>(null);
+  const [showTestsDialog, setShowTestsDialog] = useState(false);
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
 
   useEffect(() => {
     fetchLabs();
@@ -182,11 +188,11 @@ const LabDirectory = () => {
                     </div>
 
                     <div className="flex gap-2 pt-2">
-                      <Button size="sm" className="flex-1">
+                      <Button size="sm" className="flex-1" onClick={() => { setSelectedLab(lab); setShowTestsDialog(true); }}>
                         View Tests
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <Phone className="h-4 w-4" />
+                      <Button size="sm" variant="outline" onClick={() => { setSelectedLab(lab); setShowAppointmentDialog(true); }}>
+                        Schedule Appointment
                       </Button>
                     </div>
                   </div>
@@ -196,6 +202,35 @@ const LabDirectory = () => {
           </div>
         )}
       </div>
+
+      {/* View Tests Dialog */}
+      <Dialog open={showTestsDialog} onOpenChange={setShowTestsDialog}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedLab?.name} - Tests Offered</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {selectedLab?.tests && selectedLab.tests.length > 0 ? (
+              <ul className="list-disc pl-5">
+                {selectedLab.tests.map((test, idx) => (
+                  <li key={idx} className="mb-1">{test}</li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No tests listed for this lab.</div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Schedule Appointment Dialog */}
+      <AppointmentScheduler
+        isOpen={showAppointmentDialog}
+        onClose={() => setShowAppointmentDialog(false)}
+        onAppointmentCreated={() => setShowAppointmentDialog(false)}
+        lab={selectedLab}
+        mode="individual"
+      />
     </div>
   );
 };

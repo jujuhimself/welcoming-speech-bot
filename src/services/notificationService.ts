@@ -29,7 +29,7 @@ export interface NotificationData {
   user_id: string;
   title: string;
   message: string;
-  type: 'lab_result' | 'appointment_reminder' | 'general';
+  type: 'info' | 'success' | 'warning' | 'error';
   data?: any;
 }
 
@@ -337,23 +337,6 @@ class NotificationService {
       return data || [];
     } catch (error) {
       console.error('Error fetching notifications:', error);
-      throw error;
-    }
-  }
-
-  // Mark notification as read
-  async markAsRead(notificationId: string) {
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .update({ is_read: true })
-        .eq('id', notificationId)
-        .select();
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
       throw error;
     }
   }

@@ -42,10 +42,18 @@ const PrescriptionManagement = () => {
   const createPrescription = useCreatePrescription();
   const updatePrescriptionStatus = useUpdatePrescriptionStatus();
   const [selectedPrescription, setSelectedPrescription] = useState<Prescription | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [pharmacyNotes, setPharmacyNotes] = useState("");
 
   // Choose the correct list based on user role
   const prescriptions = user?.role === 'retail' ? pharmacyPrescriptions : individualPrescriptions;
   const isLoading = user?.role === 'retail' ? isLoadingPharmacy : isLoadingIndividual;
+
+  // Debug: Log prescriptions for pharmacy
+  if (user?.role === 'retail') {
+    // eslint-disable-next-line no-console
+    console.log('Pharmacy prescriptions:', prescriptions);
+  }
 
   if (isLoading) {
     return <div className="min-h-screen flex items-center justify-center">Loading prescriptions...</div>;

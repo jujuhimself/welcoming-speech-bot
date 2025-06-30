@@ -18,6 +18,7 @@ export interface Prescription {
   dispensed_at?: string;
   created_at: string;
   updated_at: string;
+  file_path: string | null;
 }
 
 export interface PrescriptionItem {
@@ -49,7 +50,8 @@ class PrescriptionService {
 
     return (data || []).map(prescription => ({
       ...prescription,
-      status: prescription.status as Prescription['status']
+      status: prescription.status as Prescription['status'],
+      file_path: prescription.file_path ?? null,
     }));
   }
 
@@ -73,7 +75,8 @@ class PrescriptionService {
 
     return {
       ...data,
-      status: data.status as Prescription['status']
+      status: data.status as Prescription['status'],
+      file_path: data.file_path ?? null,
     };
   }
 
@@ -125,26 +128,70 @@ class PrescriptionService {
 
     return {
       ...data,
-      status: data.status as Prescription['status']
+      status: data.status as Prescription['status'],
+      file_path: data.file_path ?? null,
     };
   }
 
   async getPrescriptionsForPharmacy(pharmacyId: string): Promise<Prescription[]> {
-    const { data, error } = await supabase
+    // Fetch prescriptions assigned to this pharmacy
+    const { data: assigned, error: assignedError } = await supabase
       .from('prescriptions')
       .select('*')
-      .or(`pharmacy_id.eq.${pharmacyId},pharmacy_id.is.null`)
+      .eq('pharmacy_id', pharmacyId)
       .order('created_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching pharmacy prescriptions:', error);
-      throw error;
+    if (assignedError) {
+      console.error('Error fetching pharmacy prescriptions:', assignedError);
+      throw assignedError;
     }
-
-    return (data || []).map(prescription => ({
+    // Fetch prescriptions shared via shared_prescriptions
+    const { data: sharedLinks, error: sharedError } = await supabase
+      .from('shared_prescriptions')
+      .select('prescription_id')
+      .eq('pharmacy_id', pharmacyId);
+    if (sharedError) {
+      console.error('Error fetching shared prescriptions:', sharedError);
+      throw sharedError;
+    }
+    let shared: Prescription[] = [];
+    if (sharedLinks && sharedLinks.length > 0) {
+      const sharedIds = sharedLinks.map((row: any) => row.prescription_id);
+      const { data: sharedPrescriptions, error: sharedPrescError } = await supabase
+        .from('prescriptions')
+        .select('*')
+        .in('id', sharedIds);
+      if (sharedPrescError) {
+        console.error('Error fetching shared prescription details:', sharedPrescError);
+        throw sharedPrescError;
+      }
+      shared = sharedPrescriptions || [];
+    }
+    // Map assigned and shared to ensure status is typed
+    const assignedTyped = (assigned || []).map(prescription => ({
       ...prescription,
-      status: prescription.status as Prescription['status']
+      status: (prescription.status as Prescription['status']),
+      file_path: prescription.file_path ?? null,
     }));
+    const sharedTyped = (shared || []).map(prescription => ({
+      ...prescription,
+      status: (prescription.status as Prescription['status']),
+      file_path: prescription.file_path ?? null,
+    }));
+    // Combine and deduplicate by prescription id
+    const all = [...assignedTyped, ...sharedTyped];
+    const validStatuses = ['pending', 'verified', 'dispensed', 'completed', 'cancelled'];
+    const result = Object.values(
+      all.reduce((acc, curr) => {
+        acc[curr.id] = curr;
+        return acc;
+      }, {} as Record<string, Prescription>)
+    ).filter(prescription => validStatuses.includes(prescription.status))
+     .map(prescription => ({
+      ...prescription,
+      status: prescription.status as Prescription['status'],
+      file_path: prescription.file_path ?? null,
+    }));
+    return result as Prescription[];
   }
 }
 

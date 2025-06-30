@@ -51,6 +51,27 @@ const PharmacyDirectory = () => {
 
       if (error) throw error;
 
+      // Fetch products for all pharmacies
+      const pharmacyIds = (data || []).map((pharmacy: any) => pharmacy.id);
+      let allStock: Record<string, any[]> = {};
+      if (pharmacyIds.length > 0) {
+        const { data: productsData, error: productsError } = await supabase
+          .from('products')
+          .select('id, name, sell_price, stock, pharmacy_id')
+          .in('pharmacy_id', pharmacyIds);
+        if (productsError) throw productsError;
+        // Group products by pharmacy_id
+        allStock = (productsData || []).reduce((acc: Record<string, any[]>, product: any) => {
+          if (!acc[product.pharmacy_id]) acc[product.pharmacy_id] = [];
+          acc[product.pharmacy_id].push({
+            name: product.name,
+            price: product.sell_price,
+            available: product.stock > 0
+          });
+          return acc;
+        }, {});
+      }
+
       const pharmacyData: Pharmacy[] = (data || []).map((pharmacy: any) => ({
         id: pharmacy.id,
         name: pharmacy.business_name || pharmacy.name || 'Pharmacy',
@@ -60,7 +81,7 @@ const PharmacyDirectory = () => {
         isOpen: true, // Default to open
         hours: '8:00 AM - 8:00 PM', // Default hours
         phone: pharmacy.phone || 'N/A',
-        stock: [] // Would need to fetch from products table
+        stock: allStock[pharmacy.id] || []
       }));
 
       setPharmacies(pharmacyData);

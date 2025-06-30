@@ -69,34 +69,35 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
     
     setIsUploading(true);
     try {
-      // Test if storage is available (optional, can be removed in production)
-      // const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      // if (bucketsError) {
-      //   console.error('Storage buckets error:', bucketsError);
-      //   throw new Error(`Storage access error: ${bucketsError.message}`);
-      // }
-      // console.log('Available buckets:', buckets);
-      
       const { path } = await uploadFile({
         file: uploadForm.selectedFile,
         userId: user.id,
         bucket: "prescriptions",
         extraPath: "",
       });
-      
+      // Insert prescription record in DB
+      const prescriptionData = {
+        doctor_name: uploadForm.doctorName,
+        instructions: uploadForm.notes,
+        file_path: path,
+        status: 'pending',
+        patient_name: user?.name || '',
+        prescription_date: new Date().toISOString(),
+      };
+      // Use prescriptionService to insert
+      // @ts-ignore
+      await (await import("@/services/prescriptionService")).prescriptionService.createPrescription(prescriptionData);
       // Reset form
       setUploadForm({
         doctorName: "",
         notes: "",
         selectedFile: null,
       });
-      
       // Clear file input
       const fileInput = document.getElementById('prescription-file') as HTMLInputElement;
       if (fileInput) {
         fileInput.value = '';
       }
-      
       // Log audit action
       await auditService.logAction(
         "upload-prescription",
@@ -104,16 +105,13 @@ const PrescriptionUploadForm = ({ onUploadSuccess }: PrescriptionUploadFormProps
         undefined,
         { doctorName: uploadForm.doctorName, filePath: path }
       );
-      
       // Show success message
       toast({
         title: "Upload successful!",
         description: "Your prescription has been uploaded successfully",
       });
-      
       // Trigger parent callback to refresh list
       if (onUploadSuccess) onUploadSuccess();
-      
     } catch (err) {
       console.error('Upload error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
