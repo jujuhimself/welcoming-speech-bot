@@ -1,4 +1,12 @@
 const Stripe = require('stripe');
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  module.exports = (req, res) => {
+    res.status(500).json({ error: 'Stripe secret key not set in environment.' });
+  };
+  return;
+}
+
 const stripe = Stripe(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async (req, res) => {
@@ -41,6 +49,6 @@ module.exports = async (req, res) => {
     res.status(200).json({ id: session.id, url: session.url });
   } catch (err) {
     console.error('Stripe Checkout Error:', err);
-    res.status(500).json({ error: err.message || 'Internal server error' });
+    res.status(500).json({ error: err && err.message ? err.message : 'Internal server error' });
   }
 }; 
