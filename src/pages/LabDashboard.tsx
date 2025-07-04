@@ -357,6 +357,7 @@ const LabDashboard = () => {
         onAppointmentCreated={() => {
           refetch();
         }}
+        lab={user ? { id: user.id, name: user.name || user.email } : undefined}
       />
     </div>
   );

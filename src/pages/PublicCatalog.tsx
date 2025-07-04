@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 interface Product {
   id: string;
@@ -543,13 +544,11 @@ const PublicCatalog = () => {
                         </div>
                       </div>
 
-                      <Button
-                        onClick={checkout}
-                        disabled={cartItems.length === 0 || !user || !(user.role === 'individual' || user.role === 'retail')}
-                        size="sm"
-                      >
-                        Checkout
-                      </Button>
+                      <Link to="/cart">
+                        <Button className="w-full mt-2" variant="outline" size="sm">
+                          Go to Cart
+                        </Button>
+                      </Link>
                     </>
                   )}
                 </CardContent>

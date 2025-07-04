@@ -6,6 +6,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserAppointments, useUpdateAppointmentStatus } from "@/hooks/useAppointments";
 import AppointmentScheduler from "@/components/lab/AppointmentScheduler";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import LabDirectory from "./LabDirectory";
+import PharmacyDirectory from "./PharmacyDirectory";
+import PharmacyAppointmentScheduler from "@/components/pharmacy/PharmacyAppointmentScheduler";
 
 const Appointments = () => {
   const { user } = useAuth();
@@ -17,6 +20,12 @@ const Appointments = () => {
   const [showRescheduleDialog, setShowRescheduleDialog] = useState(false);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [appointmentToCancel, setAppointmentToCancel] = useState(null);
+  const [showLabDirectory, setShowLabDirectory] = useState(false);
+  const [showPharmacyDirectory, setShowPharmacyDirectory] = useState(false);
+  const [selectedLab, setSelectedLab] = useState(null);
+  const [showLabScheduler, setShowLabScheduler] = useState(false);
+  const [selectedPharmacy, setSelectedPharmacy] = useState(null);
+  const [showPharmacyScheduler, setShowPharmacyScheduler] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -56,10 +65,16 @@ const Appointments = () => {
             <h1 className="text-4xl font-bold text-gray-900 mb-2">Appointments</h1>
             <p className="text-gray-600 text-lg">Manage your appointments</p>
           </div>
-          <Button onClick={() => setShowAppointmentDialog(true)}>
-            <Plus className="h-5 w-5 mr-2" />
-            Schedule Appointment
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setShowLabDirectory(true)}>
+              <Plus className="h-5 w-5 mr-2" />
+              Find Lab
+            </Button>
+            <Button onClick={() => setShowPharmacyDirectory(true)}>
+              <Plus className="h-5 w-5 mr-2" />
+              Find Pharmacy
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-6">
@@ -216,6 +231,52 @@ const Appointments = () => {
           </div>
         </DialogContent>
       </Dialog>
+      {/* Lab Directory Dialog */}
+      <Dialog open={showLabDirectory} onOpenChange={setShowLabDirectory}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Select a Lab</DialogTitle>
+          </DialogHeader>
+          <LabDirectory
+            onSelectLab={(lab) => {
+              setSelectedLab(lab);
+              setShowLabDirectory(false);
+              setShowLabScheduler(true);
+            }}
+            hideHeader
+          />
+        </DialogContent>
+      </Dialog>
+      {/* Lab Appointment Scheduler */}
+      <AppointmentScheduler
+        isOpen={showLabScheduler}
+        onClose={() => setShowLabScheduler(false)}
+        onAppointmentCreated={() => setShowLabScheduler(false)}
+        lab={selectedLab}
+      />
+      {/* Pharmacy Directory Dialog */}
+      <Dialog open={showPharmacyDirectory} onOpenChange={setShowPharmacyDirectory}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Select a Pharmacy</DialogTitle>
+          </DialogHeader>
+          <PharmacyDirectory
+            onSelectPharmacy={(pharmacy) => {
+              setSelectedPharmacy(pharmacy);
+              setShowPharmacyDirectory(false);
+              setShowPharmacyScheduler(true);
+            }}
+            hideHeader
+          />
+        </DialogContent>
+      </Dialog>
+      {/* Pharmacy Appointment Scheduler */}
+      <PharmacyAppointmentScheduler
+        isOpen={showPharmacyScheduler}
+        onClose={() => setShowPharmacyScheduler(false)}
+        onAppointmentCreated={() => setShowPharmacyScheduler(false)}
+        pharmacy={selectedPharmacy ? { id: selectedPharmacy.id, name: selectedPharmacy.name } : undefined}
+      />
     </div>
   );
 };

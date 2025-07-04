@@ -12,6 +12,7 @@ import PageHeader from "@/components/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import PharmacyAppointmentScheduler from "@/components/pharmacy/PharmacyAppointmentScheduler";
 
 interface Pharmacy {
   id: string;
@@ -25,7 +26,12 @@ interface Pharmacy {
   stock: any[];
 }
 
-const PharmacyDirectory = () => {
+interface PharmacyDirectoryProps {
+  onSelectPharmacy?: (pharmacy: Pharmacy) => void;
+  hideHeader?: boolean;
+}
+
+const PharmacyDirectory = ({ onSelectPharmacy, hideHeader }: PharmacyDirectoryProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPharmacy, setSelectedPharmacy] = useState<Pharmacy | null>(null);
@@ -34,6 +40,8 @@ const PharmacyDirectory = () => {
   const [quantity, setQuantity] = useState(1);
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [showAppointmentDialog, setShowAppointmentDialog] = useState(false);
+  const [pharmacyForAppointment, setPharmacyForAppointment] = useState<Pharmacy | null>(null);
 
   useEffect(() => {
     fetchPharmacies();
@@ -197,17 +205,12 @@ const PharmacyDirectory = () => {
                       </Badge>
                       <span className="text-sm text-gray-600">{pharmacy.hours}</span>
                     </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Button 
-                        size="sm" 
-                        className="flex-1"
-                        onClick={() => setSelectedPharmacy(pharmacy)}
-                      >
+                    <div className="flex flex-col gap-2 pt-2 w-full">
+                      <Button size="sm" className="w-full" onClick={() => { setPharmacyForAppointment(pharmacy); setOrderModal(true); }}>
                         View Details
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <Phone className="h-4 w-4" />
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => { setPharmacyForAppointment(pharmacy); setShowAppointmentDialog(true); onSelectPharmacy && onSelectPharmacy(pharmacy); }}>
+                        Schedule Appointment
                       </Button>
                     </div>
                   </div>
@@ -258,6 +261,14 @@ const PharmacyDirectory = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Appointment Scheduler Dialog */}
+        <PharmacyAppointmentScheduler
+          isOpen={showAppointmentDialog}
+          onClose={() => setShowAppointmentDialog(false)}
+          onAppointmentCreated={() => setShowAppointmentDialog(false)}
+          pharmacy={pharmacyForAppointment ? { id: pharmacyForAppointment.id, name: pharmacyForAppointment.name } : undefined}
+        />
       </div>
     </div>
   );

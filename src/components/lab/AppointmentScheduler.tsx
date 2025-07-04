@@ -145,12 +145,21 @@ const AppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated, lab, appo
         });
       } else {
         // Create new appointment
+        if (!lab?.id) {
+          toast({
+            title: "Error",
+            description: "Lab ID is missing. Cannot schedule appointment.",
+            variant: "destructive",
+          });
+          setIsSubmitting(false);
+          return;
+        }
         const appointmentData = {
           user_id: selectedPatient.id,
           appointment_date: format(selectedDate, 'yyyy-MM-dd'),
           appointment_time: selectedTime,
           service_type: selectedTest.name,
-          provider_id: lab?.id || "lab",
+          provider_id: lab.id,
           provider_type: "lab",
           status: "scheduled" as 'scheduled',
           notes: notes || `Test: ${selectedTest.name}\nPreparation: ${selectedTest.preparation}`,

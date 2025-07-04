@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, User, Phone, Plus, Filter } from "lucide-react";
+import { Calendar, Clock, User, Phone, Plus, Filter, CreditCard } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -216,6 +216,54 @@ const PharmacyAppointments = () => {
             ))}
           </div>
         )}
+
+        <div className="flex flex-col gap-4 mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Pharmacy Checkout</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex justify-between text-lg font-semibold">
+                <span>Total Appointments:</span>
+                <span>{filteredAppointments.length}</span>
+              </div>
+              <Button
+                className="w-full flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-500 text-white text-lg py-3"
+                onClick={async () => {
+                  try {
+                    const response = await fetch("/api/create-checkout-session", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        amount: filteredAppointments.length * 1000, // Example: $10 per appointment
+                        currency: "usd",
+                        productName: `Pharmacy Appointments for ${user?.email}`,
+                        success_url: window.location.origin + "/checkout-success",
+                        cancel_url: window.location.origin + "/pharmacy/appointments",
+                      }),
+                    });
+                    const data = await response.json();
+                    if (data.url) {
+                      window.location.href = data.url;
+                    } else {
+                      throw new Error(data.error || "Failed to create checkout session");
+                    }
+                  } catch (err) {
+                    toast({
+                      title: "Checkout Error",
+                      description: err.message || "Could not start checkout.",
+                      variant: "destructive",
+                    });
+                  }
+                }}
+                disabled={filteredAppointments.length === 0}
+              >
+                <CreditCard className="h-5 w-5" />
+                Checkout with Stripe
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

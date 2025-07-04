@@ -6,7 +6,23 @@ module.exports = async (req, res) => {
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
+  console.log('Stripe Checkout Request Body:', req.body);
   const { amount, currency, productName, success_url, cancel_url } = req.body;
+  if (!amount) {
+    console.error('Missing amount in request');
+    res.status(400).json({ error: 'Missing amount in request' });
+    return;
+  }
+  if (typeof amount !== 'number' || amount <= 0 || !Number.isInteger(amount)) {
+    console.error('Invalid amount:', amount);
+    res.status(400).json({ error: 'Invalid amount. Must be a positive integer (in cents).' });
+    return;
+  }
+  if (!success_url || !cancel_url) {
+    console.error('Missing success_url or cancel_url');
+    res.status(400).json({ error: 'Missing success_url or cancel_url' });
+    return;
+  }
   try {
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -24,6 +40,7 @@ module.exports = async (req, res) => {
     });
     res.status(200).json({ id: session.id, url: session.url });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error('Stripe Checkout Error:', err);
+    res.status(500).json({ error: err.message || 'Internal server error' });
   }
 }; 

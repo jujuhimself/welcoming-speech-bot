@@ -19,6 +19,7 @@ interface PharmacyAppointmentSchedulerProps {
   isOpen: boolean;
   onClose: () => void;
   onAppointmentCreated: () => void;
+  pharmacy?: { id: string; name: string };
 }
 
 const timeSlots = [
@@ -27,7 +28,7 @@ const timeSlots = [
   "16:00", "16:30", "17:00", "17:30"
 ];
 
-const PharmacyAppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }: PharmacyAppointmentSchedulerProps) => {
+const PharmacyAppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated, pharmacy }: PharmacyAppointmentSchedulerProps) => {
   const { user } = useAuth();
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [serviceType, setServiceType] = useState("");
@@ -78,9 +79,19 @@ const PharmacyAppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }:
     }
     setIsSubmitting(true);
     try {
+      const providerId = pharmacy?.id || user?.id;
+      if (!providerId) {
+        toast({
+          title: "Error",
+          description: "Pharmacy ID is missing. Cannot schedule appointment.",
+          variant: "destructive",
+        });
+        setIsSubmitting(false);
+        return;
+      }
       const appointmentData = {
         user_id: selectedPatient.id,
-        provider_id: user?.id || "pharmacy",
+        provider_id: providerId,
         appointment_date: format(selectedDate, 'yyyy-MM-dd'),
         appointment_time: selectedTime,
         service_type: serviceType,
@@ -129,6 +140,9 @@ const PharmacyAppointmentScheduler = ({ isOpen, onClose, onAppointmentCreated }:
           <DialogTitle className="flex items-center gap-2">
             <CalendarIcon className="h-5 w-5" />
             Schedule New Pharmacy Appointment
+            {pharmacy && (
+              <span className="ml-2 text-base text-blue-700 font-semibold">with {pharmacy.name}</span>
+            )}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-6">

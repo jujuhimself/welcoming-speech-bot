@@ -24,7 +24,12 @@ interface Lab {
   tests: string[];
 }
 
-const LabDirectory = () => {
+interface LabDirectoryProps {
+  onSelectLab?: (lab: Lab) => void;
+  hideHeader?: boolean;
+}
+
+const LabDirectory = ({ onSelectLab, hideHeader }: LabDirectoryProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [labs, setLabs] = useState<Lab[]>([]);
@@ -170,7 +175,6 @@ const LabDirectory = () => {
                       </Badge>
                       <span className="text-sm text-gray-600">{lab.hours}</span>
                     </div>
-
                     <div>
                       <p className="text-sm font-medium mb-2">Available Tests:</p>
                       <div className="flex flex-wrap gap-1">
@@ -186,12 +190,11 @@ const LabDirectory = () => {
                         )}
                       </div>
                     </div>
-
-                    <div className="flex gap-2 pt-2">
-                      <Button size="sm" className="flex-1" onClick={() => { setSelectedLab(lab); setShowTestsDialog(true); }}>
+                    <div className="flex flex-col gap-2 pt-2 w-full">
+                      <Button size="sm" className="w-full" onClick={() => { setSelectedLab(lab); setShowTestsDialog(true); }}>
                         View Tests
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => { setSelectedLab(lab); setShowAppointmentDialog(true); }}>
+                      <Button size="sm" variant="outline" className="w-full" onClick={() => { setSelectedLab(lab); setShowAppointmentDialog(true); onSelectLab && onSelectLab(lab); }}>
                         Schedule Appointment
                       </Button>
                     </div>

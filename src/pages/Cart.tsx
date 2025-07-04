@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Minus, Plus, Trash2, ShoppingCart, CreditCard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { CreditCard, ShoppingCart, Minus, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Json } from '@/integrations/supabase/types';
 
@@ -14,146 +13,135 @@ interface CartItem {
   name: string;
   price: number;
   quantity: number;
-  image?: string;
   manufacturer: string;
   category: string;
 }
 
 const Cart = () => {
   const { user } = useAuth();
-  const navigate = useNavigate();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      const savedCart = localStorage.getItem(`bepawa_cart_${user.id}`);
-      if (savedCart) {
-        setCartItems(JSON.parse(savedCart));
-      }
-    }
+    fetchCart();
+    // eslint-disable-next-line
   }, [user]);
 
-  const updateCartInStorage = (items: CartItem[]) => {
-    if (user) {
-      localStorage.setItem(`bepawa_cart_${user.id}`, JSON.stringify(items));
+  const fetchCart = async () => {
+    if (!user) return;
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('items')
+        .eq('user_id', user.id)
+        .eq('status', 'cart')
+        .eq('role', user.role)
+        .maybeSingle();
+      if (error && error.code !== 'PGRST116') throw error;
+      if (data && data.items && Array.isArray(data.items)) {
+        setCartItems(data.items as unknown as CartItem[]);
+      } else {
+        setCartItems([]);
+      }
+    } catch (error) {
+      setCartItems([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const updateQuantity = (id: string, newQuantity: number) => {
+  const updateQuantity = async (productId: string, newQuantity: number) => {
+    if (!user) return;
     if (newQuantity < 1) return;
-    
-    const updatedItems = cartItems.map(item =>
-      item.id === id ? { ...item, quantity: newQuantity } : item
+    let newCartItems = cartItems.map((item) =>
+      item.id === productId ? { ...item, quantity: newQuantity } : item
     );
-    setCartItems(updatedItems);
-    updateCartInStorage(updatedItems);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          items: newCartItems as unknown as Json[],
+          total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('role', user.role)
+        .eq('status', 'cart');
+      if (error) throw error;
+      setCartItems(newCartItems);
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to update cart', variant: 'destructive' });
+    }
   };
 
-  const removeItem = (id: string) => {
-    const updatedItems = cartItems.filter(item => item.id !== id);
-    setCartItems(updatedItems);
-    updateCartInStorage(updatedItems);
-    
-    toast({
-      title: "Item removed",
-      description: "Item has been removed from your cart",
-    });
+  const removeItem = async (productId: string) => {
+    if (!user) return;
+    let newCartItems = cartItems.filter((item) => item.id !== productId);
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          items: newCartItems as unknown as Json[],
+          total_amount: newCartItems.reduce((sum, item) => sum + item.price * item.quantity, 0),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('role', user.role)
+        .eq('status', 'cart');
+      if (error) throw error;
+      setCartItems(newCartItems);
+      toast({ title: 'Item removed', description: 'Item has been removed from your cart' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to remove item', variant: 'destructive' });
+    }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
-    updateCartInStorage([]);
-    
-    toast({
-      title: "Cart cleared",
-      description: "All items have been removed from your cart",
-    });
+  const clearCart = async () => {
+    if (!user) return;
+    try {
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          items: [] as unknown as Json[],
+          total_amount: 0,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('role', user.role)
+        .eq('status', 'cart');
+      if (error) throw error;
+      setCartItems([]);
+      toast({ title: 'Cart cleared', description: 'All items have been removed from your cart' });
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to clear cart', variant: 'destructive' });
+    }
   };
 
   const getTotalPrice = () => {
     return cartItems.reduce((total, item) => total + (item.price * item.quantity), 0);
   };
 
-  const handleCheckout = async () => {
-    if (cartItems.length === 0) {
-      toast({
-        title: "Cart is empty",
-        description: "Please add items to your cart before checkout",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (!user) {
-      toast({
-        title: "Not authenticated",
-        description: "Please log in to checkout",
-        variant: "destructive",
-      });
-      return;
-    }
-    setIsLoading(true);
-    try {
-      // 1. Fetch the cart
-      const { data: existingCart, error: fetchError } = await supabase
-        .from('orders')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('role', user.role)
-        .eq('status', 'cart')
-        .single();
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-4">Please log in to view your cart and checkout.</h2>
+          <Button onClick={() => navigate('/login')}>Go to Login</Button>
+        </div>
+      </div>
+    );
+  }
 
-      if (fetchError && fetchError.code !== 'PGRST116') throw fetchError;
-
-      if (existingCart) {
-        // 2. Update the cart to 'pending' and assign a new order_number
-        const { data, error } = await supabase
-          .from('orders')
-          .update({
-            status: 'pending',
-            order_number: `ORDER-${user.id}-${Date.now()}`,
-            updated_at: new Date().toISOString(),
-            total_amount: getTotalPrice(),
-          })
-          .eq('id', existingCart.id)
-          .select()
-          .single();
-        if (error) throw error;
-      } else {
-        // 3. Insert a new cart and immediately update to 'pending'
-        const { data: newCart, error: insertError } = await supabase
-          .from('orders')
-          .insert({
-            user_id: user.id,
-            status: 'pending',
-            role: user.role,
-            items: cartItems as unknown as Json,
-            total_amount: getTotalPrice(),
-            updated_at: new Date().toISOString(),
-            order_number: `ORDER-${user.id}-${Date.now()}`,
-          })
-          .select()
-          .single();
-        if (insertError) throw insertError;
-      }
-
-      setCartItems([]);
-      updateCartInStorage([]);
-      toast({
-        title: "Checkout successful",
-        description: "Your order has been placed",
-      });
-      setIsLoading(false);
-    } catch (error) {
-      setIsLoading(false);
-      toast({
-        title: "Error",
-        description: "Failed to process checkout",
-        variant: "destructive",
-      });
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div>Loading cart...</div>
+      </div>
+    );
+  }
 
   if (cartItems.length === 0) {
     return (
@@ -179,7 +167,6 @@ const Cart = () => {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Shopping Cart</h1>
           <p className="text-gray-600 text-lg">{cartItems.length} items in your cart</p>
         </div>
-
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
@@ -196,14 +183,12 @@ const Cart = () => {
                     <div className="w-16 h-16 bg-gray-200 rounded-lg flex items-center justify-center">
                       <ShoppingCart className="h-6 w-6 text-gray-400" />
                     </div>
-                    
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg">{item.name}</h3>
                       <p className="text-gray-600 text-sm">{item.manufacturer}</p>
                       <p className="text-gray-500 text-sm">{item.category}</p>
                       <p className="font-bold text-lg text-blue-600">TZS {item.price.toLocaleString()}</p>
                     </div>
-                    
                     <div className="flex items-center gap-2">
                       <Button
                         variant="outline"
@@ -213,15 +198,7 @@ const Cart = () => {
                       >
                         <Minus className="h-4 w-4" />
                       </Button>
-                      
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                        className="w-20 text-center"
-                        min="1"
-                      />
-                      
+                      <span className="w-8 text-center">{item.quantity}</span>
                       <Button
                         variant="outline"
                         size="sm"
@@ -230,7 +207,6 @@ const Cart = () => {
                         <Plus className="h-4 w-4" />
                       </Button>
                     </div>
-                    
                     <div className="text-right">
                       <p className="font-bold text-lg">TZS {(item.price * item.quantity).toLocaleString()}</p>
                       <Button
@@ -247,10 +223,9 @@ const Cart = () => {
               </CardContent>
             </Card>
           </div>
-
           {/* Order Summary */}
-          <div>
-            <Card className="sticky top-8">
+          <div className="lg:col-span-1">
+            <Card>
               <CardHeader>
                 <CardTitle>Order Summary</CardTitle>
               </CardHeader>
@@ -271,13 +246,42 @@ const Cart = () => {
                     </div>
                   </div>
                 </div>
-                
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={() => navigate('/catalog')}
+                <Button
+                  className="w-full flex items-center gap-2 bg-gradient-to-r from-blue-600 to-green-500 text-white text-lg py-3"
+                  onClick={async () => {
+                    setIsLoading(true);
+                    try {
+                      const response = await fetch("/api/create-checkout-session", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                          amount: Math.round(getTotalPrice() * 100),
+                          currency: "usd",
+                          productName: `Bepawa Order for ${user?.email}`,
+                          success_url: window.location.origin + "/checkout-success",
+                          cancel_url: window.location.origin + "/cart",
+                        }),
+                      });
+                      const data = await response.json();
+                      if (data.url) {
+                        window.location.href = data.url;
+                      } else {
+                        throw new Error(data.error || "Failed to create checkout session");
+                      }
+                    } catch (err) {
+                      toast({
+                        title: "Checkout Error",
+                        description: err.message || "Could not start checkout.",
+                        variant: "destructive",
+                      });
+                    } finally {
+                      setIsLoading(false);
+                    }
+                  }}
+                  disabled={isLoading || cartItems.length === 0}
                 >
-                  Continue Shopping
+                  <CreditCard className="h-5 w-5" />
+                  {isLoading ? "Redirecting..." : "Checkout with Stripe"}
                 </Button>
               </CardContent>
             </Card>

@@ -29,7 +29,8 @@ const PatientSearch = ({ onPatientSelect, selectedPatient }: PatientSearchProps)
   const [showResults, setShowResults] = useState(false);
 
   const searchPatients = async (term: string) => {
-    if (!term.trim() || term.length < 2) {
+    const searchTerm = (term || '').trim();
+    if (!searchTerm || searchTerm.length < 2) {
       setPatients([]);
       return;
     }
@@ -40,7 +41,7 @@ const PatientSearch = ({ onPatientSelect, selectedPatient }: PatientSearchProps)
       const { data, error } = await supabase
         .from('profiles')
         .select('id, email, full_name, phone, role, created_at')
-        .or(`full_name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+        .or(`full_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
         .eq('role', 'individual') // Only search for individual users (patients)
         .eq('is_approved', true) // Only approved profiles
         .limit(10);
@@ -51,7 +52,7 @@ const PatientSearch = ({ onPatientSelect, selectedPatient }: PatientSearchProps)
           const { data: fallbackData, error: fallbackError } = await supabase
             .from('profiles')
             .select('id, email, name, phone, role, created_at')
-            .or(`name.ilike.%${term}%,email.ilike.%${term}%,phone.ilike.%${term}%`)
+            .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
             .eq('role', 'individual')
             .eq('is_approved', true)
             .limit(10);
